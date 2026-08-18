@@ -1,25 +1,16 @@
-# Core
 numpy>=1.24
 pandas>=2.0
 matplotlib>=3.7
 seaborn>=0.13
 scipy>=1.10
 
-# Classical ML / CV
 scikit-learn>=1.3
 scikit-image>=0.21
-opencv-python>=4.8
+opencv-python-headless>=4.8
 
-# Notebook / App
-jupyter>=1.0
 streamlit
 pillow
 
-# Optional (Deep Learning & Tuning)
 optuna>=3.4
 torch>=2.1
 torchvision>=0.16
-
-# Web App (Streamlit Deployment)
-streamlit
-pillow
