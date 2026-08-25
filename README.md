@@ -118,6 +118,3 @@ Both `train.py` and `train_medical.py` download their datasets on the first run.
 
 The model is trained on 28×28 grayscale FashionMNIST images. For better results, use a clear, centered image of a single clothing item. The application converts images to grayscale, resizes them, and inverts their colors before inference.
 
-## License
-
-No license file is currently included. Add an appropriate open-source license before publishing or redistributing the project.
