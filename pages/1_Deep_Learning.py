@@ -27,7 +27,15 @@ preprocess = transforms.Compose([
     transforms.ToTensor()                       
 ])
 
-uploaded_file = st.file_uploader("Please upload an image of clothing (jpg/png)...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader(
+    "Upload a clothing image (JPG/PNG)",
+    type=["jpg", "jpeg", "png"]
+)
+
+st.caption(
+    "Supported classes: T-shirt/top, Trouser, Pullover, Dress, Coat, "
+    "Sandal, Shirt, Sneaker, Bag, Ankle boot."
+)
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file)

@@ -12,5 +12,6 @@ streamlit
 pillow
 
 optuna>=3.4
-torch>=2.1
-torchvision>=0.16
+
+torch==2.10.0
+torchvision==0.25.0
