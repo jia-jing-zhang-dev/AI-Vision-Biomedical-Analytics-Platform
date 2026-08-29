@@ -56,3 +56,5 @@ with col2:
         caption="Lymphocyte Segmentation Image Demo",
         use_container_width=True
     )
+
+st.write("VERSION: 2026-08-28 UPDATE")
