@@ -28,6 +28,12 @@ with col1:
     st.write("- A fully connected neural network built with PyTorch.")
     st.write("- Supports real-time image uploads for 10-class classification.")
 
+    st.image(
+        "public/fashion-demo.png",
+        caption="FashionMNIST Classification Demo",
+        use_container_width=True
+    )
+
 with col2:
     st.subheader("🔬 Module 2: Biomedical Image Segmentation")
     st.write(
@@ -37,4 +43,16 @@ with col2:
     st.write(
         "- Automatically calculates and outputs **Dice / IoU** "
         "performance metrics for biomedical image segmentation."
+    )
+
+    st.image(
+        "public/segmentation-demo.png",
+        caption="Synthetic Biomedical Image Demo",
+        use_container_width=True
+    )
+
+    st.image(
+        "public/Lymphocyte-demo.png",
+        caption="Lymphocyte Segmentation Image Demo",
+        use_container_width=True
     )
