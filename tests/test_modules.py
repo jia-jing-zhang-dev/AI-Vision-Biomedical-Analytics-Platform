@@ -6,6 +6,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
+import pytest
 from sklearn.datasets import load_iris, make_blobs
 from sklearn.model_selection import train_test_split
 
@@ -43,6 +44,16 @@ def test_classification_pipeline_runs():
         assert 0.0 <= r.accuracy <= 1.0
     # sorted best-first
     assert results[0].accuracy >= results[-1].accuracy
+
+
+def test_optuna_tuning_reports_held_out_test_accuracy():
+    pytest.importorskip("optuna")
+    from src.classification import tune_with_optuna
+    X, y = load_iris(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+    study = tune_with_optuna(X_train, y_train, X_test, y_test, n_trials=5)
+    assert 0.0 <= study.best_value <= 1.0
+    assert 0.0 <= study.user_attrs["test_accuracy"] <= 1.0
 
 
 def test_segmentation_metrics_are_bounded():
@@ -92,6 +103,19 @@ def test_brightfield_images_are_inverted_before_segmentation():
     assert not has_bright_background(img)
     assert has_bright_background(brightfield)
     assert np.array_equal(run_all(img)["Otsu"], run_all(brightfield)["Otsu"])
+
+
+def test_convolve2d_matches_scipy_on_non_square_images():
+    from scipy.signal import convolve2d as scipy_convolve2d
+    rng = np.random.default_rng(0)
+    for shape in [(20, 30), (30, 20)]:
+        image = rng.random(shape)
+        for name in ("sobel_x", "sharpen"):
+            out = convolve2d(image, KERNELS[name], padding=1)
+            assert out.shape == shape
+            assert np.allclose(out, scipy_convolve2d(image, KERNELS[name], mode="same"))
+    strided = convolve2d(rng.random((21, 31)), KERNELS["box_blur"], padding=1, stride=2)
+    assert strided.shape == (11, 16)
 
 
 def test_convolve2d_output_shape():

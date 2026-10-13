@@ -8,6 +8,8 @@ from src.segmentation import (
     make_synthetic_image, run_all,
 )
 
+MAX_UPLOAD_SIDE = 1024
+
 st.title("🔬 Biomedical Image & Cell Segmentation System")
 st.write(
     "Supports both **Benchmark Evaluation Mode** and **Custom Medical Image Upload Mode**, "
@@ -114,8 +116,14 @@ else:
     )
 
     if uploaded_file is not None:
-        # Read and convert to grayscale
+        # Read and convert to grayscale; large photos are downscaled so six
+        # full-resolution result figures fit in Streamlit Cloud's memory.
         pil_img = Image.open(uploaded_file).convert("L")
+        if max(pil_img.size) > MAX_UPLOAD_SIDE:
+            original_size = pil_img.size
+            pil_img.thumbnail((MAX_UPLOAD_SIDE, MAX_UPLOAD_SIDE), Image.Resampling.LANCZOS)
+            st.caption(f"Resized from {original_size[0]}×{original_size[1]} to "
+                       f"{pil_img.size[0]}×{pil_img.size[1]} for processing.")
         img = np.array(pil_img)
 
         st.image(

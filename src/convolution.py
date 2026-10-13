@@ -68,12 +68,12 @@ def convolve2d(image: np.ndarray, kernel: np.ndarray, padding: int = 0, stride: 
     else:
         padded = image
 
-    for y in range(out_h):
+    for y in range(out_h):          # y indexes rows, x indexes columns
         y0 = y * stride
         for x in range(out_w):
             x0 = x * stride
-            region = padded[x0:x0 + kh, y0:y0 + kw]
-            output[x, y] = float((kernel * region).sum())
+            region = padded[y0:y0 + kh, x0:x0 + kw]
+            output[y, x] = float((kernel * region).sum())
 
     return output
 

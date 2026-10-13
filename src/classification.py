@@ -88,8 +88,12 @@ def compare_classifiers(X_train, y_train, X_test, y_test) -> list[ModelResult]:
 
 def tune_with_optuna(X_train, y_train, X_test, y_test, n_trials: int = 50):
     """Hyperparameter / model-family search over {SVC, RandomForest,
-    DecisionTree} using Optuna. Requires the optional `optuna` package
-    (``pip install optuna``); raises a clear ImportError otherwise.
+    DecisionTree} using Optuna. Trials are scored by 3-fold cross-validation
+    on the training set only; the test set is used once, to report the best
+    configuration's accuracy (stored as ``study.user_attrs["test_accuracy"]``).
+
+    Requires the optional `optuna` package (``pip install optuna``); raises a
+    clear ImportError otherwise.
     """
     try:
         import optuna
@@ -102,25 +106,31 @@ def tune_with_optuna(X_train, y_train, X_test, y_test, n_trials: int = 50):
     import sklearn.svm
     import sklearn.ensemble
     from sklearn import tree
+    from sklearn.model_selection import cross_val_score
+
+    def build(params: dict):
+        if params["classifier"] == "SVC":
+            return sklearn.svm.SVC(C=params["svc_c"], gamma="auto")
+        if params["classifier"] == "DecisionTree":
+            return tree.DecisionTreeClassifier(random_state=0)
+        return sklearn.ensemble.RandomForestClassifier(
+            max_depth=params["rf_max_depth"], n_estimators=100, random_state=0
+        )
 
     def objective(trial: "optuna.Trial") -> float:
         classifier_name = trial.suggest_categorical(
             "classifier", ["SVC", "RandomForest", "DecisionTree"]
         )
         if classifier_name == "SVC":
-            svc_c = trial.suggest_float("svc_c", 1e-3, 1e3, log=True)
-            clf = sklearn.svm.SVC(C=svc_c, gamma="auto")
-        elif classifier_name == "DecisionTree":
-            clf = tree.DecisionTreeClassifier()
-        else:
-            rf_max_depth = trial.suggest_int("rf_max_depth", 2, 32, log=True)
-            clf = sklearn.ensemble.RandomForestClassifier(
-                max_depth=rf_max_depth, n_estimators=100
-            )
-        clf.fit(X_train, y_train)
-        y_pred = clf.predict(X_test)
-        return accuracy_score(y_test, y_pred)
+            trial.suggest_float("svc_c", 1e-3, 1e3, log=True)
+        elif classifier_name == "RandomForest":
+            trial.suggest_int("rf_max_depth", 2, 32, log=True)
+        return cross_val_score(build(trial.params), X_train, y_train, cv=3).mean()
 
-    study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(direction="maximize",
+                                sampler=optuna.samplers.TPESampler(seed=0))
     study.optimize(objective, n_trials=n_trials)
+
+    best = build(study.best_params).fit(X_train, y_train)
+    study.set_user_attr("test_accuracy", accuracy_score(y_test, best.predict(X_test)))
     return study
