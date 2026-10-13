@@ -90,7 +90,8 @@ def save_confusion_matrix(model, test_loader, device: str, path: str, title: str
     print(f"Saved confusion matrix to {path}")
 
 
-def main():
+def parse_args(argv=None) -> argparse.Namespace:
+    """Parses and validates the command line; fills in per-model defaults."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", choices=["cnn", "mlp", "resnet18"], default="cnn")
     parser.add_argument("--epochs", type=int, default=None,
@@ -102,16 +103,32 @@ def main():
     parser.add_argument("--data-dir", default="./data")
     parser.add_argument("--out", default=None,
                         help="weights file (default: biomedical_cnn.pth / biomedical_resnet18.pth)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     # Options that only apply to some models are rejected rather than silently ignored.
     if args.optuna and args.model != "cnn":
         parser.error("--optuna only applies to --model cnn")
     if args.model == "mlp" and (args.out or args.epochs is not None):
         parser.error("--model mlp reproduces the fixed original baseline (5 epochs, no saved "
                      "weights); --epochs and --out do not apply")
-
     if args.epochs is None:
         args.epochs = 10 if args.model == "resnet18" else 15
+    return args
+
+
+def output_paths(model: str, out=None) -> dict:
+    """Where a run writes its weights, results JSON and confusion matrix.
+    The README/app figure is only replaced when the default weights file is
+    written; runs with --out keep everything next to their own weights.
+    """
+    weights = out or ("biomedical_resnet18.pth" if model == "resnet18" else "biomedical_cnn.pth")
+    stem = Path(weights).with_suffix("").as_posix()   # same on Windows and Linux
+    suffix = "-resnet18" if model == "resnet18" else ""
+    figure = f"public/bloodmnist-confusion{suffix}.png" if out is None else stem + "_confusion.png"
+    return {"weights": weights, "results": stem + "_results.json", "figure": figure}
+
+
+def main(argv=None):
+    args = parse_args(argv)
     set_deterministic(args.seed)   # bit-identical reruns on the same hardware
     device = get_device()
 
@@ -119,7 +136,7 @@ def main():
         print(f"MLP baseline test accuracy: {train_mlp_baseline(device, args.data_dir):.4f}")
         return
 
-    out = args.out or ("biomedical_resnet18.pth" if args.model == "resnet18" else "biomedical_cnn.pth")
+    paths = output_paths(args.model, args.out)
     train_loader, val_loader, test_loader = get_bloodmnist_loaders(
         batch_size=64 if args.model == "resnet18" else 128, data_dir=args.data_dir, arch=args.model)
 
@@ -139,18 +156,14 @@ def main():
     print(f"Validation accuracy: {val_acc:.4f}")
     print(f"Test accuracy:       {test_acc:.4f}")
 
-    torch.save({"params": params, "state_dict": model.state_dict()}, out)
-    stem = str(Path(out).with_suffix(""))
-    with open(stem + "_results.json", "w") as f:
+    torch.save({"params": params, "state_dict": model.state_dict()}, paths["weights"])
+    with open(paths["results"], "w") as f:
         json.dump({"params": params, "seed": args.seed, "epochs": args.epochs,
                    "optuna_trials": args.optuna, "val_accuracy": val_acc,
                    "test_accuracy": test_acc}, f, indent=2)
-    print(f"Saved weights to {out}")
-    suffix = "-resnet18" if args.model == "resnet18" else ""
+    print(f"Saved weights to {paths['weights']}")
     title = "ResNet-18 (pretrained)" if args.model == "resnet18" else "Custom CNN"
-    # The README/app figure is only replaced when the default weights file is written.
-    figure = f"public/bloodmnist-confusion{suffix}.png" if args.out is None else stem + "_confusion.png"
-    save_confusion_matrix(model, test_loader, device, figure, title)
+    save_confusion_matrix(model, test_loader, device, paths["figure"], title)
 
 
 if __name__ == "__main__":

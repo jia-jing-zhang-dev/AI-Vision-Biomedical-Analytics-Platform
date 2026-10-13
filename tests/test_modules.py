@@ -22,7 +22,7 @@ from src.convolution import convolve2d, KERNELS
 def test_kmeans_explorer_selects_best_k():
     X, _ = make_blobs(n_samples=200, centers=4, random_state=7)
     explorer = KMeansExplorer(k_range=range(2, 7)).fit(X)
-    assert explorer.best_k_ in range(2, 7)
+    assert explorer.best_k_ == 4                       # the data has 4 blobs
     assert 0 <= explorer.silhouette_scores_[explorer.best_k_] <= 1
 
 
@@ -119,10 +119,6 @@ def test_convolve2d_matches_scipy_on_non_square_images():
     assert strided.shape == (11, 16)
 
 
-def test_convolve2d_output_shape():
-    image = np.random.rand(20, 20)
-    out = convolve2d(image, KERNELS["box_blur"], padding=1)
-    assert out.shape == (20, 20)
 
 
 def test_evaluate_detects_ground_truth_type_by_dtype():

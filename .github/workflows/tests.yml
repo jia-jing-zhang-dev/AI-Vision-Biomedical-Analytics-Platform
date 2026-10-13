@@ -25,6 +25,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
+      # Cellpose downloads its model from cellpose.org on first use; cache it so
+      # an outage there cannot fail the tests.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cellpose
+          key: cellpose-models-v1
       - name: Install dependencies (CPU-only PyTorch)
         run: |
           pip install torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cpu

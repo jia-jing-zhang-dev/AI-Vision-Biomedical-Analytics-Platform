@@ -26,7 +26,7 @@ def save_example(path: str, seed: int = 0, include_cellpose: bool = True):
     img, gt = make_cell_image(seed=seed)
     panels = [
         ("Input (uneven illumination, noise)", img, "gray"),
-        (f"Ground truth ({gt.max()} cells)", color_labels(gt), None),
+        (f"Ground truth ({len(np.unique(label_objects(gt))) - 1} cells)", color_labels(gt), None),
         ("Otsu + connected components", color_labels(label_objects(segment_otsu(img))), None),
         ("Top-hat + watershed", color_labels(label_objects(segment_watershed(img))), None),
     ]
@@ -43,12 +43,13 @@ def save_example(path: str, seed: int = 0, include_cellpose: bool = True):
     print(f"Saved example figure to {path}")
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--images", type=int, default=10)
     parser.add_argument("--start-seed", type=int, default=0)
     parser.add_argument("--no-cellpose", action="store_true")
-    args = parser.parse_args()
+    parser.add_argument("--figure", default="public/cell-segmentation-benchmark.png")
+    args = parser.parse_args(argv)
     use_cellpose = cellpose_available() and not args.no_cellpose
     if not use_cellpose and not args.no_cellpose:
         print('Cellpose is not installed; run `pip install "cellpose<4"` to include it.')
@@ -59,7 +60,7 @@ def main():
               f"{r['dice']:>10.3f} ± {r['dice_std']:.3f}"
               f"{r['iou']:>10.3f} ± {r['iou_std']:.3f}"
               f"{r['instance_f1']:>12.3f} ± {r['instance_f1_std']:.3f}")
-    save_example("public/cell-segmentation-benchmark.png", include_cellpose=use_cellpose)
+    save_example(args.figure, include_cellpose=use_cellpose)
 
 
 if __name__ == "__main__":

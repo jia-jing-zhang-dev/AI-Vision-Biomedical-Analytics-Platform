@@ -1,0 +1,284 @@
+"""Tests that pin behaviour precisely enough to catch subtle regressions:
+hand-computed metric values, pinned benchmark numbers, shipped-model
+accuracy on bundled samples, and the guarantees behind earlier fixes
+(no test-set tuning, deterministic training, CLI validation). Run with:
+    pytest tests/
+"""
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from pathlib import Path
+
+import numpy as np
+import pytest
+from PIL import Image
+
+from src.convolution import convolve2d
+from src.segmentation import (
+    benchmark, dice, evaluate, has_bright_background, instance_f1, label_objects,
+)
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+# ------------------------------------------------------------------ metrics
+def test_dice_and_iou_on_a_hand_computed_partial_overlap():
+    a = np.zeros(10, bool); a[0:4] = True                 # 4 pixels
+    b = np.zeros(10, bool); b[2:8] = True                 # 6 pixels, 2 shared
+    assert dice(a, b) == pytest.approx(2 * 2 / (4 + 6))   # 0.4
+    from src.segmentation import iou
+    assert iou(a, b) == pytest.approx(2 / 8)              # 0.25
+
+
+def test_instance_f1_on_a_hand_computed_case():
+    gt = np.zeros((10, 30), np.int32)
+    gt[2:8, 1:7], gt[2:8, 11:17], gt[2:8, 21:27] = 1, 2, 3     # 3 true cells
+    pred = np.zeros_like(gt)
+    pred[2:8, 1:7] = 1                                         # exact match
+    pred[2:4, 11:17] = 2                                       # IoU 1/3 < 0.5: a miss
+    f1, n_true, n_pred = instance_f1(gt, pred)
+    assert (n_true, n_pred) == (3, 2)
+    assert f1 == pytest.approx(2 * 1 / (3 + 2))                # 0.4, not recall 1/3
+
+
+def test_label_objects_filters_small_objects_without_touching_its_input():
+    labels = np.zeros((20, 20), np.int32)
+    labels[0:4, 0:5] = 1             # 20 px: kept
+    labels[10:13, 10:16] = 2         # 18 px: dropped
+    before = labels.copy()
+    out = label_objects(labels, min_size=20)
+    assert np.array_equal(labels, before)                      # caller's array unchanged
+    assert set(np.unique(out)) == {0, 1}
+
+    mask = np.zeros((20, 20), np.uint8)
+    mask[0:5, 0:5] = 255
+    mask[5:10, 5:10] = 255                                     # touches only diagonally
+    assert label_objects(mask, min_size=1).max() == 1          # 8-connectivity: one object
+
+
+def test_evaluate_rows_are_sorted_by_dice():
+    gt = np.zeros((10, 10), np.uint8); gt[2:8, 2:8] = 1
+    worse = np.zeros_like(gt); worse[2:5, 2:5] = 1
+    rows = evaluate(gt, {"worse": worse, "perfect": gt.copy()})
+    assert [r["method"] for r in rows] == ["perfect", "worse"]
+
+
+# ------------------------------------------------------------ segmentation
+def test_benchmark_numbers_are_pinned():
+    # Guards the README's segmentation results against silent method changes.
+    scores = {r["method"]: r for r in benchmark(n_images=5)}
+    assert scores["Watershed"]["instance_f1"] == pytest.approx(0.8111, abs=0.01)
+    assert scores["Otsu"]["instance_f1"] == pytest.approx(0.5820, abs=0.01)
+    assert scores["Watershed"]["dice"] == pytest.approx(0.9435, abs=0.01)
+    assert scores["Adaptive"]["dice"] == pytest.approx(0.7957, abs=0.01)
+
+
+def test_bright_object_on_dark_background_is_not_brightfield():
+    img = np.full((60, 60), 20, np.uint8)
+    img[5:55, 5:55] = 220                       # bright object covering ~70% of the image
+    assert not has_bright_background(img)
+
+
+def test_brightfield_is_judged_by_the_whole_border():
+    # Tall image: the light side columns are 75% of the border, the top and
+    # bottom rows are dark. Checking only some edges, or demanding 90%, fails.
+    img = np.full((60, 20), 30, np.uint8)
+    img[:, :2] = img[:, -2:] = 230
+    img[25:35, 8:12] = 230
+    assert has_bright_background(img)
+
+
+# ------------------------------------------------------------- convolution
+def test_convolve2d_matches_scipy_for_asymmetric_kernels_and_stride():
+    from scipy.signal import convolve2d as scipy_convolve2d
+    rng = np.random.default_rng(1)
+    image, kernel = rng.random((17, 23)), rng.random((3, 4))   # no symmetry at all
+    assert np.allclose(convolve2d(image, kernel, padding=0), scipy_convolve2d(image, kernel, mode="valid"))
+    kernel3 = rng.random((3, 3))
+    same = scipy_convolve2d(image, kernel3, mode="same")
+    assert np.allclose(convolve2d(image, kernel3, padding=1, stride=2), same[::2, ::2])
+
+
+# ------------------------------------------------------------ image input
+def test_palette_and_la_transparency_become_white():
+    from src.image_io import to_8bit
+    p = Image.new("P", (4, 4), 0)
+    p.putpalette([0, 0, 0] * 256)
+    p.info["transparency"] = 0
+    la = Image.new("LA", (4, 4), (0, 0))
+    for img in (p, la):
+        assert tuple(np.asarray(to_8bit(img, "RGB"))[0, 0]) == (255, 255, 255)
+
+
+def test_flat_16bit_image_maps_to_black():
+    from src.image_io import to_8bit
+    flat = Image.fromarray(np.full((8, 8), 40000, np.uint16))
+    assert np.asarray(to_8bit(flat, "L")).max() == 0
+
+
+def test_predict_proba_uses_the_normalized_image():
+    pytest.importorskip("torch")
+    from src.image_io import to_8bit
+    from src.medical_cnn import load_model, predict_proba
+    model = load_model(str(ROOT / "biomedical_cnn.pth"))
+    sample = np.asarray(Image.open(ROOT / "public/blood_samples/3_immature_granulocyte.png").convert("L"))
+    img16 = Image.fromarray(sample.astype(np.uint16) * 200)
+    assert np.allclose(predict_proba(model, img16), predict_proba(model, to_8bit(img16, "RGB")))
+
+
+# --------------------------------------------------------- shipped models
+def test_fashion_model_classifies_bundled_samples_in_both_polarities():
+    torch = pytest.importorskip("torch")
+    from PIL import ImageOps
+    from src.vision_cnn import FASHION_MNIST_CLASSES, build_model, prepare_upload
+    model, device = build_model()
+    model.load_state_dict(torch.load(ROOT / "fashion_model.pth", map_location=device, weights_only=True))
+    model.eval()
+    samples = sorted((ROOT / "public" / "fashion_samples").glob("*.png"))
+    assert len(samples) == len(FASHION_MNIST_CLASSES)
+    for transform in (lambda im: im, ImageOps.invert):          # FashionMNIST style and photo style
+        correct = 0
+        with torch.no_grad():
+            for path in samples:
+                x = prepare_upload(transform(Image.open(path).convert("L"))).to(device)
+                correct += model(x).argmax(1).item() == int(path.stem.split("_", 1)[0])
+        assert correct >= 8, correct                            # model is 86.9% accurate
+
+
+# ------------------------------------------------- tuning never sees test
+def test_optuna_tunes_on_training_data_only_and_scales_svc(monkeypatch):
+    pytest.importorskip("optuna")
+    import sklearn.model_selection
+    from sklearn.datasets import load_digits
+    from sklearn.model_selection import train_test_split
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    from src import classification
+
+    X, y = load_digits(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+    calls, real = [], sklearn.model_selection.cross_val_score
+
+    def spy(estimator, X_, y_, **kw):
+        calls.append((estimator, X_))
+        return real(estimator, X_, y_, **kw)
+
+    monkeypatch.setattr(sklearn.model_selection, "cross_val_score", spy)
+    study = classification.tune_with_optuna(X_train, y_train, X_test, y_test, n_trials=8)
+    assert calls and all(X_ is X_train for _, X_ in calls)
+    svcs = [e for e, _ in calls if "SVC" in type(e).__name__ or isinstance(e, Pipeline)]
+    assert svcs and all(isinstance(e, Pipeline) and isinstance(e.steps[0][1], StandardScaler) for e in svcs)
+    best = study.user_attrs["test_accuracy"]
+    assert best != pytest.approx(study.best_value, abs=1e-12)   # reported on test, not the CV score
+
+
+def test_compare_classifiers_ranks_by_training_cross_validation(monkeypatch):
+    import sklearn.model_selection
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from src.classification import compare_classifiers
+    X, y = load_iris(return_X_y=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+    seen, real = [], sklearn.model_selection.cross_val_score
+    monkeypatch.setattr(sklearn.model_selection, "cross_val_score",
+                        lambda est, X_, y_, **kw: seen.append(X_) or real(est, X_, y_, **kw))
+    compare_classifiers(X_train, y_train, X_test, y_test)
+    assert len(seen) == 3 and all(X_ is X_train for X_ in seen)
+
+
+# ------------------------------------------------------------- training
+def test_fit_restores_the_best_validation_epoch(monkeypatch):
+    torch = pytest.importorskip("torch")
+    from src import medical_cnn
+    model = torch.nn.Linear(1, 1)
+    scripted = iter([0.5, 0.9, 0.7])
+
+    def fake_epoch(m, *args):
+        with torch.no_grad():
+            m.weight.fill_(m.weight.item() + 1)               # weights differ every epoch
+        return 0.0
+
+    monkeypatch.setattr(medical_cnn, "train_one_epoch", fake_epoch)
+    monkeypatch.setattr(medical_cnn, "evaluate", lambda *a: (0.0, next(scripted)))
+    with torch.no_grad():
+        model.weight.fill_(0)
+    best = medical_cnn.fit(model, None, None, "cpu", epochs=3, verbose=False)
+    assert best == 0.9 and model.weight.item() == 2              # weights after epoch 2
+
+
+def test_fit_raises_when_validation_never_improves(monkeypatch):
+    torch = pytest.importorskip("torch")
+    from src import medical_cnn
+    monkeypatch.setattr(medical_cnn, "train_one_epoch", lambda *a: 0.0)
+    monkeypatch.setattr(medical_cnn, "evaluate", lambda *a: (0.0, 0.0))
+    with pytest.raises(RuntimeError, match="never rose"):
+        medical_cnn.fit(torch.nn.Linear(1, 1), None, None, "cpu", epochs=2, verbose=False)
+
+
+def test_set_deterministic_enables_reproducible_training():
+    torch = pytest.importorskip("torch")
+    from src.medical_cnn import BloodCNN, set_deterministic
+    try:
+        outputs = []
+        for _ in range(2):
+            set_deterministic(123)
+            assert torch.are_deterministic_algorithms_enabled()
+            assert torch.backends.cudnn.deterministic and not torch.backends.cudnn.benchmark
+            model = BloodCNN(base_channels=4).train()             # dropout active
+            outputs.append(model(torch.rand(2, 3, 28, 28)))
+        assert torch.equal(outputs[0], outputs[1])
+    finally:
+        torch.use_deterministic_algorithms(False)
+        torch.backends.cudnn.deterministic = False
+
+
+# ------------------------------------------------------------------ CLIs
+@pytest.mark.parametrize("argv", [
+    ["--model", "resnet18", "--optuna", "5"],
+    ["--model", "mlp", "--optuna", "5"],
+    ["--model", "mlp", "--epochs", "3"],
+    ["--model", "mlp", "--out", "x.pth"],
+])
+def test_train_medical_rejects_inapplicable_options(argv):
+    import train_medical
+    with pytest.raises(SystemExit) as exc:
+        train_medical.parse_args(argv)
+    assert exc.value.code == 2
+
+
+@pytest.mark.parametrize("argv, epochs", [([], 15), (["--model", "resnet18"], 10),
+                                          (["--model", "cnn", "--optuna", "3"], 15),
+                                          (["--epochs", "4"], 4)])
+def test_train_medical_accepts_valid_options(argv, epochs):
+    import train_medical
+    assert train_medical.parse_args(argv).epochs == epochs
+
+
+def test_experiment_outputs_never_overwrite_shipped_files():
+    import train_medical
+    assert train_medical.output_paths("cnn") == {
+        "weights": "biomedical_cnn.pth", "results": "biomedical_cnn_results.json",
+        "figure": "public/bloodmnist-confusion.png"}
+    assert train_medical.output_paths("resnet18")["figure"] == "public/bloodmnist-confusion-resnet18.png"
+    exp = train_medical.output_paths("cnn", "runs/model")             # no .pth suffix
+    assert exp == {"weights": "runs/model", "results": "runs/model_results.json",
+                   "figure": "runs/model_confusion.png"}
+
+
+def test_benchmark_script_runs_and_writes_its_figure(tmp_path, capsys):
+    import benchmark_segmentation
+    figure = tmp_path / "fig.png"
+    benchmark_segmentation.main(["--images", "1", "--no-cellpose", "--figure", str(figure)])
+    assert figure.exists() and "Watershed" in capsys.readouterr().out
+
+
+# -------------------------------------------------------------- Cellpose
+def test_cellpose_falls_back_when_auto_diameter_finds_nothing():
+    pytest.importorskip("cellpose")
+    from src.segmentation import segment_cellpose
+    img = np.full((512, 512), 15, np.uint8)
+    for cy, cx in [(130, 130), (130, 380), (380, 255)]:          # three cells ~140 px across
+        yy, xx = np.ogrid[:512, :512]
+        img[(yy - cy) ** 2 + (xx - cx) ** 2 < 70 ** 2] = 200
+    assert segment_cellpose(img).max() >= 2
