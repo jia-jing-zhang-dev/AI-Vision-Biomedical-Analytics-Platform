@@ -178,6 +178,8 @@ def make_cell_image(h: int = 256, w: int = 256, n_cells: int = 45,
 # Segmentation methods
 # ----------------------------------------------------------------------
 def segment_otsu(img: np.ndarray) -> np.ndarray:
+    if img.min() == img.max():          # a flat image has no foreground
+        return np.zeros(img.shape, np.uint8)
     _, mask = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return mask
 
@@ -292,6 +294,8 @@ def has_bright_background(img: np.ndarray) -> bool:
     e.g. stained blood smears). The image border is mostly background, so the
     background is bright when most border pixels lie above the Otsu threshold.
     """
+    if img.min() == img.max():          # a flat image has no background/foreground
+        return False
     thresh, _ = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     border = np.concatenate([img[0], img[-1], img[:, 0], img[:, -1]])
     return bool((border > thresh).mean() > 0.5)

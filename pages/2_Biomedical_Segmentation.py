@@ -1,15 +1,16 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-from PIL import Image
 import matplotlib.pyplot as plt
-from src.image_io import to_8bit
+from src.image_io import UploadError, load_upload
 from src.segmentation import (
     benchmark, color_labels, evaluate, has_bright_background, label_objects, make_cell_image,
     make_synthetic_image, run_all, cellpose_available,
 )
 
 USE_CELLPOSE = cellpose_available()
+
+st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
 
 MAX_UPLOAD_SIDE = 1024
 
@@ -74,7 +75,8 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
             show_image(img, "Original Medical Scan", cmap="gray")
         with col2:
             if realistic:
-                show_image(color_labels(gt), f"Ground Truth ({gt.max()} cells)")
+                # Same count as the table: cells under 20 px are ignored in scoring
+                show_image(color_labels(gt), f"Ground Truth ({scores[0]['cells_true']} cells)")
             else:
                 show_image(gt, "Ground Truth", cmap="gray")
 
@@ -114,12 +116,14 @@ else:
     )
 
     if uploaded_file is not None:
-        # Read and convert to grayscale; large photos are downscaled so six
-        # full-resolution result figures fit in Streamlit Cloud's memory.
-        pil_img = to_8bit(Image.open(uploaded_file), "L")   # rescales 16-bit, flattens alpha
-        if max(pil_img.size) > MAX_UPLOAD_SIDE:
-            original_size = pil_img.size
-            pil_img.thumbnail((MAX_UPLOAD_SIDE, MAX_UPLOAD_SIDE), Image.Resampling.LANCZOS)
+        # 8-bit grayscale, upright, downscaled before any conversion so six
+        # result figures fit in Streamlit Cloud's memory.
+        try:
+            pil_img, original_size = load_upload(uploaded_file, mode="L", max_side=MAX_UPLOAD_SIDE)
+        except UploadError as err:
+            st.error(str(err))
+            st.stop()
+        if pil_img.size != original_size:
             st.caption(f"Resized from {original_size[0]}×{original_size[1]} to "
                        f"{pil_img.size[0]}×{pil_img.size[1]} for processing.")
         img = np.array(pil_img)

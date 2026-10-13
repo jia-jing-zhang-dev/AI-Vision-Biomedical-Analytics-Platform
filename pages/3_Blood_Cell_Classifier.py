@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
+from src.image_io import UploadError, load_upload
 from src.medical_cnn import CLASS_NAMES, load_model, predict_proba
 
 SAMPLE_DIR = Path("public/blood_samples")
@@ -33,6 +34,9 @@ def get_models(name_to_path: tuple):
 
 
 models = get_models(tuple(MODELS.items()))
+if not models:
+    st.error("No trained model weights found. Run `python train_medical.py` first.")
+    st.stop()
 
 
 def test_accuracy(weights: str):
@@ -64,7 +68,10 @@ else:
     uploaded_file = st.file_uploader("Upload a blood-cell image (JPG/PNG)",
                                      type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
-        image = Image.open(uploaded_file)
+        try:
+            image, _ = load_upload(uploaded_file, mode="RGB")   # 8-bit, upright, at most 1024 px
+        except UploadError as err:
+            st.error(str(err))
     st.caption(
         "The models expect a single, centered blood cell. Images are reduced to 28×28 RGB, "
         "so photos from a different microscope or stain may be classified poorly."

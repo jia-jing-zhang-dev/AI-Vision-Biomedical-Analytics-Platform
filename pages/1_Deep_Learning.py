@@ -1,7 +1,7 @@
 import streamlit as st
-from PIL import Image
 import torch
 
+from src.image_io import UploadError, load_upload
 from src.vision_cnn import FASHION_MNIST_CLASSES, build_model, prepare_upload
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
@@ -31,7 +31,11 @@ st.caption(
 )
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+    try:
+        image, _ = load_upload(uploaded_file, mode="RGB")   # 8-bit, upright, at most 1024 px
+    except UploadError as err:
+        st.error(str(err))
+        st.stop()
     st.image(image, caption="Uploaded Image", width=300)
     
     if st.button("Run the PyTorch Model for Classification"):

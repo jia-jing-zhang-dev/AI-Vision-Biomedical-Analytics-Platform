@@ -6,6 +6,7 @@ import importlib.util
 import io
 from pathlib import Path
 
+import numpy as np
 import pytest
 from PIL import Image, ImageDraw
 
@@ -179,3 +180,33 @@ def test_blood_page_classifies_an_uploaded_image():
     at.get("file_uploader")[0].upload("cell.png", png_bytes(big), "image/png").run()
     assert not at.exception
     assert at.success[0].value.startswith("**Prediction:** platelet (")
+
+
+# ------------------------------------------------- unusual uploads, every page
+def sixteen_bit_png() -> bytes:
+    arr = (np.random.default_rng(0).random((64, 64)) * 60000).astype(np.uint16)
+    return png_bytes(Image.fromarray(arr))
+
+
+@needs_upload
+@pytest.mark.parametrize("page", ["pages/1_Deep_Learning.py", "pages/3_Blood_Cell_Classifier.py", SEG])
+@pytest.mark.parametrize("kind", ["16-bit", "corrupt"])
+def test_every_page_handles_16bit_and_corrupt_uploads(page, kind):
+    at = run_page(page)
+    if page != "pages/1_Deep_Learning.py":
+        at.radio[0].set_value(at.radio[0].options[1]).run()
+    content = sixteen_bit_png() if kind == "16-bit" else b"definitely not a png"
+    at.get("file_uploader")[0].upload("upload.png", content, "image/png").run()
+    assert not at.exception, at.exception
+    if kind == "corrupt":
+        assert any("Could not read" in e.value for e in at.error)
+    else:
+        assert not at.error and len(at.image) >= 1
+
+
+def test_ground_truth_count_matches_table():
+    at = run_page(SEG)
+    at.number_input[0].set_value(5).run()                 # seed 5 has a cell under 20 px
+    click(at, "Run Biomedical Image Segmentation Pipeline")
+    n = at.dataframe[0].value["Cells (true)"].iloc[0]
+    assert any(s.value == f"Ground Truth ({n} cells)" for s in at.subheader)

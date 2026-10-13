@@ -43,7 +43,8 @@ with col2:
     st.write(
         "- Benchmarked with **Dice / IoU** and **instance F1**: the watershed raises "
         "instance F1 from 0.60 (Otsu) to 0.80 on images of touching cells; "
-        "Cellpose, the standard deep-learning tool, is included as a reference (0.90)."
+        "Cellpose, the standard deep-learning tool, scores 0.90 as a reference "
+        "(benchmarked offline; not run in this online demo)."
     )
 
     st.image(

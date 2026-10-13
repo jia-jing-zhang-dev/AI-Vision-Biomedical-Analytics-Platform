@@ -137,3 +137,61 @@ def test_eda_report_requires_a_numeric_column():
     from src.visualization import eda_report
     with pytest.raises(ValueError, match="numeric"):
         eda_report(pd.DataFrame({"a": ["x", "y"]}))
+
+
+# ------------------------------------------------------------- upload loading
+from src.image_io import MAX_UPLOAD_PIXELS, UploadError, load_upload  # noqa: E402
+from src.segmentation import has_bright_background, segment_otsu  # noqa: E402
+
+
+def png_bytes(img: Image.Image, **save_kwargs) -> io.BytesIO:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", **save_kwargs)
+    buf.seek(0)
+    return buf
+
+
+@pytest.mark.parametrize("payload", [b"not an image at all", b"", b"\x89PNG\r\n\x1a\n" + b"\0" * 40])
+def test_unreadable_uploads_raise_a_friendly_error(payload):
+    with pytest.raises(UploadError, match="Could not read"):
+        load_upload(io.BytesIO(payload))
+
+
+def test_truncated_upload_raises_a_friendly_error():
+    data = png_bytes(Image.new("RGB", (200, 200), (10, 120, 200))).getvalue()
+    with pytest.raises(UploadError):
+        load_upload(io.BytesIO(data[: len(data) // 2]))
+
+
+def test_oversized_upload_is_rejected_before_decoding():
+    side = int(MAX_UPLOAD_PIXELS ** 0.5) + 10
+    with pytest.raises(UploadError, match="megapixels"):
+        load_upload(png_bytes(Image.new("1", (side, side))))
+
+
+def test_large_16bit_upload_is_downscaled_and_rescaled():
+    arr = (np.linspace(0, 60000, 3000 * 2000).reshape(2000, 3000)).astype(np.uint16)
+    image, original = load_upload(png_bytes(Image.fromarray(arr)), mode="L", max_side=1024)
+    assert original == (3000, 2000)
+    assert image.mode == "L" and max(image.size) == 1024
+    values = np.asarray(image)
+    assert values.min() <= 1 and values.max() >= 254          # full range kept, not saturated
+
+
+def test_exif_orientation_is_applied():
+    upright = Image.new("RGB", (40, 80), "white")              # portrait
+    stored = upright.rotate(90, expand=True)                   # how a camera stores it (landscape pixels)
+    exif = Image.Exif()
+    exif[0x0112] = 6                                           # "rotate 90° clockwise to display"
+    buf = io.BytesIO()
+    stored.save(buf, format="JPEG", exif=exif.tobytes())
+    buf.seek(0)
+    image, original = load_upload(buf)
+    assert image.size == (40, 80) and original == (40, 80)
+
+
+@pytest.mark.parametrize("value", [3, 50, 128, 250])
+def test_flat_images_are_neither_brightfield_nor_foreground(value):
+    flat = np.full((64, 64), value, np.uint8)
+    assert not has_bright_background(flat)
+    assert not segment_otsu(flat).any()

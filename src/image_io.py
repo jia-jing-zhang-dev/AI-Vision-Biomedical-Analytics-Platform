@@ -1,20 +1,30 @@
 """
 image_io.py
 ===========
-Normalizes user-supplied images before any model sees them.
+Normalizes user-supplied images before any model or preview sees them.
 
 PIL's ``convert("L")`` / ``convert("RGB")`` clip 16-bit and float images
 instead of rescaling them (a 16-bit microscopy PNG becomes almost pure
 white), and drop the alpha channel so transparent areas turn black.
-``to_8bit`` fixes both.
+``to_8bit`` fixes both. ``load_upload`` is the single entry point for
+uploaded files: it rejects unreadable or oversized files with a readable
+message, applies the camera's EXIF orientation, and downsizes large images
+before any expensive conversion so the app stays within ~1 GB of memory.
 """
 
 from __future__ import annotations
 
+from typing import Tuple
+
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 HIGH_BIT_DEPTH_MODES = {"I", "I;16", "I;16B", "I;16L", "I;16N", "F"}
+MAX_UPLOAD_PIXELS = 25_000_000      # 5000 x 5000; keeps worst-case decoding near 200 MB
+
+
+class UploadError(ValueError):
+    """An uploaded file that cannot be used, with a message fit for the UI."""
 
 
 def to_8bit(image: Image.Image, mode: str = "RGB") -> Image.Image:
@@ -24,12 +34,47 @@ def to_8bit(image: Image.Image, mode: str = "RGB") -> Image.Image:
     - Transparent pixels are composited onto white.
     """
     if image.mode in HIGH_BIT_DEPTH_MODES:
-        arr = np.asarray(image, dtype=np.float64)
+        arr = np.asarray(image, dtype=np.float32)
         lo, hi = float(arr.min()), float(arr.max())
-        scaled = np.zeros_like(arr) if hi == lo else (arr - lo) / (hi - lo) * 255.0
+        scaled = np.zeros_like(arr) if hi == lo else (arr - lo) * (255.0 / (hi - lo))
         image = Image.fromarray(np.round(scaled).astype(np.uint8), mode="L")
     elif image.mode in ("RGBA", "LA", "PA") or (image.mode == "P" and "transparency" in image.info):
         rgba = image.convert("RGBA")
         background = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
         image = Image.alpha_composite(background, rgba)
     return image.convert(mode)
+
+
+def load_upload(source, mode: str = "RGB", max_side: int = 1024) -> Tuple[Image.Image, Tuple[int, int]]:
+    """Opens an uploaded file (path, file object or Streamlit UploadedFile).
+
+    Returns ``(image, original_size)``: an 8-bit ``mode`` image, upright
+    according to its EXIF orientation, whose longer side is at most
+    ``max_side``. Raises ``UploadError`` for unreadable, truncated or
+    oversized files.
+    """
+    try:
+        image = Image.open(source)
+        width, height = image.size
+        if width * height > MAX_UPLOAD_PIXELS:
+            raise UploadError(f"The image is {width}×{height} pixels; please upload one under "
+                              f"{MAX_UPLOAD_PIXELS // 1_000_000} megapixels.")
+        image.draft("RGB" if mode == "RGB" else "L", (max_side, max_side))  # JPEG: decode at reduced size
+        image.load()
+    except UploadError:
+        raise
+    except Image.DecompressionBombError:
+        raise UploadError("The image is too large; please upload one under "
+                          f"{MAX_UPLOAD_PIXELS // 1_000_000} megapixels.") from None
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
+        raise UploadError("Could not read this file as an image. Please upload a valid JPG or PNG.") from None
+
+    # Size as the user sees it: before JPEG draft decoding, after EXIF rotation.
+    rotated = image.getexif().get(0x0112) in (5, 6, 7, 8)
+    original_size = (height, width) if rotated else (width, height)
+    image = ImageOps.exif_transpose(image)
+    if max(image.size) > max_side:
+        if image.mode in HIGH_BIT_DEPTH_MODES:
+            image = image.convert("I") if image.mode != "F" else image   # resize-capable modes
+        image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+    return to_8bit(image, mode), original_size
