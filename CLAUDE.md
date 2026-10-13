@@ -37,6 +37,9 @@ streamlit run app.py
 - The user's Windows checkout lives under a very long path: datasets need the
   `\\?\` long-path prefix (see how `--data-dir` is passed), and `uv`/venvs in the
   scratch folder break. Use the global Python for local checks.
+- Training is deterministic via `set_deterministic(seed)`; every README number
+  must come from a committed script run. After retraining, re-check every
+  hard-coded number (README, `app.py`, pages, tests, this file).
 - BloodMNIST uploads must be reduced to 28×28 with **BOX** (area) resampling;
   bicubic flips predictions.
 - Brightfield images (light background) are inverted before segmentation
@@ -88,3 +91,4 @@ improves; CLI silently ignoring `--optuna`/`--epochs`; duplicated
 | Round | Extra focus | Verified findings | Fixed | Tests |
 |---|---|---|---|---|
 | 1 | Core-module correctness | 7 verified: adaptive threshold sign (background as foreground); 16-bit uploads saturated to white; FashionMNIST page always inverted (8.8% on its own test images); Cellpose empty on large cells; unseeded DecisionTree/silhouette/train.py; silhouette in wrong feature space; degenerate inputs (empty-mask Dice 0 vs F1 1, flat-image K-Means, tiny images, convolve2d/eda_report/KMeansExplorer validation) | All 7; added `src/image_io.py`; README Adaptive row re-measured | 29 → 44 |
+| 2 | ML methodology & reproducibility | 10 verified: CNN size claim wrong (2.2 MB / 20×, not 0.58 MB / 77×); GPU training non-deterministic (same seed gave 95.97–96.26%); train.py no longer reproduced 88.1%; ResNet command ran 15 instead of 10 epochs; default-CNN range and "Optuna within noise" claim unsupported; `--out` without .pth overwrote the weights and any run overwrote the README figure; `.dockerignore` lines fused; stale test count / structure; GT cells not size-filtered like predictions; `compare_classifiers` ranked by test accuracy | All 10; added `set_deterministic` (full rerun matches to the last digit); retrained every model and re-measured every number (CNN 96.7%, ResNet 97.9%, FashionMNIST 86.9%, instance F1 0.80 / 0.60 / Cellpose 0.90); MedMNIST comparison caveated | 44 → 44 (2 reworked) |
