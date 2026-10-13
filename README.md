@@ -140,7 +140,7 @@ Most of the gain comes from switching to a convolutional architecture with augme
 
 ![BloodMNIST confusion matrix](public/bloodmnist-confusion.png)
 
-The hardest classes are immature granulocytes and monocytes (92% recall each), which are mostly confused with each other.
+The hardest classes are immature granulocytes (91.7% recall, most often mistaken for neutrophils, which they mature into) and monocytes (91.9% recall, most often mistaken for immature granulocytes).
 
 *Data: [MedMNIST v2](https://medmnist.com/) BloodMNIST, CC BY 4.0. Educational project — not for clinical use.*
 
@@ -168,6 +168,8 @@ On a real brightfield blood smear, the light background is detected and the imag
 ![Brightfield example](public/brightfield-demo.png)
 
 **What this shows:** pixel-level Dice cannot tell the thresholding methods apart — they all find the foreground well. Instance F1 can: thresholding merges touching nuclei into one object, while the watershed, seeded at peaks of the distance transform, separates them (+0.19 instance F1). Top-hat illumination correction helps only slightly here, because Otsu is already fairly robust to this level of shading. Instance F1 counts a predicted object as correct when it overlaps a true cell with IoU > 0.5.
+
+Method parameters were chosen while looking at images 0–9. On 50 unseen images (seeds 100–149) the result holds: watershed 0.814 vs. Otsu 0.616 instance F1.
 
 The original three-shape image is still available as an "easy" sanity check, where Otsu, K-Means, top-hat and watershed all reach Dice 1.0.
 
