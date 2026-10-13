@@ -14,13 +14,18 @@ pytest.importorskip("torch")
 from streamlit.testing.v1 import AppTest
 
 ROOT = Path(__file__).resolve().parent.parent
-N_METHODS = 6 + int(importlib.util.find_spec("cellpose") is not None)
+N_METHODS_WITH_CELLPOSE = 6 + int(importlib.util.find_spec("cellpose") is not None)
 
 
 @pytest.fixture(autouse=True)
-def run_from_repo_root(monkeypatch):
+def run_from_repo_root(monkeypatch, request):
     monkeypatch.chdir(ROOT)
     monkeypatch.syspath_prepend(str(ROOT))
+    # Cellpose costs 3-14 s per page run on CPU. Only tests marked
+    # @pytest.mark.cellpose run it; the rest see the deployment's setup.
+    if request.node.get_closest_marker("cellpose") is None:
+        import src.segmentation
+        monkeypatch.setattr(src.segmentation, "cellpose_available", lambda: False)
 
 
 def run_page(name: str) -> AppTest:
@@ -79,11 +84,12 @@ def test_fashion_page_classifies_an_uploaded_image():
 SEG = "pages/2_Biomedical_Segmentation.py"
 
 
+@pytest.mark.cellpose
 def test_segmentation_realistic_benchmark_reports_instance_f1():
     at = click(run_page(SEG), "Run Biomedical Image Segmentation Pipeline")
     table = at.dataframe[0].value
     assert {"Dice", "IoU", "Instance F1", "Cells (true)", "Objects found"} <= set(table.columns)
-    assert len(table) == N_METHODS
+    assert len(table) == N_METHODS_WITH_CELLPOSE
     order = list(table["Method"])                         # sorted by instance F1
     assert order.index("Watershed") < order.index("Otsu")
     if "Cellpose" in order:

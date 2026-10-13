@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from src.image_io import UploadError, load_upload
 from src.segmentation import (
     benchmark, color_labels, evaluate, has_bright_background, label_objects, make_cell_image,
@@ -23,16 +22,18 @@ st.write(
 )
 
 
-def show_image(img, title, cmap=None, size=4):
-    if size >= 4:
-        st.subheader(title)
-    else:
+def show_image(img, title, small=False):
+    """Shows an array directly with st.image (rendering through matplotlib
+    took ~90% of this page's response time). Binary 0/1 masks are scaled
+    to 0/255 so they are visible.
+    """
+    if small:
         st.text(title)
-    fig, ax = plt.subplots(figsize=(size, size))
-    ax.imshow(img, cmap=cmap)
-    ax.axis('off')
-    st.pyplot(fig)
-    plt.close(fig)
+    else:
+        st.subheader(title)
+    if img.ndim == 2 and img.max() <= 1:
+        img = img.astype(np.uint8) * 255
+    st.image(img, width="stretch")
 
 
 def show_masks(results):
@@ -40,7 +41,7 @@ def show_masks(results):
     cols = st.columns(3)
     for i, (name, mask) in enumerate(results.items()):
         with cols[i % 3]:
-            show_image(color_labels(label_objects(mask)), name, size=2.5)
+            show_image(color_labels(label_objects(mask)), name, small=True)
 
 
 # Mode selection
@@ -72,13 +73,13 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
 
         col1, col2 = st.columns(2)
         with col1:
-            show_image(img, "Original Medical Scan", cmap="gray")
+            show_image(img, "Original Medical Scan")
         with col2:
             if realistic:
                 # Same count as the table: cells under 20 px are ignored in scoring
                 show_image(color_labels(gt), f"Ground Truth ({scores[0]['cells_true']} cells)")
             else:
-                show_image(gt, "Ground Truth", cmap="gray")
+                show_image(gt, "Ground Truth")
 
         st.subheader("📊 Algorithm Performance Evaluation")
         table = pd.DataFrame(scores).rename(columns={

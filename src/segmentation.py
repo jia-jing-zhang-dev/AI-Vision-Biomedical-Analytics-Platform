@@ -87,7 +87,7 @@ def label_objects(mask: np.ndarray, min_size: int = 20) -> np.ndarray:
     input array is never modified.
     """
     if is_label_image(mask):
-        labels = mask.astype(np.int32, copy=True)
+        labels = _compact_ids(mask)        # new array: the input is never modified
     else:
         _, labels = cv2.connectedComponents((mask > 0).astype(np.uint8), connectivity=8)
     sizes = np.bincount(labels.ravel())
@@ -97,11 +97,23 @@ def label_objects(mask: np.ndarray, min_size: int = 20) -> np.ndarray:
     return labels
 
 
+def _compact_ids(labels: np.ndarray) -> np.ndarray:
+    """Renumbers label ids to 0..N (0 stays background), so per-id arrays
+    scale with the number of objects rather than the largest id (a uint16
+    label file can use ids up to 65535)."""
+    ids, inverse = np.unique(labels, return_inverse=True)
+    if ids[0] != 0:                     # no background pixel: keep ids starting at 1
+        inverse = inverse + 1
+    return inverse.reshape(labels.shape).astype(np.int32)
+
+
 def color_labels(labels: np.ndarray) -> np.ndarray:
-    """RGB image with a random colour per instance and a black background.
-    The palette is seeded, so an id gets the same colour in every panel.
+    """uint8 RGB image with a random colour per instance and a black
+    background. The palette is seeded, so an id gets the same colour in
+    every panel.
     """
-    palette = np.random.default_rng(1).uniform(0.25, 1.0, (int(labels.max()) + 1, 3))
+    labels = _compact_ids(labels)
+    palette = (np.random.default_rng(1).uniform(0.25, 1.0, (int(labels.max()) + 1, 3)) * 255).astype(np.uint8)
     palette[0] = 0
     return palette[labels]
 
@@ -124,6 +136,7 @@ def instance_f1(gt_labels: np.ndarray, pred_labels: np.ndarray,
         return 1.0, 0, 0
 
     # Pixel counts of every (true id, predicted id) overlap, in one pass.
+    gt_labels, pred_labels = _compact_ids(gt_labels), _compact_ids(pred_labels)
     n_p = int(pred_labels.max()) + 1
     pairs = np.bincount(gt_labels.ravel().astype(np.int64) * n_p + pred_labels.ravel(),
                         minlength=(int(gt_labels.max()) + 1) * n_p).reshape(-1, n_p)
@@ -257,13 +270,16 @@ def segment_tophat_otsu(img: np.ndarray, radius: int | None = None) -> np.ndarra
     return cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
 
 
-def segment_watershed(img: np.ndarray, min_distance: int = 6) -> np.ndarray:
+def segment_watershed(img: np.ndarray, min_distance: int = 6,
+                      foreground: np.ndarray | None = None) -> np.ndarray:
     """Splits touching cells. The foreground comes from top-hat + Otsu; each
     peak of the distance transform seeds one cell, and the watershed grows
     the seeds until they meet. Returns an int32 instance label image.
     """
     _require_gray_uint8(img)
-    fg = binary_fill_holes(segment_tophat_otsu(img) > 0)
+    if foreground is None:              # run_all passes the TopHat+Otsu mask it already has
+        foreground = segment_tophat_otsu(img)
+    fg = binary_fill_holes(foreground > 0)
     dist = distance_transform_edt(fg)
     _, components = cv2.connectedComponents(fg.astype(np.uint8))
     peaks = peak_local_max(gaussian_filter(dist, 1), min_distance=min_distance,
@@ -344,7 +360,12 @@ def run_all(img: np.ndarray, auto_polarity: bool = True,
     _require_gray_uint8(img)
     if auto_polarity and has_bright_background(img):
         img = 255 - img
-    results = {name: fn(img) for name, fn in SEGMENTERS.items()}
+    results = {}
+    for name, fn in SEGMENTERS.items():
+        if fn is segment_watershed:     # reuse the top-hat foreground instead of recomputing it
+            results[name] = segment_watershed(img, foreground=results.get("TopHat+Otsu"))
+        else:
+            results[name] = fn(img)
     if include_cellpose and cellpose_available():
         results[CELLPOSE_NAME] = segment_cellpose(img)
     return results

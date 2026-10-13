@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+markers = [
+    "cellpose: test runs the real Cellpose model (slow; skipped automatically when Cellpose is absent)",
+]
