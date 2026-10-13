@@ -179,7 +179,7 @@ The original three-shape image is still available as an "easy" sanity check, whe
 pytest tests/
 ```
 
-The tests cover classification, clustering, segmentation metrics, 2D convolution, and the BloodMNIST CNN (output shapes, inference, and a check that the shipped model correctly classifies the bundled sample images).
+The 27 tests cover classification, clustering, segmentation metrics, 2D convolution (checked against SciPy), and the BloodMNIST CNN. `tests/test_app.py` drives every page of the Streamlit app headlessly with Streamlit's `AppTest`: each button, selector and seed input, plus uploads of brightfield, fluorescence, oversized and blood-cell images.
 
 ## Troubleshooting
 

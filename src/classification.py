@@ -17,6 +17,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 
@@ -110,7 +111,9 @@ def tune_with_optuna(X_train, y_train, X_test, y_test, n_trials: int = 50):
 
     def build(params: dict):
         if params["classifier"] == "SVC":
-            return sklearn.svm.SVC(C=params["svc_c"], gamma="auto")
+            # SVMs need standardized features; without scaling the RBF kernel
+            # is dominated by large-valued features and SVC never wins.
+            return make_pipeline(StandardScaler(), sklearn.svm.SVC(C=params["svc_c"]))
         if params["classifier"] == "DecisionTree":
             return tree.DecisionTreeClassifier(random_state=0)
         return sklearn.ensemble.RandomForestClassifier(

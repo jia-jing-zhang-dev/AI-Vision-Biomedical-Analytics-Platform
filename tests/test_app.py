@@ -1,0 +1,169 @@
+"""End-to-end tests of the Streamlit app: every page, button, selector and
+upload path, run headlessly with Streamlit's AppTest. Run with:
+    pytest tests/
+"""
+import io
+from pathlib import Path
+
+import pytest
+from PIL import Image, ImageDraw
+
+pytest.importorskip("torch")
+from streamlit.testing.v1 import AppTest
+from streamlit.testing.v1.element_tree import FileUploader
+
+ROOT = Path(__file__).resolve().parent.parent
+needs_upload = pytest.mark.skipif(not hasattr(FileUploader, "upload"),
+                                  reason="this Streamlit version cannot simulate uploads")
+
+
+@pytest.fixture(autouse=True)
+def run_from_repo_root(monkeypatch):
+    monkeypatch.chdir(ROOT)
+    monkeypatch.syspath_prepend(str(ROOT))
+
+
+def run_page(name: str) -> AppTest:
+    at = AppTest.from_file(str(ROOT / name), default_timeout=120).run()
+    assert not at.exception, at.exception
+    return at
+
+
+def click(at: AppTest, label_start: str) -> AppTest:
+    next(b for b in at.button if b.label.startswith(label_start)).click().run()
+    assert not at.exception, at.exception
+    return at
+
+
+def png_bytes(img: Image.Image) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def cells_image(size: int, light_background: bool) -> Image.Image:
+    """Circles, two pairs of them touching, on a plain background."""
+    bg, fg = (230, 110) if light_background else (20, 200)
+    img = Image.new("L", (size, size), bg)
+    draw = ImageDraw.Draw(img)
+    r = size // 18
+    for x, y in [(0.2, 0.2), (0.2 + 1.9 * r / size, 0.2), (0.5, 0.5), (0.8, 0.3),
+                 (0.3, 0.75), (0.3 + 1.9 * r / size, 0.75), (0.75, 0.8)]:
+        cx, cy = x * size, y * size
+        draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fg)
+    return img
+
+
+# ---------------------------------------------------------------- home page
+def test_home_page_shows_three_modules_and_results():
+    at = run_page("app.py")
+    assert len(at.subheader) == 3
+    text = " ".join(m.value for m in at.markdown)
+    for number in ("96.6%", "72.9%", "0.79", "88.1%"):
+        assert number in text
+    assert len(at.image) == 4
+
+
+# ------------------------------------------------------- FashionMNIST page
+@needs_upload
+def test_fashion_page_classifies_an_uploaded_image():
+    at = run_page("pages/1_Deep_Learning.py")
+    assert not at.button                                  # no button before upload
+    img = Image.new("RGB", (120, 160), "white")
+    ImageDraw.Draw(img).rectangle([40, 20, 80, 150], fill="black")
+    at.get("file_uploader")[0].upload("item.png", png_bytes(img), "image/png").run()
+    click(at, "Run the PyTorch Model")
+    assert at.success[0].value.startswith("**Prediction Result:**")
+
+
+# --------------------------------------------------------- segmentation page
+SEG = "pages/2_Biomedical_Segmentation.py"
+
+
+def test_segmentation_realistic_benchmark_reports_instance_f1():
+    at = click(run_page(SEG), "Run Biomedical Image Segmentation Pipeline")
+    table = at.dataframe[0].value
+    assert list(table["Method"])[0] == "Watershed"        # sorted by instance F1
+    assert {"Dice", "IoU", "Instance F1", "Cells (true)", "Objects found"} <= set(table.columns)
+    assert len(table) == 6
+    assert any("Ground Truth (" in s.value for s in at.subheader)
+
+
+def test_segmentation_seed_changes_the_image():
+    at = click(run_page(SEG), "Run Biomedical Image Segmentation Pipeline")
+    first = at.dataframe[0].value.set_index("Method")
+    at.number_input[0].set_value(7).run()
+    click(at, "Run Biomedical Image Segmentation Pipeline")
+    second = at.dataframe[0].value.set_index("Method")
+    assert not first["Dice"].equals(second.loc[first.index, "Dice"])
+
+
+def test_segmentation_simple_shapes_benchmark():
+    at = run_page(SEG)
+    at.selectbox[0].set_value(at.selectbox[0].options[1]).run()
+    assert not at.number_input                             # no seed for the fixed image
+    click(at, "Run Biomedical Image Segmentation Pipeline")
+    table = at.dataframe[0].value.set_index("Method")
+    assert "Instance F1" not in table.columns
+    assert table.loc["Otsu", "Dice"] == pytest.approx(1.0, abs=1e-3)
+
+
+def test_segmentation_ten_image_benchmark():
+    at = click(run_page(SEG), "Run 10-Image Benchmark")
+    table = at.dataframe[0].value
+    assert len(table) == 6 and table["Method"].iloc[0] == "Watershed"
+    assert all("±" in v for v in table["Instance F1"])
+
+
+@needs_upload
+def test_segmentation_upload_brightfield_is_inverted_and_large_image_resized():
+    at = run_page(SEG)
+    at.radio[0].set_value(at.radio[0].options[1]).run()
+    img = cells_image(1600, light_background=True)
+    at.get("file_uploader")[0].upload("smear.png", png_bytes(img), "image/png").run()
+    assert any("Resized from 1600×1600 to 1024×1024" in c.value for c in at.caption)
+    click(at, "Run Multi-Algorithm Segmentation")
+    assert any("brightfield" in i.value for i in at.info)
+
+
+@needs_upload
+def test_segmentation_upload_fluorescence_is_not_inverted():
+    at = run_page(SEG)
+    at.radio[0].set_value(at.radio[0].options[1]).run()
+    img = cells_image(400, light_background=False)
+    at.get("file_uploader")[0].upload("nuclei.png", png_bytes(img), "image/png").run()
+    assert not any("Resized" in c.value for c in at.caption)
+    click(at, "Run Multi-Algorithm Segmentation")
+    assert not at.info
+
+
+# ------------------------------------------------------ blood-cell page
+BLOOD = "pages/3_Blood_Cell_Classifier.py"
+
+
+def test_blood_page_shows_metrics():
+    at = run_page(BLOOD)
+    values = [m.value for m in at.metric]
+    assert values == ["96.6%", "72.9%"]
+
+
+def test_blood_page_classifies_every_bundled_sample():
+    at = run_page(BLOOD)
+    box = at.selectbox[0]
+    assert len(box.options) == 8
+    for option in box.options:
+        at.selectbox[0].set_value(option).run()
+        assert not at.exception
+        assert at.success[0].value.startswith(f"**Prediction:** {option} ("), option   # option = true label
+
+
+@needs_upload
+def test_blood_page_classifies_an_uploaded_image():
+    at = run_page(BLOOD)
+    at.radio[0].set_value(at.radio[0].options[1]).run()
+    assert not at.success                                  # nothing until a file is uploaded
+    sample = ROOT / "public" / "blood_samples" / "7_platelet.png"
+    big = Image.open(sample).resize((300, 300), Image.NEAREST)  # an upload of a different size
+    at.get("file_uploader")[0].upload("cell.png", png_bytes(big), "image/png").run()
+    assert not at.exception
+    assert at.success[0].value.startswith("**Prediction:** platelet (")

@@ -31,7 +31,7 @@ with col1:
     st.image(
         "public/fashion-demo.png",
         caption="FashionMNIST Classification Demo",
-        use_container_width=True
+        width="stretch"
     )
 
 with col2:
@@ -48,13 +48,13 @@ with col2:
     st.image(
         "public/cell-segmentation-benchmark.png",
         caption="Synthetic Cell Benchmark: Ground Truth vs. Otsu vs. Watershed",
-        use_container_width=True
+        width="stretch"
     )
 
     st.image(
         "public/brightfield-demo.png",
         caption="Real Blood Smear: Automatic Inversion + Watershed",
-        use_container_width=True
+        width="stretch"
     )
 
 with col3:
@@ -68,5 +68,5 @@ with col3:
     st.image(
         "public/bloodmnist-confusion.png",
         caption="BloodMNIST Test-Set Confusion Matrix",
-        use_container_width=True
+        width="stretch"
     )

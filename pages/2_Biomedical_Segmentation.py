@@ -88,7 +88,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
         })
         if realistic:
             table = table.sort_values("Instance F1", ascending=False)
-        st.dataframe(table.round(3), hide_index=True, use_container_width=True)
+        st.dataframe(table.round(3), hide_index=True, width="stretch")
 
         show_masks(results)
 
@@ -100,7 +100,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
             "Dice": f"{r['dice']:.3f} ± {r['dice_std']:.3f}",
             "IoU": f"{r['iou']:.3f} ± {r['iou_std']:.3f}",
             "Instance F1": f"{r['instance_f1']:.3f} ± {r['instance_f1_std']:.3f}",
-        } for r in summary]), hide_index=True, use_container_width=True)
+        } for r in summary]), hide_index=True, width="stretch")
         st.caption(
             "Thresholding methods find the foreground well (similar Dice) but merge touching "
             "cells into one object, so their instance F1 is much lower. The watershed splits "
