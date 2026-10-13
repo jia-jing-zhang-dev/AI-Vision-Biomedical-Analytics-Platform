@@ -8,15 +8,26 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Full environment, including Cellpose (needs numpy<2.1, so Python <= 3.12)
+          - python-version: "3.12"
+            extras: "-r requirements-dev.txt"
+          # Same Python and packages as the Streamlit Cloud deployment
+          - python-version: "3.14"
+            extras: "pytest"
+    name: pytest (Python ${{ matrix.python-version }})
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install dependencies (CPU-only PyTorch)
         run: |
           pip install torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt pytest
+          pip install -r requirements.txt ${{ matrix.extras }}
       - name: Run tests
         run: pytest tests/ -v

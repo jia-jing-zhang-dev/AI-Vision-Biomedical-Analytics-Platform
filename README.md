@@ -76,11 +76,13 @@ Install the base dependencies:
 pip install -r requirements.txt
 ```
 
-Install the following additional packages to run biomedical classification training or the test suite:
+Install the extras for training, benchmarks (including Cellpose) and the test suite:
 
 ```bash
-pip install medmnist pytest
+pip install -r requirements-dev.txt
 ```
+
+> Cellpose 3 requires `numpy<2.1`, which has no prebuilt wheels for Python 3.14, so use Python 3.10–3.12 for the extras. The deployed app does not install Cellpose and hides it automatically; its benchmark results are reported below.
 
 > PyTorch installation differs by CPU, CUDA version, and operating system. If the default installation does not work, use the command recommended on the [official PyTorch installation page](https://pytorch.org/get-started/locally/).
 

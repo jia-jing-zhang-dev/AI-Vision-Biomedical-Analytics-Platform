@@ -1,0 +1,10 @@
+# Extras for benchmarks and tests, on top of requirements.txt:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Cellpose 3 (deep-learning segmentation reference) pins numpy<2.1, which has
+# no prebuilt wheels for Python 3.14, so it is kept out of requirements.txt to
+# keep the Streamlit Cloud deployment fast. The app hides Cellpose when it is
+# not installed. Use Python 3.10-3.12 for these extras.
+cellpose>=3.1,<4
+medmnist
+pytest
