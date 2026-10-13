@@ -40,10 +40,10 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 │   ├── classification.py            # Supervised learning and Optuna tuning
 │   ├── clustering.py                # K-Means and silhouette-based model selection
 │   ├── convolution.py               # NumPy 2D convolution
-│   ├── image_io.py                  # Upload normalization (16-bit, transparency)
+│   ├── image_io.py                  # Upload loading: 16-bit, transparency, EXIF, size limits
 │   └── visualization.py             # EDA visualization helpers
-├── notebooks/demo_end_to_end.ipynb  # Walkthrough of every module
-├── public/                          # Figures and BloodMNIST sample images
+├── notebooks/demo_end_to_end.ipynb  # Walkthrough of the classical-ML, clustering, segmentation and convolution modules
+├── public/                          # Figures, BloodMNIST and FashionMNIST sample images
 ├── train.py                         # FashionMNIST training script
 ├── train_medical.py                 # BloodMNIST training / tuning script
 ├── benchmark_segmentation.py        # Segmentation benchmark over many images
@@ -51,8 +51,15 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 ├── biomedical_cnn.pth               # Trained BloodMNIST CNN weights
 ├── biomedical_cnn_results.json      # Hyperparameters and val/test accuracy
 ├── biomedical_resnet18.pth          # Fine-tuned ResNet-18 weights (reference model)
-├── requirements.txt                 # Base dependencies
+├── biomedical_resnet18_results.json # Its hyperparameters and val/test accuracy
+├── requirements.txt                 # App dependencies (what Streamlit Cloud installs)
+├── requirements-ml.txt              # scikit-learn, seaborn, Optuna
+├── requirements-dev.txt             # ml + Cellpose, MedMNIST, pytest
+├── .streamlit/config.toml           # Upload size cap, error-detail level
 ├── Dockerfile                       # Container for the Streamlit app (CPU-only PyTorch)
+├── pyproject.toml                   # pytest configuration
+├── CLAUDE.md                        # Contributor notes, review checklist and log
+├── .github/workflows/tests.yml      # CI: Python 3.12 (full) and 3.14 (as deployed)
 └── tests/                           # pytest suite (run in CI on every push)
 ```
 
@@ -86,7 +93,7 @@ pip install -r requirements.txt -r requirements-dev.txt  # everything
 
 > Cellpose 3 requires `numpy<2.1`, which has no prebuilt wheels for Python 3.14, so use Python 3.10–3.12 for the extras. The deployed app does not install Cellpose and hides it automatically; its benchmark results are reported below.
 
-> `requirements.txt` installs CPU-only PyTorch (it adds the PyTorch CPU wheel index). To train on a GPU, install the CUDA build of `torch==2.10.0` / `torchvision==0.25.0` first, using the command from the [official PyTorch installation page](https://pytorch.org/get-started/locally/).
+> `requirements.txt` installs CPU-only PyTorch: it points `--find-links` at the PyTorch CPU wheels (deliberately not an extra package index, which would also serve outdated versions of other packages). To train on a GPU, first install the CUDA build of the torch/torchvision versions pinned in `requirements.txt`, using the command from the [official PyTorch installation page](https://pytorch.org/get-started/locally/).
 
 ## Run the Web Application
 
@@ -126,13 +133,14 @@ The script downloads FashionMNIST to `data/`, trains for five epochs with a fixe
 ### BloodMNIST Biomedical Classifier
 
 ```bash
-python train_medical.py
+python train_medical.py --optuna 20   # reproduces the shipped model (96.7%)
 ```
 
-The script downloads BloodMNIST from MedMNIST, trains the CNN for 15 epochs, keeps the epoch with the best **validation** accuracy, evaluates the held-out **test** split once, and writes `biomedical_cnn.pth`, `biomedical_cnn_results.json` and `public/bloodmnist-confusion.png`. The Blood Cell Classifier page loads these files.
+The script downloads BloodMNIST from MedMNIST, runs a 20-trial Optuna search on the validation split, trains the chosen CNN for 15 epochs, keeps the epoch with the best **validation** accuracy, evaluates the held-out **test** split once, and writes `biomedical_cnn.pth`, `biomedical_cnn_results.json` and `public/bloodmnist-confusion.png`. The Blood Cell Classifier page loads these files.
+
+> Without `--optuna`, the default hyperparameters are used (96.0%) and the shipped weights, results and figure are **overwritten**. Pass `--out runs/model.pth` to write an experiment elsewhere; its results and figure then go next to it.
 
 ```bash
-python train_medical.py --optuna 20   # tune lr, weight decay, dropout and width on the validation split first
 python train_medical.py --model mlp   # reproduce the original fully connected baseline
 python train_medical.py --model resnet18   # fine-tune ImageNet-pretrained ResNet-18 (224×224 input, 10 epochs by default)
 ```
@@ -151,7 +159,7 @@ Most of the gain comes from switching to a convolutional architecture with augme
 
 Training is deterministic (`set_deterministic` fixes every seed and forces deterministic GPU kernels), so each command reproduces its number exactly on the same hardware; other GPUs or library versions can differ by a few tenths of a point.
 
-**Custom CNN vs. a mature pretrained model:** the custom CNN (2.2 MB, 0.56 M parameters) is on par with the best published BloodMNIST results in the MedMNIST v2 paper. Fine-tuning ImageNet-pretrained ResNet-18 (44.8 MB, 11.2 M parameters, 20× larger) gains another 1.2 points — transfer learning helps, at a large cost in model size. The published baselines were trained under the paper's own protocol (not with this project's augmentation, tuning or ImageNet pretraining), so treat that comparison as indicative rather than like-for-like. The app shows both models' predictions side by side.
+**Custom CNN vs. a mature pretrained model:** the custom CNN (2.2 MB, 0.56 M parameters) is on par with the best published BloodMNIST results in the MedMNIST v2 paper. Fine-tuning ImageNet-pretrained ResNet-18 (44.8 MB, 11.2 M parameters, 20× larger) gains another 1.3 points (97.92% vs. 96.67%) — transfer learning helps, at a large cost in model size. The published baselines were trained under the paper's own protocol (not with this project's augmentation, tuning or ImageNet pretraining), so treat that comparison as indicative rather than like-for-like. The app shows both models' predictions side by side.
 
 ![BloodMNIST confusion matrix](public/bloodmnist-confusion.png)
 

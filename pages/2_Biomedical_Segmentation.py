@@ -117,8 +117,8 @@ else:
     )
 
     if uploaded_file is not None:
-        # 8-bit grayscale, upright, downscaled before any conversion so six
-        # result figures fit in Streamlit Cloud's memory.
+        # 8-bit grayscale, upright, downscaled before any conversion so the
+        # result images fit in Streamlit Cloud's memory.
         try:
             pil_img, original_size = load_upload(uploaded_file, mode="L", max_side=MAX_UPLOAD_SIDE)
         except UploadError as err:

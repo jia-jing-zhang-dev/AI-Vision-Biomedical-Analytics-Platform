@@ -6,8 +6,8 @@ compact custom CNN, the fully connected baseline it replaced, and an
 ImageNet-pretrained ResNet-18 reference; plus preprocessing, data loading,
 training, evaluation and checkpoint helpers.
 
-Requires the optional `torch`, `torchvision` and `medmnist` packages
-(``pip install torch torchvision medmnist``).
+torch/torchvision come from requirements.txt (CPU wheels, pinned versions);
+the dataset loader also needs medmnist from requirements-dev.txt.
 """
 
 from __future__ import annotations

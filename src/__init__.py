@@ -8,6 +8,7 @@ Modules:
     convolution    - from-scratch 2D convolution & edge-detection kernels
     vision_cnn     - PyTorch feed-forward network for image classification
     medical_cnn    - PyTorch CNN for BloodMNIST blood-cell classification
+    image_io       - upload loading/normalization (16-bit, transparency, EXIF, size limits)
 """
 
 __version__ = "1.1.0"

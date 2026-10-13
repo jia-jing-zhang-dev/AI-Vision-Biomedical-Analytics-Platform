@@ -7,7 +7,8 @@ Benchmark every segmentation method on synthetic cell images.
     python benchmark_segmentation.py --no-cellpose         # classical methods only
 
 Prints mean ± std of Dice, IoU and instance F1 per method, and saves an
-example figure (input, ground truth, Otsu, watershed, Cellpose) to public/.
+example figure (input, ground truth, Otsu, watershed, Cellpose) to --figure
+(default public/cell-segmentation-benchmark.png).
 Cellpose is included when it is installed (pip install "cellpose<4").
 """
 
@@ -46,11 +47,11 @@ def save_example(path: str, seed: int = 0, include_cellpose: bool = True):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--images", type=int, default=10)
-    parser.add_argument("--start-seed", type=int, default=0)
-    parser.add_argument("--no-cellpose", action="store_true")
-    parser.add_argument("--figure", default="public/cell-segmentation-benchmark.png")
+    parser = argparse.ArgumentParser(description="Benchmark every segmentation method on synthetic cell images.")
+    parser.add_argument("--images", type=int, default=10, help="number of images to average over")
+    parser.add_argument("--start-seed", type=int, default=0, help="seed of the first image (100+ = never used for tuning)")
+    parser.add_argument("--no-cellpose", action="store_true", help="skip Cellpose even if it is installed")
+    parser.add_argument("--figure", default="public/cell-segmentation-benchmark.png", help="where to save the example figure")
     args = parser.parse_args(argv)
     if args.images < 1:
         parser.error("--images must be at least 1")

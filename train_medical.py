@@ -93,7 +93,7 @@ def save_confusion_matrix(model, test_loader, device: str, path: str, title: str
 
 def parse_args(argv=None) -> argparse.Namespace:
     """Parses and validates the command line; fills in per-model defaults."""
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Train a BloodMNIST classifier and report its test accuracy.")
     parser.add_argument("--model", choices=["cnn", "mlp", "resnet18"], default="cnn")
     parser.add_argument("--epochs", type=int, default=None,
                         help="training epochs (default: 15 for cnn, 10 for resnet18)")
@@ -123,8 +123,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     out_dir = Path(output_paths(args.model, args.out)["weights"]).resolve().parent
     if args.model != "mlp" and not out_dir.is_dir():
         parser.error(f"output folder {out_dir} does not exist")
-    if args.epochs is None:
-        args.epochs = 10 if args.model == "resnet18" else 15
+    if args.epochs is None:     # the MLP baseline always trains its original 5 epochs
+        args.epochs = {"resnet18": 10, "mlp": 5}.get(args.model, 15)
     if args.tune_epochs is None:
         args.tune_epochs = 6
     return args

@@ -30,18 +30,25 @@ streamlit run app.py
 
 - **Streamlit Cloud runs Python 3.14** and ignores `runtime.txt`. Anything in
   `requirements.txt` must install on 3.14 from prebuilt wheels.
-- `requirements.txt` adds the PyTorch **CPU** wheel index; without it Linux
-  installs CUDA torch + ~3 GB of nvidia packages (Streamlit Cloud did this).
-  Torch/torchvision versions live only in `requirements.txt`.
+- `requirements.txt` points `--find-links` at the PyTorch **CPU** wheels.
+  Without it Linux installs CUDA torch + ~3 GB of nvidia packages (Streamlit
+  Cloud did this); as `--extra-index-url` instead, uv also took outdated
+  requests/urllib3/certifi from the PyTorch mirror. Torch/torchvision
+  versions live only in `requirements.txt`.
 - **Cellpose 3 pins `numpy<2.1`** (no 3.14 wheels) → it lives in
   `requirements-dev.txt` only; the app hides Cellpose when it is not installed.
 - CI (`.github/workflows/tests.yml`) runs Python 3.12 with dev extras **and**
-  Python 3.14 with exactly the deployment's dependencies.
+  Python 3.14 with the deployment's dependencies installed the same way (uv,
+  wheels only), plus `requirements-ml.txt` and pytest for the tests.
 - After every push the deployed app must be rebooted by hand in Streamlit Cloud
   (the deployment is not auto-syncing).
 - The user's Windows checkout lives under a very long path: datasets need the
-  `\\?\` long-path prefix (see how `--data-dir` is passed), and `uv`/venvs in the
-  scratch folder break. Use the global Python for local checks.
+  `\\?\` long-path prefix, e.g.
+  `python train_medical.py --data-dir "\\?\C:\full\path\to\data"` (in Python:
+  `chr(92)*2 + "?" + chr(92) + os.path.realpath("../data")`), and `uv`/venvs in
+  the scratch folder break. Use the global Python for local checks.
+- `python train_medical.py` without `--optuna` overwrites the shipped CNN;
+  experiments use `--out`.
 - Training is deterministic via `set_deterministic(seed)`; every README number
   must come from a committed script run. After retraining, re-check every
   hard-coded number (README, `app.py`, pages, tests, this file).
@@ -105,3 +112,4 @@ improves; CLI silently ignoring `--optuna`/`--epochs`; duplicated
 | 6 | Error handling & input validation | 12 verified: uint16/int64 label images silently treated as binary (45 cells → 28); `iou_thresh` < 0.5 gave F1 > 1; one NaN blanked a float image; unknown `arch` silently used CNN preprocessing; `instance_f1` accepted mismatched shapes; segmenters crashed deep in OpenCV (or wrapped uint16) on non-uint8 input; `predict_proba` device/array/0-px issues and unclear checkpoint errors (page 3 traceback on a corrupt file); `train.py` ignored all arguments (even `--help`); `train_medical` accepted `--epochs 0`, stray `--tune-epochs`, missing output folder; benchmark script validated nothing and failed only after the run; pages used working-directory-relative paths | All 12 (+ figures now closed); `is_label_image`, `_require_gray_uint8`, checkpoint validation, argparse for `train.py`, early CLI validation, `ROOT`-relative paths | 89 → 121 |
 | 7 | Performance & resources (measured) | 4 verified: segmentation page spent ~90% of its time rendering matplotlib PNGs at dpi 200 (453 ms click, 425 ms of it drawing); label-id-proportional memory in `instance_f1`/`label_objects`/`color_labels` (+1.1 GB for uint16 ids up to 65k, +2.4 GB for id 1e8); Cellpose ran in page tests not about Cellpose (half the suite time); top-hat computed twice per `run_all` | All 4: `st.image` on arrays (click 453 → 147 ms), `_compact_ids` (id 1e8: 11 ms, no extra memory), uint8 `color_labels`, `@pytest.mark.cellpose` opt-in (suite 64 → 38 s), watershed reuses the top-hat mask (identical output) | 121 → 121 |
 | 8 | Security & repo hygiene | 10 verified: rounds 1–7 not pushed (owner chose local-only); Cellpose downloads disable TLS checks process-wide and load a pickled size model without integrity check; round 5's `--extra-index-url` made uv take outdated requests 2.28.1 / urllib3 1.26.13 / certifi 2022 from the PyTorch mirror; usernames/emails/local paths in git history (committed .pyc, author emails); any Pillow format decoded despite PNG/JPEG UI; Streamlit defaults (200 MB uploads, full tracebacks); ResNet confusion matrix generated but never shown; no .gitattributes / .gitignore gaps; unpinned uv; server paths in page warnings | 7: `--find-links` (uv and pip verified: latest requests/urllib3/certifi, CPU torch, 0 nvidia); Cellpose TLS restored + SHA-256 pinned (hashes re-verified over verified TLS) + CI cache key tied to hashes; uploads PNG/JPEG only; `.streamlit/config.toml`; ResNet matrix on page 3; `.gitattributes`, `.gitignore`; uv pinned in CI; file names only in errors. Owner decisions: push, history rewrite for privacy, Git LFS, SHA-pinning actions | 121 → 124 |
+| 9 | Documentation ↔ code consistency | 14 verified: README said plain `python train_medical.py` produces the shipped model (it trains the 96.0% default and overwrites the shipped 96.7% files); "CPU wheel index" wording stale after the `--find-links` switch; torch versions repeated in README; notebook described as covering every module, with stale method lists and summary table; Project Structure missing 8 files; `src/__init__` missing `image_io`; requirements-ml understated sklearn need; CLAUDE.md CI description and `\?\` pointer inaccurate; pytest marker text wrong; ResNet gain 1.2 → 1.3 points; mlp default epochs wrong in `parse_args`; "optional torch" docstrings; stale comments/captions; scripts without `--help` text | All 14 | 124 → 124 |

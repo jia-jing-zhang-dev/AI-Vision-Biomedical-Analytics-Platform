@@ -18,7 +18,7 @@ import seaborn as sns
 def plot_boxplot(df: pd.DataFrame, x: str, y: str, hue: Optional[str] = None,
                   palette: str = "Blues", ax=None):
     ax = ax or plt.gca()
-    # seaborn >= 0.14 requires a hue whenever a palette is given; colouring by
+    # Passing a palette without a hue is deprecated in seaborn 0.13; colouring by
     # the x categories (without a legend) keeps the previous look.
     sns.boxplot(x=x, y=y, hue=hue or x, legend=hue is not None, data=df, palette=palette, ax=ax)
     ax.set_title(f"{y} by {x}")

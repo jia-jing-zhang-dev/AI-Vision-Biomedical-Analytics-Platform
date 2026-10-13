@@ -53,7 +53,7 @@ with col2:
 
     st.image(
         str(ROOT / "public" / "cell-segmentation-benchmark.png"),
-        caption="Synthetic Cell Benchmark: Ground Truth vs. Otsu vs. Watershed",
+        caption="Synthetic Cell Benchmark: Input, Ground Truth, Otsu, Watershed, Cellpose",
         width="stretch"
     )
 

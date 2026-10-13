@@ -6,8 +6,7 @@ Minimal PyTorch neural-network module for image classification
 it doubles as a teaching example of the train/eval loop, while still
 being wired up as a reusable component of the framework.
 
-Requires the optional `torch` / `torchvision` packages
-(``pip install torch torchvision``).
+torch/torchvision come from requirements.txt (CPU wheels, pinned versions).
 """
 
 from __future__ import annotations

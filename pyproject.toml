@@ -1,4 +1,4 @@
 [tool.pytest.ini_options]
 markers = [
-    "cellpose: test runs the real Cellpose model (slow; skipped automatically when Cellpose is absent)",
+    "cellpose: test may run the real Cellpose model when it is installed (slow); unmarked tests run with Cellpose disabled",
 ]
