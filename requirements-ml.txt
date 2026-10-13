@@ -1,0 +1,6 @@
+# Classical-ML utilities, training and tuning (src/classification.py,
+# src/clustering.py, src/visualization.py, train_medical.py --optuna).
+# Not needed by the Streamlit app, so not installed on Streamlit Cloud.
+scikit-learn>=1.3
+seaborn>=0.13
+optuna>=3.4

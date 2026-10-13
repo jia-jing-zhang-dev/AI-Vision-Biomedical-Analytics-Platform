@@ -1,17 +1,17 @@
+# Packages the Streamlit app needs (this is what Streamlit Cloud installs).
+# CPU-only PyTorch: without this index, Linux installs the CUDA build plus
+# ~3 GB of nvidia-* packages, which the CPU-only deployment never uses.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0
+torchvision==0.25.0
+
 numpy>=1.24
 pandas>=2.0
 matplotlib>=3.7
-seaborn>=0.13
 scipy>=1.10
-
-scikit-learn>=1.3
 scikit-image>=0.21
 opencv-python-headless>=4.8
-
-streamlit>=1.50
-pillow
-
-optuna>=3.4
-
-torch==2.10.0
-torchvision==0.25.0
+# 1.56 is the first release whose AppTest can simulate file uploads (tests/test_app.py)
+streamlit>=1.56
+# Image.Resampling needs Pillow 9.1
+pillow>=9.1

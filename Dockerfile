@@ -1,17 +1,21 @@
-FROM python:3.12-slim
+# Same Python as the Streamlit Cloud deployment
+FROM python:3.14-slim
 
 WORKDIR /app
 
+# requirements.txt points pip at the CPU-only PyTorch wheels
 COPY requirements.txt .
-
-# CPU-only PyTorch keeps the image small; the default PyPI wheel bundles CUDA.
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir torch==2.10.0 torchvision==0.25.0 \
-        --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN useradd --create-home appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE 8501
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=4)"
 
 CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0", "--server.port=8501"]

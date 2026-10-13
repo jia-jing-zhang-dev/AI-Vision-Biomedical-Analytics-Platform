@@ -4,36 +4,48 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
           # Full environment, including Cellpose (needs numpy<2.1, so Python <= 3.12)
           - python-version: "3.12"
-            extras: "-r requirements-dev.txt"
-          # Same Python and packages as the Streamlit Cloud deployment
+            deployment-like: false
+          # Python 3.14 and requirements.txt installed the way Streamlit Cloud
+          # does (uv, prebuilt wheels only), plus what the tests need
           - python-version: "3.14"
-            extras: "pytest"
+            deployment-like: true
     name: pytest (Python ${{ matrix.python-version }})
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
       # Cellpose downloads its model from cellpose.org on first use; cache it so
       # an outage there cannot fail the tests.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cellpose
           key: cellpose-models-v1
-      - name: Install dependencies (CPU-only PyTorch)
+      - name: Install dependencies (full)
+        if: ${{ !matrix.deployment-like }}
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Install dependencies (as Streamlit Cloud does)
+        if: ${{ matrix.deployment-like }}
         run: |
-          pip install torch==2.10.0 torchvision==0.25.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt ${{ matrix.extras }}
+          pip install uv
+          uv pip install --system --only-binary :all: -r requirements.txt
+          python -c "import torch; assert '+cpu' in torch.__version__, torch.__version__"
+          pip install -r requirements-ml.txt pytest
       - name: Run tests
         run: pytest tests/ -v

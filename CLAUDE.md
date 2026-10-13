@@ -18,6 +18,8 @@ Streamlit app + reusable modules for biomedical image analysis, deployed at
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt   # dev extras need Python <= 3.12 (Cellpose)
+# requirements.txt = app only (Streamlit Cloud); requirements-ml.txt = sklearn/seaborn/optuna;
+# requirements-dev.txt = ml + cellpose/medmnist/pytest
 pytest tests/                                              # unit + Streamlit AppTest end-to-end tests
 python train_medical.py [--model cnn|mlp|resnet18] [--optuna N]
 python benchmark_segmentation.py --images 50 [--start-seed 100]
@@ -28,6 +30,9 @@ streamlit run app.py
 
 - **Streamlit Cloud runs Python 3.14** and ignores `runtime.txt`. Anything in
   `requirements.txt` must install on 3.14 from prebuilt wheels.
+- `requirements.txt` adds the PyTorch **CPU** wheel index; without it Linux
+  installs CUDA torch + ~3 GB of nvidia packages (Streamlit Cloud did this).
+  Torch/torchvision versions live only in `requirements.txt`.
 - **Cellpose 3 pins `numpy<2.1`** (no 3.14 wheels) → it lives in
   `requirements-dev.txt` only; the app hides Cellpose when it is not installed.
 - CI (`.github/workflows/tests.yml`) runs Python 3.12 with dev extras **and**
@@ -94,3 +99,4 @@ improves; CLI silently ignoring `--optuna`/`--epochs`; duplicated
 | 2 | ML methodology & reproducibility | 10 verified: CNN size claim wrong (2.2 MB / 20×, not 0.58 MB / 77×); GPU training non-deterministic (same seed gave 95.97–96.26%); train.py no longer reproduced 88.1%; ResNet command ran 15 instead of 10 epochs; default-CNN range and "Optuna within noise" claim unsupported; `--out` without .pth overwrote the weights and any run overwrote the README figure; `.dockerignore` lines fused; stale test count / structure; GT cells not size-filtered like predictions; `compare_classifiers` ranked by test accuracy | All 10; added `set_deterministic` (full rerun matches to the last digit); retrained every model and re-measured every number (CNN 96.7%, ResNet 97.9%, FashionMNIST 86.9%, instance F1 0.80 / 0.60 / Cellpose 0.90); MedMNIST comparison caveated | 44 → 44 (2 reworked) |
 | 3 | Streamlit app | 6 verified: 16-bit uploads crashed the previews on pages 1 and 3; large uploads could exceed ~1 GB (8000×8000 16-bit → 1.8 GB); corrupt/truncated files showed raw tracebacks; EXIF orientation ignored (rotated phone photo misclassified); ground-truth cell count in title ≠ table; flat images flagged as brightfield and fully foreground in Otsu | All 6 via one shared `load_upload` (validation, EXIF, 25 MP limit, downscale before conversion; worst case now ~200 MB); clearer Cellpose text on home page; guard for missing weights | 44 → 62 |
 | 4 | Test-suite quality (mutation testing, ~60 mutants) | 11 verified gaps: FashionMNIST output never checked (random weights passed); earlier fixes without regression tests (Optuna test-set tuning, SVC scaling, CV ranking, `fit` best-epoch restore, `set_deterministic`, CLI checks, `--out` paths); benchmark numbers not pinned (watershed F1 0.81→0.73 undetected); `label_objects` size filter untested; metrics only tested at 0/1; convolve2d stride and single-axis flip undetected; `has_bright_background` border logic barely tested; `to_8bit` P/LA/flat-16-bit and `predict_proba` normalization untested; CI depends on cellpose.org; weak/redundant assertions; scripts untested | All 11: `tests/test_regressions.py` (27 tests), bundled FashionMNIST samples, `parse_args`/`output_paths` refactor, `--figure` for the benchmark script, CI cache for Cellpose models; the 11 surviving mutants re-run and now all caught | 62 → 89 |
+| 5 | Dependencies, CI, deployment, Docker | 8 verified: Streamlit Cloud installed CUDA torch (~4.1 GB of nvidia/triton) and CI never tested that; `streamlit>=1.50` too loose (AppTest uploads need 1.56, guard was dead code); sklearn/seaborn/optuna installed on the deployment though unused by the app; `pillow` unbounded (needs 9.1); missing credits for FashionMNIST samples and BloodMNIST changes; Docker root user / no healthcheck / Python 3.12; CI actions outdated, no timeout/permissions, 3.14 job not wheels-only, torch versions in 3 places; dataset in git history | 7 of 8: CPU wheel index in requirements.txt (uv-verified: 0 nvidia packages on 3.12 and 3.14), `requirements-ml.txt`, `streamlit>=1.56`, `pillow>=9.1`, CI installs the 3.14 job like Streamlit Cloud (uv, wheels only, asserts +cpu), actions v7/v7/v6, Docker 3.14 non-root + healthcheck, README credits. Not done: rewriting git history (destructive); LICENSE and the brightfield photo's source need the owner's decision | 89 → 89 (Streamlit 1.65 verified) |

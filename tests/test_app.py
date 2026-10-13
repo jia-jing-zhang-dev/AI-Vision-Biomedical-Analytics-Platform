@@ -12,12 +12,9 @@ from PIL import Image, ImageDraw
 
 pytest.importorskip("torch")
 from streamlit.testing.v1 import AppTest
-from streamlit.testing.v1.element_tree import FileUploader
 
 ROOT = Path(__file__).resolve().parent.parent
 N_METHODS = 6 + int(importlib.util.find_spec("cellpose") is not None)
-needs_upload = pytest.mark.skipif(not hasattr(FileUploader, "upload"),
-                                  reason="this Streamlit version cannot simulate uploads")
 
 
 @pytest.fixture(autouse=True)
@@ -68,7 +65,6 @@ def test_home_page_shows_three_modules_and_results():
 
 
 # ------------------------------------------------------- FashionMNIST page
-@needs_upload
 def test_fashion_page_classifies_an_uploaded_image():
     at = run_page("pages/1_Deep_Learning.py")
     assert not at.button                                  # no button before upload
@@ -121,7 +117,6 @@ def test_segmentation_ten_image_benchmark():
     assert all("±" in v for v in table["Instance F1"])
 
 
-@needs_upload
 def test_segmentation_upload_brightfield_is_inverted_and_large_image_resized():
     at = run_page(SEG)
     at.radio[0].set_value(at.radio[0].options[1]).run()
@@ -132,7 +127,6 @@ def test_segmentation_upload_brightfield_is_inverted_and_large_image_resized():
     assert any("brightfield" in i.value for i in at.info)
 
 
-@needs_upload
 def test_segmentation_upload_fluorescence_is_not_inverted():
     at = run_page(SEG)
     at.radio[0].set_value(at.radio[0].options[1]).run()
@@ -170,7 +164,6 @@ def test_blood_page_classifies_every_bundled_sample():
     assert min(correct) >= 7, correct
 
 
-@needs_upload
 def test_blood_page_classifies_an_uploaded_image():
     at = run_page(BLOOD)
     at.radio[0].set_value(at.radio[0].options[1]).run()
@@ -188,7 +181,6 @@ def sixteen_bit_png() -> bytes:
     return png_bytes(Image.fromarray(arr))
 
 
-@needs_upload
 @pytest.mark.parametrize("page", ["pages/1_Deep_Learning.py", "pages/3_Blood_Cell_Classifier.py", SEG])
 @pytest.mark.parametrize("kind", ["16-bit", "corrupt"])
 def test_every_page_handles_16bit_and_corrupt_uploads(page, kind):

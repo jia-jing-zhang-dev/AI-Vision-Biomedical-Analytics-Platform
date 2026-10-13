@@ -71,21 +71,22 @@ Activate it in Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install the base dependencies:
+The dependencies are split into three files:
+
+| File | Contents | Used by |
+|---|---|---|
+| `requirements.txt` | App dependencies, with CPU-only PyTorch | Streamlit Cloud, Docker |
+| `requirements-ml.txt` | scikit-learn, seaborn, Optuna (classical ML, tuning) | Training, notebook, tests |
+| `requirements-dev.txt` | `requirements-ml.txt` + Cellpose, MedMNIST, pytest | Training, benchmarks, tests |
 
 ```bash
-pip install -r requirements.txt
-```
-
-Install the extras for training, benchmarks (including Cellpose) and the test suite:
-
-```bash
-pip install -r requirements-dev.txt
+pip install -r requirements.txt                          # run the app
+pip install -r requirements.txt -r requirements-dev.txt  # everything
 ```
 
 > Cellpose 3 requires `numpy<2.1`, which has no prebuilt wheels for Python 3.14, so use Python 3.10–3.12 for the extras. The deployed app does not install Cellpose and hides it automatically; its benchmark results are reported below.
 
-> PyTorch installation differs by CPU, CUDA version, and operating system. If the default installation does not work, use the command recommended on the [official PyTorch installation page](https://pytorch.org/get-started/locally/).
+> `requirements.txt` installs CPU-only PyTorch (it adds the PyTorch CPU wheel index). To train on a GPU, install the CUDA build of `torch==2.10.0` / `torchvision==0.25.0` first, using the command from the [official PyTorch installation page](https://pytorch.org/get-started/locally/).
 
 ## Run the Web Application
 
@@ -210,3 +211,9 @@ Both `train.py` and `train_medical.py` download their datasets on the first run.
 
 The model is trained on 28×28 grayscale FashionMNIST images. For better results, use a clear, centered image of a single clothing item. The application converts images to grayscale and 28×28, and inverts them only when the background is light (FashionMNIST items are light on black).
 
+## Data and Credits
+
+- **BloodMNIST** — Yang et al., *MedMNIST v2*, Scientific Data 2023, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). `public/blood_samples/` holds one test image per class, upscaled from 28×28 to 112×112 (nearest neighbour) for display.
+- **FashionMNIST** — Xiao, Rasul & Vollgraf (Zalando Research), MIT License. `public/fashion_samples/` holds one unmodified 28×28 test image per class.
+- **ResNet-18** — initialized from torchvision's ImageNet-pretrained weights before fine-tuning.
+- **Cellpose** — Stringer et al., *Cellpose: a generalist algorithm for cellular segmentation*, Nature Methods 2021.
