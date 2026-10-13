@@ -77,38 +77,75 @@ def build_mlp_baseline(n_classes: int = N_CLASSES) -> nn.Module:
     )
 
 
-def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> BloodCNN:
-    """Loads a checkpoint written by train_medical.py (weights + the
-    hyperparameters needed to rebuild the architecture).
+RESNET_INPUT_SIZE = 224
+IMAGENET_MEAN, IMAGENET_STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+
+
+def build_resnet18(pretrained: bool = True, n_classes: int = N_CLASSES) -> nn.Module:
+    """torchvision's ResNet-18 with ImageNet weights and a new 8-class head.
+    It is the reference architecture of the MedMNIST v2 benchmark.
     """
-    checkpoint = torch.load(path, map_location=device, weights_only=True)
-    params = checkpoint["params"]
-    model = BloodCNN(params["base_channels"], params["dropout"]).to(device)
-    model.load_state_dict(checkpoint["state_dict"])
-    model.eval()
+    from torchvision.models import ResNet18_Weights, resnet18
+
+    model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1 if pretrained else None)
+    model.fc = nn.Linear(model.fc.in_features, n_classes)
     return model
 
 
-def predict_proba(model, image, device: str = "cpu"):
-    """Returns class probabilities for one PIL image. The image is converted
-    to RGB and resized to 28x28 to match BloodMNIST. Area averaging (BOX) is
-    used because bicubic downsampling shifts the colour/texture statistics
-    enough to flip predictions.
+def input_transform(arch: str = "cnn", from_upload: bool = False):
+    """Preprocessing for one architecture. The CNN reads 28x28 images in
+    [0, 1]; ResNet-18 reads 28x28 images upsampled to 224x224 and normalized
+    with ImageNet statistics, as its pretrained weights expect.
+
+    ``from_upload`` first reduces an arbitrary image to 28x28 with area
+    averaging (BOX); bicubic downsampling shifts the colour/texture
+    statistics enough to flip predictions.
     """
     from torchvision import transforms
 
-    tfm = transforms.Compose([
-        transforms.Resize((28, 28), interpolation=transforms.InterpolationMode.BOX),
-        transforms.ToTensor(),
-    ])
+    steps = []
+    if from_upload:
+        steps.append(transforms.Resize((28, 28), interpolation=transforms.InterpolationMode.BOX))
+    if arch == "resnet18":
+        steps.append(transforms.Resize((RESNET_INPUT_SIZE, RESNET_INPUT_SIZE),
+                                       interpolation=transforms.InterpolationMode.BILINEAR))
+    steps.append(transforms.ToTensor())
+    if arch == "resnet18":
+        steps.append(transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD))
+    return transforms.Compose(steps)
+
+
+def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Module:
+    """Loads a checkpoint written by train_medical.py (weights + the
+    hyperparameters needed to rebuild the architecture). The returned model
+    carries its architecture name in ``model.arch``.
+    """
+    checkpoint = torch.load(path, map_location=device, weights_only=True)
+    params = checkpoint["params"]
+    arch = params.get("arch", "cnn")
+    if arch == "resnet18":
+        model = build_resnet18(pretrained=False)
+    else:
+        model = BloodCNN(params["base_channels"], params["dropout"])
+    model.load_state_dict(checkpoint["state_dict"])
+    model.arch = arch
+    return model.to(device).eval()
+
+
+def predict_proba(model, image, device: str = "cpu"):
+    """Returns class probabilities for one PIL image of any size, using the
+    preprocessing that matches ``model.arch``.
+    """
+    tfm = input_transform(getattr(model, "arch", "cnn"), from_upload=True)
     x = tfm(image.convert("RGB")).unsqueeze(0).to(device)
     with torch.no_grad():
         return torch.softmax(model(x), dim=1).squeeze(0).cpu().numpy()
 
 
 def get_bloodmnist_loaders(batch_size: int = 128, data_dir: str = "./data",
-                           augment: bool = True):
-    """Returns (train, val, test) DataLoaders for BloodMNIST.
+                           augment: bool = True, arch: str = "cnn"):
+    """Returns (train, val, test) DataLoaders for BloodMNIST, preprocessed
+    for ``arch`` ("cnn"/"mlp" or "resnet18").
 
     Blood-cell images have no canonical orientation, so random flips and
     90-degree rotations are used as training-time augmentation.
@@ -118,12 +155,12 @@ def get_bloodmnist_loaders(batch_size: int = 128, data_dir: str = "./data",
     from torchvision import transforms
 
     DataClass = getattr(medmnist, INFO["bloodmnist"]["python_class"])
-    eval_tfm = transforms.ToTensor()
+    eval_tfm = input_transform(arch)
     train_tfm = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
         transforms.RandomChoice([transforms.RandomRotation((a, a)) for a in (0, 90, 180, 270)]),
-        transforms.ToTensor(),
+        eval_tfm,
     ]) if augment else eval_tfm
 
     def load(split, tfm):

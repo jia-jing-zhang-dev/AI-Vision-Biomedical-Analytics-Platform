@@ -15,3 +15,5 @@ optuna>=3.4
 
 torch==2.10.0
 torchvision==0.25.0
+# Deep-learning segmentation reference (Cellpose 3: small nuclei model that runs on CPU)
+cellpose>=3.1,<4

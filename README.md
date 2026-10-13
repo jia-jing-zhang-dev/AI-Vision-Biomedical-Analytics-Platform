@@ -9,15 +9,16 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 | Result | Value |
 |---|---|
-| BloodMNIST blood-cell classification (CNN, 8 classes) | **96.6%** test accuracy (fully connected baseline: 72.9%) |
-| Touching-cell segmentation, instance F1 (50 images) | **0.79** watershed vs. 0.60 Otsu |
+| BloodMNIST blood-cell classification (custom CNN, 8 classes) | **96.6%** test accuracy (fully connected baseline: 72.9%) |
+| BloodMNIST, ImageNet-pretrained ResNet-18 reference | 97.8% test accuracy, with a 77× larger model |
+| Touching-cell segmentation, instance F1 (50 images) | **0.79** watershed vs. 0.60 Otsu; Cellpose reference 0.89 |
 | FashionMNIST clothing classification (MLP, 10 classes) | 88.1% test accuracy |
 
 ## Features
 
-- **Blood-cell classification** — a PyTorch CNN that classifies 8 blood-cell types from BloodMNIST at **96.6% test accuracy** (vs. 72.9% for a fully connected baseline), with hyperparameters tuned by Optuna on the validation split.
+- **Blood-cell classification** — a PyTorch CNN that classifies 8 blood-cell types from BloodMNIST at **96.6% test accuracy** (vs. 72.9% for a fully connected baseline), with hyperparameters tuned by Optuna on the validation split. Compared against torchvision's ImageNet-pretrained **ResNet-18** and the published MedMNIST v2 benchmarks.
 - **FashionMNIST clothing classification** — a PyTorch three-layer fully connected network that predicts one of ten clothing classes from an uploaded image (88.1% test accuracy).
-- **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells. Brightfield images (dark cells on a light background, such as stained blood smears) are detected and inverted automatically.
+- **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells — benchmarked against **Cellpose**, the standard deep-learning tool for cell segmentation. Brightfield images (dark cells on a light background, such as stained blood smears) are detected and inverted automatically.
 - **Segmentation benchmark** — generates realistic synthetic microscopy images (touching nuclei, uneven illumination, blur, noise) with per-cell ground truth, and scores every method with pixel-level Dice / IoU and object-level instance F1.
 - **Machine-learning utilities** — decision trees, random forests, ANOVA feature selection, Optuna tuning, and K-Means clustering analysis.
 - **Image-processing fundamentals** — a NumPy implementation of 2D convolution with edge-detection, sharpening, Sobel, and box-blur kernels.
@@ -48,6 +49,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 ├── fashion_model.pth                # Trained FashionMNIST weights
 ├── biomedical_cnn.pth               # Trained BloodMNIST CNN weights
 ├── biomedical_cnn_results.json      # Hyperparameters and val/test accuracy
+├── biomedical_resnet18.pth          # Fine-tuned ResNet-18 weights (reference model)
 ├── requirements.txt                 # Base dependencies
 ├── Dockerfile                       # Container for the Streamlit app (CPU-only PyTorch)
 └── tests/                           # pytest suite (run in CI on every push)
@@ -126,6 +128,7 @@ The script downloads BloodMNIST from MedMNIST, trains the CNN for 15 epochs, kee
 ```bash
 python train_medical.py --optuna 20   # tune lr, weight decay, dropout and width on the validation split first
 python train_medical.py --model mlp   # reproduce the original fully connected baseline
+python train_medical.py --model resnet18   # fine-tune ImageNet-pretrained ResNet-18 (224×224 input, 10 epochs)
 ```
 
 #### Results (BloodMNIST test split, 3,421 images)
@@ -135,14 +138,18 @@ python train_medical.py --model mlp   # reproduce the original fully connected b
 | Fully connected baseline (flattened pixels → 128 → 8, 5 epochs) | 72.9% |
 | CNN, default hyperparameters (3 seeds) | 96.1–96.6% |
 | **CNN, Optuna-tuned (20 trials) — shipped model** | **96.6%** |
+| ResNet-18, ImageNet-pretrained, fine-tuned at 224×224 (torchvision) | 97.8% |
+| *Published (MedMNIST v2, Table 3):* ResNet-18 (28) / ResNet-18 (224) / Google AutoML Vision | *95.8% / 96.3% / 96.6%* |
 
 Most of the gain comes from switching to a convolutional architecture with augmentation (random flips and 90° rotations); Optuna tuning adds little on top, within seed-to-seed variation.
+
+**Custom CNN vs. a mature pretrained model:** the custom CNN (0.58 MB) matches the best published BloodMNIST result in the MedMNIST v2 paper. Fine-tuning ImageNet-pretrained ResNet-18 (44.8 MB, 77× larger) gains another 1.2 points — transfer learning helps, at a large cost in model size. The app shows both models' predictions side by side.
 
 ![BloodMNIST confusion matrix](public/bloodmnist-confusion.png)
 
 The hardest classes are immature granulocytes (91.7% recall, most often mistaken for neutrophils, which they mature into) and monocytes (91.9% recall, most often mistaken for immature granulocytes).
 
-*Data: [MedMNIST v2](https://medmnist.com/) BloodMNIST, CC BY 4.0. Educational project — not for clinical use.*
+*Data: [MedMNIST v2](https://medmnist.com/) BloodMNIST, CC BY 4.0 (Yang et al., Scientific Data 2023). Educational project — not for clinical use.*
 
 ## Segmentation Benchmark
 
@@ -154,6 +161,7 @@ Results on 50 synthetic cell images (~45 nuclei each, mean ± std):
 
 | Method | Dice | IoU | Instance F1 |
 |---|---|---|---|
+| *Cellpose 3, pretrained `nuclei` model (deep-learning reference)* | *0.979 ± 0.013* | *0.960 ± 0.023* | *0.891 ± 0.050* |
 | **Top-hat + watershed** | **0.935 ± 0.017** | **0.879 ± 0.030** | **0.794 ± 0.060** |
 | Top-hat + Otsu | 0.935 ± 0.017 | 0.879 ± 0.030 | 0.606 ± 0.082 |
 | Otsu | 0.932 ± 0.018 | 0.873 ± 0.032 | 0.595 ± 0.084 |
@@ -167,9 +175,9 @@ On a real brightfield blood smear, the light background is detected and the imag
 
 ![Brightfield example](public/brightfield-demo.png)
 
-**What this shows:** pixel-level Dice cannot tell the thresholding methods apart — they all find the foreground well. Instance F1 can: thresholding merges touching nuclei into one object, while the watershed, seeded at peaks of the distance transform, separates them (+0.19 instance F1). Top-hat illumination correction helps only slightly here, because Otsu is already fairly robust to this level of shading. Instance F1 counts a predicted object as correct when it overlaps a true cell with IoU > 0.5.
+**What this shows:** pixel-level Dice cannot tell the thresholding methods apart — they all find the foreground well. Instance F1 can: thresholding merges touching nuclei into one object, while the watershed, seeded at peaks of the distance transform, separates them (+0.19 instance F1). Top-hat illumination correction helps only slightly here, because Otsu is already fairly robust to this level of shading. Cellpose, a pretrained deep-learning model (run with automatic diameter estimation, so nothing is tuned to these images), is the strongest method — about 0.10 instance F1 above the watershed — and shows how far classical methods are from the state of the art. Instance F1 counts a predicted object as correct when it overlaps a true cell with IoU > 0.5.
 
-Method parameters were chosen while looking at images 0–9. On 50 unseen images (seeds 100–149) the result holds: watershed 0.814 vs. Otsu 0.616 instance F1.
+Method parameters were chosen while looking at images 0–9. On 50 unseen images (seeds 100–149) the result holds: Cellpose 0.899, watershed 0.814, Otsu 0.616 instance F1.
 
 The original three-shape image is still available as an "easy" sanity check, where Otsu, K-Means, top-hat and watershed all reach Dice 1.0.
 

@@ -9,28 +9,44 @@ from src.medical_cnn import CLASS_NAMES, load_model, predict_proba
 
 SAMPLE_DIR = Path("public/blood_samples")
 
+# Display name -> weights file written by train_medical.py
+MODELS = {
+    "Custom CNN": "biomedical_cnn.pth",
+    "ResNet-18 (pretrained)": "biomedical_resnet18.pth",
+}
+
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
 
 st.title("🩸 Blood Cell Classification (BloodMNIST)")
 st.write(
-    "A PyTorch convolutional neural network that classifies blood-cell microscopy "
-    "images into 8 cell types, trained on the BloodMNIST dataset."
+    "Classifies blood-cell microscopy images into 8 cell types with two PyTorch models "
+    "trained on BloodMNIST: a compact custom CNN, and torchvision's ImageNet-pretrained "
+    "ResNet-18 fine-tuned as a reference."
 )
 
 
 @st.cache_resource
-def get_model():
-    return load_model("biomedical_cnn.pth")
+def get_models(name_to_path: tuple):
+    # Takes the model list as an argument so the cache is keyed on it and
+    # never returns models under outdated names.
+    return {name: load_model(path) for name, path in name_to_path if Path(path).exists()}
 
 
-model = get_model()
+models = get_models(tuple(MODELS.items()))
 
-results_path = Path("biomedical_cnn_results.json")
-if results_path.exists():
-    results = json.loads(results_path.read_text())
-    col1, col2 = st.columns(2)
-    col1.metric("Test accuracy (CNN)", f"{results['test_accuracy']:.1%}")
-    col2.metric("Fully connected baseline", "72.9%")
+
+def test_accuracy(weights: str):
+    path = Path(weights.replace(".pth", "_results.json"))
+    return json.loads(path.read_text())["test_accuracy"] if path.exists() else None
+
+
+st.caption("Test accuracy on the 3,421 held-out BloodMNIST test images")
+cols = st.columns(len(models) + 1)
+for col, name in zip(cols, models):
+    acc = test_accuracy(MODELS[name])
+    if acc is not None:
+        col.metric(name, f"{acc:.1%}")
+cols[-1].metric("Fully connected baseline", "72.9%")
 
 source = st.radio("Image source", ["Pick a sample from the test set", "Upload your own image"],
                   horizontal=True)
@@ -50,33 +66,45 @@ else:
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
     st.caption(
-        "The model expects a single, centered blood cell. Images are resized to 28×28 RGB, "
+        "The models expect a single, centered blood cell. Images are reduced to 28×28 RGB, "
         "so photos from a different microscope or stain may be classified poorly."
     )
 
 if image is not None:
     st.image(image, caption="Input image", width=200)
 
-    probs = predict_proba(model, image)
-    top = int(probs.argmax())
-    st.success(f"**Prediction:** {CLASS_NAMES[top]} ({probs[top]:.1%} confidence)")
+    for col, (name, model) in zip(st.columns(len(models)), models.items()):
+        with col:
+            st.markdown(f"**{name}**")
+            probs = predict_proba(model, image)
+            top = int(probs.argmax())
+            st.success(f"**Prediction:** {CLASS_NAMES[top]} ({probs[top]:.1%} confidence)")
+            st.bar_chart(
+                pd.DataFrame({"probability": probs}, index=CLASS_NAMES),
+                horizontal=True,
+                height=260,
+            )
 
-    st.bar_chart(
-        pd.DataFrame({"probability": probs}, index=CLASS_NAMES),
-        horizontal=True,
-    )
-
-with st.expander("Model details"):
+with st.expander("Model details and comparison with published results"):
     st.markdown(
-        "- **Architecture:** 5 convolution layers with batch normalization, "
-        "2 max-pooling stages, global average pooling, dropout + linear head\n"
-        "- **Training:** AdamW with a cosine learning-rate schedule, random flips and "
-        "90° rotations as augmentation; the epoch with the best validation accuracy is kept\n"
-        "- **Tuning:** Optuna search over learning rate, weight decay, dropout and width, "
-        "scored on the validation split only\n"
-        "- **Evaluation:** the held-out test split (3,421 images) is evaluated once"
+        "**Custom CNN** — 5 convolution layers with batch normalization, 2 max-pooling "
+        "stages, global average pooling, dropout + linear head (28×28 input). AdamW with a "
+        "cosine schedule, flip/rotation augmentation, Optuna search on the validation split.\n\n"
+        "**ResNet-18** — torchvision's ImageNet-pretrained ResNet-18 with a new 8-class head, "
+        "fine-tuned end to end on images upsampled to 224×224 with the same augmentation "
+        "and validation-based model selection.\n\n"
+        "Both are evaluated once on the held-out test split (3,421 images)."
     )
-    st.image("public/bloodmnist-confusion.png", caption="Test-set confusion matrix")
+    rows = [{"Model": f"{name} (this project)", "Test accuracy": f"{test_accuracy(path):.1%}"}
+            for name, path in MODELS.items() if test_accuracy(path) is not None]
+    rows += [
+        {"Model": "ResNet-18 (28), MedMNIST v2 paper", "Test accuracy": "95.8%"},
+        {"Model": "ResNet-18 (224), MedMNIST v2 paper", "Test accuracy": "96.3%"},
+        {"Model": "Google AutoML Vision, MedMNIST v2 paper", "Test accuracy": "96.6%"},
+    ]
+    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+    st.caption("Published results: Yang et al., MedMNIST v2, Scientific Data 2023, Table 3.")
+    st.image("public/bloodmnist-confusion.png", caption="Custom CNN: test-set confusion matrix")
 
 st.caption(
     "Educational project, not a medical device. Data: MedMNIST v2 BloodMNIST (CC BY 4.0)."

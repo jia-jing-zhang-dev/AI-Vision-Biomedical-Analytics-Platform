@@ -42,7 +42,8 @@ with col2:
     )
     st.write(
         "- Benchmarked with **Dice / IoU** and **instance F1**: the watershed raises "
-        "instance F1 from 0.60 (Otsu) to 0.79 on images of touching cells."
+        "instance F1 from 0.60 (Otsu) to 0.79 on images of touching cells; "
+        "Cellpose, the standard deep-learning tool, is included as a reference (0.89)."
     )
 
     st.image(
@@ -63,6 +64,10 @@ with col3:
     st.write(
         "- **96.6% test accuracy**, up from 72.9% for a fully connected baseline; "
         "hyperparameters tuned with Optuna on the validation split."
+    )
+    st.write(
+        "- Compared with an ImageNet-pretrained ResNet-18 (97.8%, 77× larger) and the "
+        "published MedMNIST v2 benchmarks."
     )
 
     st.image(

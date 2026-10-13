@@ -234,6 +234,29 @@ SEGMENTERS = {
     "Watershed": segment_watershed,
 }
 
+CELLPOSE_NAME = "Cellpose"
+_cellpose_model = None
+
+
+def cellpose_available() -> bool:
+    """Cellpose is an optional dependency (``pip install "cellpose<4"``)."""
+    import importlib.util
+    return importlib.util.find_spec("cellpose") is not None
+
+
+def segment_cellpose(img: np.ndarray) -> np.ndarray:
+    """Deep-learning reference method: Cellpose 3's pretrained ``nuclei``
+    model (Stringer et al., Nature Methods 2021). The cell diameter is
+    estimated automatically, so nothing is tuned to these images. Runs on
+    CPU so results match between machines. Returns an int32 label image.
+    """
+    global _cellpose_model
+    if _cellpose_model is None:
+        from cellpose import models
+        _cellpose_model = models.Cellpose(gpu=False, model_type="nuclei")
+    masks = _cellpose_model.eval(img, diameter=None, channels=[0, 0])[0]
+    return masks.astype(np.int32)
+
 
 # ----------------------------------------------------------------------
 # Benchmark harness
@@ -248,15 +271,20 @@ def has_bright_background(img: np.ndarray) -> bool:
     return bool((border > thresh).mean() > 0.5)
 
 
-def run_all(img: np.ndarray, auto_polarity: bool = True) -> Dict[str, np.ndarray]:
+def run_all(img: np.ndarray, auto_polarity: bool = True,
+            include_cellpose: bool = False) -> Dict[str, np.ndarray]:
     """Run every registered segmenter on ``img`` and return a dict of masks.
 
     All methods assume bright objects on a dark background (fluorescence).
-    With ``auto_polarity``, brightfield images are inverted first.
+    With ``auto_polarity``, brightfield images are inverted first. With
+    ``include_cellpose`` (and Cellpose installed), Cellpose is run as well.
     """
     if auto_polarity and has_bright_background(img):
         img = 255 - img
-    return {name: fn(img) for name, fn in SEGMENTERS.items()}
+    results = {name: fn(img) for name, fn in SEGMENTERS.items()}
+    if include_cellpose and cellpose_available():
+        results[CELLPOSE_NAME] = segment_cellpose(img)
+    return results
 
 
 def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]":
@@ -279,15 +307,16 @@ def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]
     return sorted(rows, key=lambda r: r["dice"], reverse=True)
 
 
-def benchmark(n_images: int = 10, **image_kwargs) -> "list[dict]":
+def benchmark(n_images: int = 10, start_seed: int = 0, include_cellpose: bool = False,
+              **image_kwargs) -> "list[dict]":
     """Average every method's scores over ``n_images`` realistic cell images
-    (seeds 0..n_images-1). Returns rows sorted by instance F1, each with the
-    mean and standard deviation of every metric.
+    (seeds start_seed..start_seed+n_images-1). Returns rows sorted by
+    instance F1, each with the mean and standard deviation of every metric.
     """
     per_method: Dict[str, list] = {}
-    for seed in range(n_images):
+    for seed in range(start_seed, start_seed + n_images):
         img, labels = make_cell_image(seed=seed, **image_kwargs)
-        for row in evaluate(labels, run_all(img)):
+        for row in evaluate(labels, run_all(img, include_cellpose=include_cellpose)):
             per_method.setdefault(row["method"], []).append(row)
 
     summary = []

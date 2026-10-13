@@ -2,6 +2,7 @@
 upload path, run headlessly with Streamlit's AppTest. Run with:
     pytest tests/
 """
+import importlib.util
 import io
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from streamlit.testing.v1 import AppTest
 from streamlit.testing.v1.element_tree import FileUploader
 
 ROOT = Path(__file__).resolve().parent.parent
+N_METHODS = 6 + int(importlib.util.find_spec("cellpose") is not None)
 needs_upload = pytest.mark.skipif(not hasattr(FileUploader, "upload"),
                                   reason="this Streamlit version cannot simulate uploads")
 
@@ -59,7 +61,7 @@ def test_home_page_shows_three_modules_and_results():
     at = run_page("app.py")
     assert len(at.subheader) == 3
     text = " ".join(m.value for m in at.markdown)
-    for number in ("96.6%", "72.9%", "0.79", "88.1%"):
+    for number in ("96.6%", "72.9%", "97.8%", "0.79", "0.89", "88.1%"):
         assert number in text
     assert len(at.image) == 4
 
@@ -83,9 +85,12 @@ SEG = "pages/2_Biomedical_Segmentation.py"
 def test_segmentation_realistic_benchmark_reports_instance_f1():
     at = click(run_page(SEG), "Run Biomedical Image Segmentation Pipeline")
     table = at.dataframe[0].value
-    assert list(table["Method"])[0] == "Watershed"        # sorted by instance F1
     assert {"Dice", "IoU", "Instance F1", "Cells (true)", "Objects found"} <= set(table.columns)
-    assert len(table) == 6
+    assert len(table) == N_METHODS
+    order = list(table["Method"])                         # sorted by instance F1
+    assert order.index("Watershed") < order.index("Otsu")
+    if "Cellpose" in order:
+        assert order[0] == "Cellpose"
     assert any("Ground Truth (" in s.value for s in at.subheader)
 
 
@@ -143,18 +148,25 @@ BLOOD = "pages/3_Blood_Cell_Classifier.py"
 
 def test_blood_page_shows_metrics():
     at = run_page(BLOOD)
-    values = [m.value for m in at.metric]
-    assert values == ["96.6%", "72.9%"]
+    values = {m.label: m.value for m in at.metric}
+    assert values["Custom CNN"] == "96.6%"
+    assert values["ResNet-18 (pretrained)"] == "97.8%"
+    assert values["Fully connected baseline"] == "72.9%"
 
 
 def test_blood_page_classifies_every_bundled_sample():
     at = run_page(BLOOD)
     box = at.selectbox[0]
     assert len(box.options) == 8
-    for option in box.options:
+    resnet_correct = 0
+    for option in box.options:                            # option text = true label
         at.selectbox[0].set_value(option).run()
         assert not at.exception
-        assert at.success[0].value.startswith(f"**Prediction:** {option} ("), option   # option = true label
+        cnn, resnet = at.success[0].value, at.success[1].value
+        assert cnn.startswith(f"**Prediction:** {option} ("), option
+        resnet_correct += resnet.startswith(f"**Prediction:** {option} (")
+    # ResNet-18 is 97.8% accurate overall; it mistakes the bundled neutrophil for a monocyte.
+    assert resnet_correct >= 7
 
 
 @needs_upload

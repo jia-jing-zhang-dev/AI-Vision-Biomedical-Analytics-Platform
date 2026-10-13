@@ -5,8 +5,10 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from src.segmentation import (
     benchmark, evaluate, has_bright_background, label_objects, make_cell_image,
-    make_synthetic_image, run_all,
+    make_synthetic_image, run_all, cellpose_available,
 )
+
+USE_CELLPOSE = cellpose_available()
 
 MAX_UPLOAD_SIDE = 1024
 
@@ -69,7 +71,8 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
             img, gt = make_cell_image(seed=int(seed))
         else:
             img, gt = make_synthetic_image()
-        results = run_all(img)
+        with st.spinner("Running every method" + (" (Cellpose takes a few seconds)" if USE_CELLPOSE else "") + "..."):
+            results = run_all(img, include_cellpose=USE_CELLPOSE)
         scores = evaluate(gt, results)
 
         col1, col2 = st.columns(2)
@@ -104,7 +107,8 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
         st.caption(
             "Thresholding methods find the foreground well (similar Dice) but merge touching "
             "cells into one object, so their instance F1 is much lower. The watershed splits "
-            "them using peaks of the distance transform as seeds."
+            "them using peaks of the distance transform as seeds. Cellpose is left out here to "
+            "keep this fast; the README reports it on 50 images."
         )
 
 else:
@@ -133,8 +137,8 @@ else:
         )
 
         if st.button("Run Multi-Algorithm Segmentation"):
-            with st.spinner("Running classical computer vision algorithms..."):
-                results = run_all(img)
+            with st.spinner("Running classical algorithms" + (" and Cellpose" if USE_CELLPOSE else "") + "..."):
+                results = run_all(img, include_cellpose=USE_CELLPOSE)
 
             if has_bright_background(img):
                 st.info(
