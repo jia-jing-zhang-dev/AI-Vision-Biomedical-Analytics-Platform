@@ -2,17 +2,28 @@
 segmentation.py
 ================
 Classical computer-vision image segmentation module. Implements and
-benchmarks four unsupervised segmentation strategies against a
-ground-truth mask using Dice and IoU:
+benchmarks unsupervised segmentation strategies against ground truth:
 
     1. Global (Otsu) thresholding
     2. Adaptive (local mean) thresholding
     3. K-Means intensity clustering (K=2)
     4. Canny edge detection + hole filling
-    5. Marker-based Watershed (distance-transform seeded)
+    5. Top-hat background correction + Otsu
+    6. Marker-based Watershed (distance-transform peaks as seeds), which
+       also splits touching cells into separate instances
 
-A synthetic test image (with an intensity gradient + noise) is provided
-so the whole pipeline runs end-to-end with no external data files.
+Two synthetic benchmarks are provided so the whole pipeline runs
+end-to-end with no external data files:
+
+    make_synthetic_image - three large shapes on a mild gradient (easy)
+    make_cell_image      - dozens of touching, textured nuclei under uneven
+                           illumination, blur and noise, with per-cell
+                           instance labels (realistic)
+
+Methods are scored with pixel-level Dice / IoU and with instance-level F1
+(a predicted object counts as found when it overlaps a true cell at
+IoU > 0.5), which rewards separating touching cells rather than just
+finding foreground.
 """
 
 from __future__ import annotations
@@ -22,7 +33,8 @@ from typing import Dict, Tuple
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-from scipy.ndimage import binary_fill_holes, distance_transform_edt
+from scipy.ndimage import binary_fill_holes, distance_transform_edt, gaussian_filter
+from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 
 
@@ -48,6 +60,48 @@ def _to_uint8(mask_bool: np.ndarray) -> np.ndarray:
     return (mask_bool.astype(np.uint8) * 255)
 
 
+def label_objects(mask: np.ndarray, min_size: int = 20) -> np.ndarray:
+    """Turns a segmentation output into an instance label image.
+
+    Label images (int32, as returned by the watershed) are kept as they are;
+    binary masks are split into connected components. Objects smaller than
+    ``min_size`` pixels are treated as noise and dropped.
+    """
+    if mask.dtype == np.int32:
+        labels = mask.copy()
+    else:
+        _, labels = cv2.connectedComponents((mask > 0).astype(np.uint8), connectivity=8)
+    sizes = np.bincount(labels.ravel())
+    small = sizes < min_size
+    small[0] = False
+    labels[small[labels]] = 0
+    return labels
+
+
+def instance_f1(gt_labels: np.ndarray, pred_labels: np.ndarray,
+                iou_thresh: float = 0.5) -> Tuple[float, int, int]:
+    """Object-level F1. A true cell and a predicted object match when their
+    IoU exceeds ``iou_thresh`` (> 0.5 makes matches one-to-one).
+    Returns (f1, n_true, n_pred).
+    """
+    n_gt = len(np.unique(gt_labels[gt_labels > 0]))
+    n_pred = len(np.unique(pred_labels[pred_labels > 0]))
+    if n_gt == 0 and n_pred == 0:
+        return 1.0, 0, 0
+
+    # Pixel counts of every (true id, predicted id) overlap, in one pass.
+    n_p = int(pred_labels.max()) + 1
+    pairs = np.bincount(gt_labels.ravel().astype(np.int64) * n_p + pred_labels.ravel(),
+                        minlength=(int(gt_labels.max()) + 1) * n_p).reshape(-1, n_p)
+    gt_area, pred_area = pairs.sum(1), pairs.sum(0)
+    inter = pairs[1:, 1:]
+    union = gt_area[1:, None] + pred_area[None, 1:] - inter
+    with np.errstate(divide="ignore", invalid="ignore"):
+        iou_mat = np.where(union > 0, inter / union, 0.0)
+    tp = int((iou_mat > iou_thresh).sum())
+    return 2 * tp / (n_gt + n_pred), n_gt, n_pred
+
+
 # ----------------------------------------------------------------------
 # Synthetic benchmark image
 # ----------------------------------------------------------------------
@@ -67,6 +121,45 @@ def make_synthetic_image(h: int = 256, w: int = 256, seed: int = 0) -> Tuple[np.
     noisy = img.astype(np.float32) + grad + rng.normal(0, 5, size=img.shape).astype(np.float32)
     img = np.clip(noisy, 0, 255).astype(np.uint8)
     return img, gt_mask
+
+
+def make_cell_image(h: int = 256, w: int = 256, n_cells: int = 45,
+                    seed: int = 0) -> Tuple[np.ndarray, np.ndarray]:
+    """Generate a fluorescence-microscopy-like image of nuclei and its
+    instance label image (0 = background, 1..N = cells).
+
+    Realistic difficulties: cells of different size and brightness that
+    touch or overlap, internal texture, a dim corner from uneven
+    illumination, optical blur, and sensor noise.
+    """
+    rng = np.random.default_rng(seed)
+    labels = np.zeros((h, w), np.int32)
+    signal = np.zeros((h, w), np.float32)
+
+    for cell_id in range(1, n_cells + 1):
+        cx, cy = int(rng.integers(10, w - 10)), int(rng.integers(10, h - 10))
+        a = int(rng.integers(7, 14))
+        b = int(a * rng.uniform(0.65, 1.0))
+        cell = np.zeros((h, w), np.uint8)
+        cv2.ellipse(cell, (cx, cy), (a, b), float(rng.uniform(0, 180)), 0, 360, 1, -1)
+        cell = cell.astype(bool)
+        labels[cell] = cell_id          # later cells sit on top of earlier ones
+        signal[cell] = rng.uniform(0.45, 1.0)
+
+    # Re-number so ids stay consecutive after occlusion.
+    _, labels = np.unique(labels, return_inverse=True)
+    labels = labels.reshape(h, w).astype(np.int32)
+
+    texture = gaussian_filter(rng.normal(0, 1, (h, w)), 2).astype(np.float32)
+    signal = signal * (1 + 0.25 * texture / (np.abs(texture).max() + 1e-8))
+
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    illumination = 1.0 - 0.8 * ((xx / w) ** 2 + (yy / h) ** 2) / 2    # dim bottom-right corner
+    img = (signal + 0.08) * illumination
+    img = gaussian_filter(img, 1.2)
+    img = img + rng.normal(0, 0.035, (h, w)).astype(np.float32)
+    img = np.clip(img / img.max(), 0, 1)
+    return (img * 255).astype(np.uint8), labels
 
 
 # ----------------------------------------------------------------------
@@ -100,19 +193,36 @@ def segment_canny_fill(img: np.ndarray, low: int = 50, high: int = 150) -> np.nd
     return _to_uint8(filled)
 
 
-def segment_watershed(img: np.ndarray) -> np.ndarray:
-    _, bin_ = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    bin_bool = bin_.astype(bool)
-    dist = distance_transform_edt(bin_bool)
+def segment_tophat_otsu(img: np.ndarray, radius: int | None = None) -> np.ndarray:
+    """Removes uneven illumination with a white top-hat (image minus its
+    morphological opening by a disk larger than any object), then applies Otsu.
 
-    fg_mark = (dist > (0.5 * dist.max())).astype(np.int32)
-    bg_mark = (~bin_bool).astype(np.int32)
-    markers = np.zeros_like(fg_mark, dtype=np.int32)
-    markers[bg_mark == 1] = 1
-    markers[fg_mark == 1] = 2
+    By default the disk radius is 1.5x the equivalent radius of the largest
+    object in a plain Otsu mask, so large structures are not erased.
+    """
+    if radius is None:
+        _, _, stats, _ = cv2.connectedComponentsWithStats((segment_otsu(img) > 0).astype(np.uint8))
+        largest = stats[1:, cv2.CC_STAT_AREA].max() if len(stats) > 1 else 0
+        radius = int(np.clip(1.5 * np.sqrt(largest / np.pi), 15, 100))
+    disk = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius + 1, 2 * radius + 1))
+    corrected = cv2.morphologyEx(cv2.GaussianBlur(img, (3, 3), 0), cv2.MORPH_TOPHAT, disk)
+    _, mask = cv2.threshold(corrected, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
 
-    markers_ws = watershed(-dist, markers, mask=(bin_bool | bg_mark.astype(bool)))
-    return (markers_ws == 2).astype(np.uint8) * 255
+
+def segment_watershed(img: np.ndarray, min_distance: int = 6) -> np.ndarray:
+    """Splits touching cells. The foreground comes from top-hat + Otsu; each
+    peak of the distance transform seeds one cell, and the watershed grows
+    the seeds until they meet. Returns an int32 instance label image.
+    """
+    fg = binary_fill_holes(segment_tophat_otsu(img) > 0)
+    dist = distance_transform_edt(fg)
+    _, components = cv2.connectedComponents(fg.astype(np.uint8))
+    peaks = peak_local_max(gaussian_filter(dist, 1), min_distance=min_distance,
+                           labels=components, exclude_border=False)
+    markers = np.zeros(img.shape, np.int32)
+    markers[tuple(peaks.T)] = np.arange(1, len(peaks) + 1)
+    return watershed(-dist, markers, mask=fg).astype(np.int32)
 
 
 SEGMENTERS = {
@@ -120,7 +230,8 @@ SEGMENTERS = {
     "Adaptive": segment_adaptive,
     "KMeans-2": segment_kmeans,
     "Canny+Fill": segment_canny_fill,
-    "Watershed(DT)": segment_watershed,
+    "TopHat+Otsu": segment_tophat_otsu,
+    "Watershed": segment_watershed,
 }
 
 
@@ -135,13 +246,42 @@ def run_all(img: np.ndarray) -> Dict[str, np.ndarray]:
 def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]":
     """Score every method's mask against the ground truth. Returns a list
     of dicts (ready for ``pd.DataFrame``), sorted by Dice descending.
+
+    ``gt_mask`` may be a binary mask or an instance label image; with
+    instance labels, instance F1 and the object counts are added.
     """
     gt_bin = (gt_mask > 0)
+    gt_labels = gt_mask.astype(np.int32) if gt_mask.max() > 1 else None
     rows = []
     for name, mask in results.items():
         pred_bin = (mask > 0)
-        rows.append({"method": name, "dice": dice(gt_bin, pred_bin), "iou": iou(gt_bin, pred_bin)})
+        row = {"method": name, "dice": dice(gt_bin, pred_bin), "iou": iou(gt_bin, pred_bin)}
+        if gt_labels is not None:
+            f1, n_true, n_pred = instance_f1(gt_labels, label_objects(mask))
+            row.update({"instance_f1": f1, "cells_true": n_true, "cells_found": n_pred})
+        rows.append(row)
     return sorted(rows, key=lambda r: r["dice"], reverse=True)
+
+
+def benchmark(n_images: int = 10, **image_kwargs) -> "list[dict]":
+    """Average every method's scores over ``n_images`` realistic cell images
+    (seeds 0..n_images-1). Returns rows sorted by instance F1, each with the
+    mean and standard deviation of every metric.
+    """
+    per_method: Dict[str, list] = {}
+    for seed in range(n_images):
+        img, labels = make_cell_image(seed=seed, **image_kwargs)
+        for row in evaluate(labels, run_all(img)):
+            per_method.setdefault(row["method"], []).append(row)
+
+    summary = []
+    for name, rows in per_method.items():
+        entry = {"method": name}
+        for key in ("dice", "iou", "instance_f1"):
+            vals = np.array([r[key] for r in rows])
+            entry[key], entry[f"{key}_std"] = float(vals.mean()), float(vals.std())
+        summary.append(entry)
+    return sorted(summary, key=lambda r: r["instance_f1"], reverse=True)
 
 
 def plot_results(img: np.ndarray, gt_mask: np.ndarray, results: Dict[str, np.ndarray]):

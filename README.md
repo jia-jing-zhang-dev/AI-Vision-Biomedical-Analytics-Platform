@@ -6,8 +6,8 @@ An educational machine-learning, computer-vision, and biomedical-image-analysis 
 
 - **Blood-cell classification** — a PyTorch CNN that classifies 8 blood-cell types from BloodMNIST at **96.6% test accuracy** (vs. 72.9% for a fully connected baseline), with hyperparameters tuned by Optuna on the validation split.
 - **FashionMNIST clothing classification** — a PyTorch three-layer fully connected network that predicts one of ten clothing classes from an uploaded image.
-- **Biomedical image segmentation** — five classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, and Watershed.
-- **Segmentation evaluation** — generates annotated synthetic biomedical images and reports Dice and IoU metrics.
+- **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells.
+- **Segmentation benchmark** — generates realistic synthetic microscopy images (touching nuclei, uneven illumination, blur, noise) with per-cell ground truth, and scores every method with pixel-level Dice / IoU and object-level instance F1.
 - **Machine-learning utilities** — decision trees, random forests, ANOVA feature selection, Optuna tuning, and K-Means clustering analysis.
 - **Image-processing fundamentals** — a NumPy implementation of 2D convolution with edge-detection, sharpening, Sobel, and box-blur kernels.
 - **Visualization utilities** — EDA plotting helpers built with Matplotlib and Seaborn.
@@ -24,12 +24,13 @@ An educational machine-learning, computer-vision, and biomedical-image-analysis 
 ├── src/
 │   ├── vision_cnn.py                # PyTorch model and training helpers
 │   ├── medical_cnn.py               # BloodMNIST CNN, training and inference helpers
-│   ├── segmentation.py              # Classical segmentation and Dice / IoU evaluation
+│   ├── segmentation.py              # Classical segmentation, Dice / IoU / instance-F1 benchmark
 │   ├── classification.py            # Supervised learning and Optuna tuning
 │   ├── clustering.py                # K-Means and silhouette-based model selection
 │   ├── convolution.py               # NumPy 2D convolution
 │   └── visualization.py             # EDA visualization helpers
 ├── train.py                         # FashionMNIST training script
+├── benchmark_segmentation.py       # Segmentation benchmark over many images
 ├── train_medical.py                 # BloodMNIST training / tuning script
 ├── fashion_model.pth                # Trained FashionMNIST weights
 ├── biomedical_cnn.pth               # Trained BloodMNIST CNN weights
@@ -78,7 +79,7 @@ streamlit run app.py
 Open the local URL displayed in the terminal, then use the sidebar to switch between modules:
 
 1. **Deep Learning** — upload a JPG, JPEG, or PNG clothing image and run FashionMNIST classification.
-2. **Biomedical Segmentation** — either generate a synthetic benchmark image to compare masks and Dice / IoU scores, or upload a grayscale or color medical image to view segmentation results from every algorithm.
+2. **Biomedical Segmentation** — either generate a synthetic benchmark image (realistic cells or simple shapes) to compare masks, Dice / IoU and instance F1, run a 10-image benchmark, or upload a grayscale or color medical image to view segmentation results from every algorithm.
 3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see the CNN's prediction and class probabilities.
 
 ## Train Models
@@ -119,6 +120,29 @@ Most of the gain comes from switching to a convolutional architecture with augme
 The hardest classes are immature granulocytes and monocytes (92% recall each), which are mostly confused with each other.
 
 *Data: [MedMNIST v2](https://medmnist.com/) BloodMNIST, CC BY 4.0. Educational project — not for clinical use.*
+
+## Segmentation Benchmark
+
+```bash
+python benchmark_segmentation.py --images 50
+```
+
+Results on 50 synthetic cell images (~45 nuclei each, mean ± std):
+
+| Method | Dice | IoU | Instance F1 |
+|---|---|---|---|
+| **Top-hat + watershed** | **0.935 ± 0.017** | **0.879 ± 0.030** | **0.794 ± 0.060** |
+| Top-hat + Otsu | 0.935 ± 0.017 | 0.879 ± 0.030 | 0.606 ± 0.082 |
+| Otsu | 0.932 ± 0.018 | 0.873 ± 0.032 | 0.595 ± 0.084 |
+| K-Means (K=2) | 0.932 ± 0.018 | 0.873 ± 0.031 | 0.595 ± 0.083 |
+| Adaptive threshold | 0.528 ± 0.034 | 0.359 ± 0.032 | 0.509 ± 0.070 |
+| Canny + hole filling | 0.823 ± 0.014 | 0.700 ± 0.021 | 0.387 ± 0.074 |
+
+![Segmentation benchmark example](public/cell-segmentation-benchmark.png)
+
+**What this shows:** pixel-level Dice cannot tell the thresholding methods apart — they all find the foreground well. Instance F1 can: thresholding merges touching nuclei into one object, while the watershed, seeded at peaks of the distance transform, separates them (+0.19 instance F1). Top-hat illumination correction helps only slightly here, because Otsu is already fairly robust to this level of shading. Instance F1 counts a predicted object as correct when it overlaps a true cell with IoU > 0.5.
+
+The original three-shape image is still available as an "easy" sanity check, where Otsu, K-Means, top-hat and watershed all reach Dice 1.0.
 
 ## Run Tests
 

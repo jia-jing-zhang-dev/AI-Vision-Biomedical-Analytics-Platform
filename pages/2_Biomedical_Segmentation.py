@@ -1,15 +1,47 @@
 import streamlit as st
 import numpy as np
-import cv2
+import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
-from src.segmentation import make_synthetic_image, run_all, evaluate
+from src.segmentation import (
+    benchmark, evaluate, label_objects, make_cell_image, make_synthetic_image, run_all,
+)
 
 st.title("🔬 Biomedical Image & Cell Segmentation System")
 st.write(
     "Supports both **Benchmark Evaluation Mode** and **Custom Medical Image Upload Mode**, "
-    "using multiple algorithms to extract cell/lesion boundaries and calculate Dice / IoU metrics."
+    "using multiple algorithms to extract cell/lesion boundaries. Methods are scored with "
+    "pixel-level **Dice / IoU** and with **instance F1**, which checks whether each cell "
+    "was segmented as its own object (a match needs IoU > 0.5 with a true cell)."
 )
+
+
+def color_labels(labels: np.ndarray) -> np.ndarray:
+    """Random colour per instance, black background."""
+    palette = np.random.default_rng(1).uniform(0.25, 1.0, (labels.max() + 1, 3))
+    palette[0] = 0
+    return palette[labels]
+
+
+def show_image(img, title, cmap=None, size=4):
+    if size >= 4:
+        st.subheader(title)
+    else:
+        st.text(title)
+    fig, ax = plt.subplots(figsize=(size, size))
+    ax.imshow(img, cmap=cmap)
+    ax.axis('off')
+    st.pyplot(fig)
+    plt.close(fig)
+
+
+def show_masks(results):
+    st.subheader("👁️ Segmentation Results (one colour per detected object)")
+    cols = st.columns(3)
+    for i, (name, mask) in enumerate(results.items()):
+        with cols[i % 3]:
+            show_image(color_labels(label_objects(mask)), name, size=2.5)
+
 
 # Mode selection
 mode = st.radio(
@@ -21,96 +53,78 @@ mode = st.radio(
 )
 
 if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
+    image_type = st.selectbox(
+        "Benchmark image",
+        ["Realistic cells: touching nuclei, uneven illumination, blur, noise",
+         "Simple shapes: three large objects on a mild gradient"],
+    )
+    realistic = image_type.startswith("Realistic")
+    seed = st.number_input("Random seed", min_value=0, max_value=10_000, value=0, step=1) if realistic else 0
+
     if st.button("Run Biomedical Image Segmentation Pipeline"):
-        img, gt_mask = make_synthetic_image()
+        if realistic:
+            img, gt = make_cell_image(seed=int(seed))
+        else:
+            img, gt = make_synthetic_image()
         results = run_all(img)
-        scores = evaluate(gt_mask, results)
-        
+        scores = evaluate(gt, results)
+
         col1, col2 = st.columns(2)
-        
         with col1:
-            st.subheader("Original Medical Scan")
-            fig, ax = plt.subplots(figsize=(4, 4))
-            ax.imshow(img, cmap='gray')
-            ax.axis('off')
-            st.pyplot(fig)
-            
+            show_image(img, "Original Medical Scan", cmap="gray")
         with col2:
-            st.subheader("Expert-Annotated Ground Truth")
-            fig, ax = plt.subplots(figsize=(4, 4))
-            ax.imshow(gt_mask, cmap='gray')
-            ax.axis('off')
-            st.pyplot(fig)
-            
-        st.subheader("📊 Algorithm Performance Evaluation (Dice / IoU)")
-        
-        score_data = []
-        for item in scores:
-            if isinstance(item, dict):
-                score_data.append({
-                    "Method": item.get("method", "Alg"),
-                    "Dice": round(item.get("dice", 0.0), 3),
-                    "IoU": round(item.get("iou", 0.0), 3)
-                })
+            if realistic:
+                show_image(color_labels(gt), f"Ground Truth ({gt.max()} cells)")
             else:
-                score_data.append({
-                    "Method": item[0],
-                    "Dice": round(item[1], 3),
-                    "IoU": round(item[2], 3)
-                })
-                
-        st.table(score_data)
-        
-        st.subheader("👁️ Segmentation Mask Visualization")
-        cols = st.columns(len(results))
-        
-        for i, (name, mask) in enumerate(results.items()):
-            with cols[i]:
-                st.text(name)
-                fig, ax = plt.subplots(figsize=(2.5, 2.5))
-                ax.imshow(mask, cmap='gray')
-                ax.axis('off')
-                st.pyplot(fig)
+                show_image(gt, "Ground Truth", cmap="gray")
+
+        st.subheader("📊 Algorithm Performance Evaluation")
+        table = pd.DataFrame(scores).rename(columns={
+            "method": "Method", "dice": "Dice", "iou": "IoU", "instance_f1": "Instance F1",
+            "cells_true": "Cells (true)", "cells_found": "Objects found",
+        })
+        if realistic:
+            table = table.sort_values("Instance F1", ascending=False)
+        st.dataframe(table.round(3), hide_index=True, use_container_width=True)
+
+        show_masks(results)
+
+    if realistic and st.button("Run 10-Image Benchmark (mean ± std)"):
+        with st.spinner("Segmenting 10 images with every method..."):
+            summary = benchmark(10)
+        st.dataframe(pd.DataFrame([{
+            "Method": r["method"],
+            "Dice": f"{r['dice']:.3f} ± {r['dice_std']:.3f}",
+            "IoU": f"{r['iou']:.3f} ± {r['iou_std']:.3f}",
+            "Instance F1": f"{r['instance_f1']:.3f} ± {r['instance_f1_std']:.3f}",
+        } for r in summary]), hide_index=True, use_container_width=True)
+        st.caption(
+            "Thresholding methods find the foreground well (similar Dice) but merge touching "
+            "cells into one object, so their instance F1 is much lower. The watershed splits "
+            "them using peaks of the distance transform as seeds."
+        )
 
 else:
     st.subheader("📤 Upload Your Own Medical Image")
-    
+
     uploaded_file = st.file_uploader(
         "Upload a cell, X-ray, or pathology image...",
         type=["jpg", "jpeg", "png"]
     )
-    
+
     if uploaded_file is not None:
         # Read and convert to grayscale
-
         pil_img = Image.open(uploaded_file).convert("L")
         img = np.array(pil_img)
-        
-        if img.dtype != np.uint8:
-            if img.max() <= 1.0:
-                img = (img * 255).astype(np.uint8)
-            else:
-                img = img.astype(np.uint8)
-        
-            
+
         st.image(
             pil_img,
             caption="Uploaded Medical Image",
             width=350
         )
-        
+
         if st.button("Run Multi-Algorithm Segmentation"):
             with st.spinner("Running classical computer vision algorithms..."):
                 results = run_all(img)
-                
-            st.subheader("👁️ Segmentation Results for Uploaded Image")
-            
-            cols = st.columns(len(results))
-            
-            for i, (name, mask) in enumerate(results.items()):
-                with cols[i]:
-                    st.text(name)
-                    fig, ax = plt.subplots(figsize=(2.5, 2.5))
-                    ax.imshow(mask, cmap='gray')
-                    ax.axis('off')
-                    st.pyplot(fig)
+
+            show_masks(results)

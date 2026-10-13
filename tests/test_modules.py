@@ -11,7 +11,9 @@ from sklearn.model_selection import train_test_split
 
 from src.clustering import KMeansExplorer, bench_k_means
 from src.classification import compare_classifiers
-from src.segmentation import make_synthetic_image, run_all, evaluate, dice, iou
+from src.segmentation import (
+    make_synthetic_image, make_cell_image, run_all, evaluate, benchmark, dice, iou, instance_f1,
+)
 from src.convolution import convolve2d, KERNELS
 
 
@@ -57,6 +59,30 @@ def test_dice_and_iou_perfect_match():
     mask[2:5, 2:5] = 1
     assert abs(dice(mask, mask) - 1.0) < 1e-6
     assert abs(iou(mask, mask) - 1.0) < 1e-6
+
+
+def test_instance_f1_counts_merged_cells_as_misses():
+    gt = np.zeros((20, 40), dtype=np.int32)
+    gt[5:15, 5:15] = 1
+    gt[5:15, 15:25] = 2
+    assert instance_f1(gt, gt)[0] == 1.0
+    merged = (gt > 0).astype(np.int32)          # both cells predicted as one object
+    f1, n_true, n_pred = instance_f1(gt, merged)
+    assert (n_true, n_pred) == (2, 1)
+    assert f1 == 0.0
+
+
+def test_cell_image_has_consecutive_instance_labels():
+    img, labels = make_cell_image(seed=3)
+    assert img.dtype == np.uint8 and img.shape == labels.shape
+    ids = np.unique(labels)
+    assert ids[0] == 0 and np.array_equal(ids, np.arange(len(ids)))
+    assert len(ids) - 1 > 20
+
+
+def test_watershed_separates_touching_cells_better_than_otsu():
+    scores = {row["method"]: row for row in benchmark(n_images=5)}
+    assert scores["Watershed"]["instance_f1"] > scores["Otsu"]["instance_f1"] + 0.1
 
 
 def test_convolve2d_output_shape():
