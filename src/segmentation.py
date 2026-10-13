@@ -41,19 +41,20 @@ from skimage.segmentation import watershed
 # ----------------------------------------------------------------------
 # Metrics
 # ----------------------------------------------------------------------
-def dice(gt: np.ndarray, pred: np.ndarray, eps: float = 1e-8) -> float:
-    """Dice / F1 overlap coefficient between two binary masks."""
+def dice(gt: np.ndarray, pred: np.ndarray) -> float:
+    """Dice / F1 overlap coefficient between two binary masks. Two empty
+    masks agree perfectly (1.0), consistent with ``instance_f1``.
+    """
     gt, pred = gt.astype(bool), pred.astype(bool)
-    inter = np.logical_and(gt, pred).sum()
-    return (2.0 * inter) / (gt.sum() + pred.sum() + eps)
+    total = gt.sum() + pred.sum()
+    return 1.0 if total == 0 else float(2.0 * np.logical_and(gt, pred).sum() / total)
 
 
-def iou(gt: np.ndarray, pred: np.ndarray, eps: float = 1e-8) -> float:
-    """Intersection-over-Union between two binary masks."""
+def iou(gt: np.ndarray, pred: np.ndarray) -> float:
+    """Intersection-over-Union between two binary masks (1.0 if both are empty)."""
     gt, pred = gt.astype(bool), pred.astype(bool)
-    inter = np.logical_and(gt, pred).sum()
     union = np.logical_or(gt, pred).sum()
-    return inter / (union + eps)
+    return 1.0 if union == 0 else float(np.logical_and(gt, pred).sum() / union)
 
 
 def _to_uint8(mask_bool: np.ndarray) -> np.ndarray:
@@ -141,6 +142,8 @@ def make_cell_image(h: int = 256, w: int = 256, n_cells: int = 45,
     touch or overlap, internal texture, a dim corner from uneven
     illumination, optical blur, and sensor noise.
     """
+    if min(h, w) < 32:
+        raise ValueError(f"make_cell_image needs at least 32x32 pixels, got {h}x{w}")
     rng = np.random.default_rng(seed)
     labels = np.zeros((h, w), np.int32)
     signal = np.zeros((h, w), np.float32)
@@ -179,20 +182,24 @@ def segment_otsu(img: np.ndarray) -> np.ndarray:
     return mask
 
 
-def segment_adaptive(img: np.ndarray, block_size: int = 31, c: int = 5) -> np.ndarray:
+def segment_adaptive(img: np.ndarray, block_size: int = 31, offset: int = 5) -> np.ndarray:
+    """Foreground = pixels at least ``offset`` grey levels brighter than their
+    local mean. (OpenCV keeps ``pixel > mean - C``, so C = -offset; a positive
+    C would mark flat background as foreground.)
+    """
     return cv2.adaptiveThreshold(
-        img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block_size, c
+        img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block_size, -offset
     )
 
 
 def segment_kmeans(img: np.ndarray, k: int = 2) -> np.ndarray:
     Z = img.reshape(-1, 1).astype(np.float32)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 0.5)
+    if img.min() == img.max():                     # a flat image has no foreground
+        return np.zeros(img.shape, np.uint8)
     _, labels, centers = cv2.kmeans(Z, k, None, criteria, 5, cv2.KMEANS_PP_CENTERS)
-    centers = np.uint8(centers)
-    clustered = centers[labels.flatten()].reshape(img.shape)
-    fg_val = np.max(centers)  # brighter cluster = foreground
-    return (clustered == fg_val).astype(np.uint8) * 255
+    foreground = labels.reshape(img.shape) == int(np.argmax(centers))  # brighter cluster
+    return foreground.astype(np.uint8) * 255
 
 
 def segment_canny_fill(img: np.ndarray, low: int = 50, high: int = 150) -> np.ndarray:
@@ -264,6 +271,16 @@ def segment_cellpose(img: np.ndarray) -> np.ndarray:
         from cellpose import models
         _cellpose_model = models.Cellpose(gpu=False, model_type="nuclei")
     masks = _cellpose_model.eval(img, diameter=None, channels=[0, 0])[0]
+    if masks.max() == 0:
+        # The automatic size model fails on cells much larger than its training
+        # data and then returns nothing; retry with the median diameter of the
+        # Otsu objects instead.
+        _, _, stats, _ = cv2.connectedComponentsWithStats((segment_otsu(img) > 0).astype(np.uint8))
+        areas = stats[1:, cv2.CC_STAT_AREA]
+        areas = areas[areas >= 20]
+        if len(areas):
+            diameter = float(2 * np.sqrt(np.median(areas) / np.pi))
+            masks = _cellpose_model.eval(img, diameter=diameter, channels=[0, 0])[0]
     return masks.astype(np.int32)
 
 

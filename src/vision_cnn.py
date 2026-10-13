@@ -95,3 +95,31 @@ def get_fashion_mnist_loaders(batch_size: int = 64, data_dir: str = "./data"):
         DataLoader(train_ds, batch_size=batch_size, shuffle=True),
         DataLoader(test_ds, batch_size=batch_size),
     )
+
+
+FASHION_MNIST_CLASSES = [
+    "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
+    "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot",
+]
+
+
+def prepare_upload(image):
+    """Turns any PIL image into the (1, 1, 28, 28) tensor the FashionMNIST
+    model expects: 8-bit grayscale, 28x28, light item on a dark background.
+
+    FashionMNIST items are bright on black, while most photos are dark items
+    on a light background, so the image is inverted only when its border is
+    bright. Transparent areas count as white background.
+    """
+    import numpy as np
+    import torch
+    from PIL import Image
+
+    from src.image_io import to_8bit
+    from src.segmentation import has_bright_background
+
+    gray = to_8bit(image, "L").resize((28, 28), Image.Resampling.BILINEAR)
+    arr = np.asarray(gray, dtype=np.uint8)
+    if has_bright_background(arr):
+        arr = 255 - arr
+    return torch.from_numpy(arr.astype(np.float32) / 255.0)[None, None]

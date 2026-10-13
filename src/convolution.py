@@ -54,6 +54,12 @@ def convolve2d(image: np.ndarray, kernel: np.ndarray, padding: int = 0, stride: 
     -------
     2D array with the convolved output.
     """
+    if image.ndim != 2 or kernel.ndim != 2:
+        raise ValueError("convolve2d expects a 2D (grayscale) image and a 2D kernel")
+    if stride < 1 or padding < 0:
+        raise ValueError(f"stride must be >= 1 and padding >= 0, got stride={stride}, padding={padding}")
+    if image.shape[0] + 2 * padding < kernel.shape[0] or image.shape[1] + 2 * padding < kernel.shape[1]:
+        raise ValueError(f"kernel {kernel.shape} is larger than the padded image")
     kernel = np.flipud(np.fliplr(kernel))
     kh, kw = kernel.shape
     ih, iw = image.shape

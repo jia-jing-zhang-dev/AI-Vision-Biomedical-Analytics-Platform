@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
+from src.image_io import to_8bit
 from src.segmentation import (
     benchmark, color_labels, evaluate, has_bright_background, label_objects, make_cell_image,
     make_synthetic_image, run_all, cellpose_available,
@@ -115,7 +116,7 @@ else:
     if uploaded_file is not None:
         # Read and convert to grayscale; large photos are downscaled so six
         # full-resolution result figures fit in Streamlit Cloud's memory.
-        pil_img = Image.open(uploaded_file).convert("L")
+        pil_img = to_8bit(Image.open(uploaded_file), "L")   # rescales 16-bit, flattens alpha
         if max(pil_img.size) > MAX_UPLOAD_SIDE:
             original_size = pil_img.size
             pil_img.thumbnail((MAX_UPLOAD_SIDE, MAX_UPLOAD_SIDE), Image.Resampling.LANCZOS)

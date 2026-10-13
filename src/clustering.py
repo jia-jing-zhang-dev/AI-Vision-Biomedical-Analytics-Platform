@@ -40,6 +40,8 @@ class KMeansExplorer:
         Candidate numbers of clusters to try.
     n_init : int
         Number of K-Means restarts per k (passed to sklearn's KMeans).
+    max_iter : int
+        Maximum iterations per K-Means run.
     random_state : int
         Seed for reproducibility.
     """
@@ -51,6 +53,8 @@ class KMeansExplorer:
 
     def __post_init__(self):
         self.k_range = list(self.k_range)
+        if not self.k_range or min(self.k_range) < 2:
+            raise ValueError(f"k_range must be non-empty with every k >= 2 (silhouette needs 2+ clusters), got {self.k_range}")
         self.models_: dict[int, KMeans] = {}
         self.labels_by_k_: dict[int, np.ndarray] = {}
         self.silhouette_scores_: dict[int, float] = {}
@@ -149,9 +153,10 @@ def bench_k_means(kmeans: KMeans, name: str, data: np.ndarray, labels: np.ndarra
         "v_measure": metrics.v_measure_score(labels, pred_labels),
         "adjusted_rand": metrics.adjusted_rand_score(labels, pred_labels),
         "adjusted_mutual_info": metrics.adjusted_mutual_info_score(labels, pred_labels),
+        # Scored in the standardized space that K-Means actually clustered.
         "silhouette": metrics.silhouette_score(
-            data, pred_labels, metric="euclidean",
-            sample_size=min(300, len(data)),
+            estimator[:-1].transform(data), pred_labels, metric="euclidean",
+            sample_size=min(300, len(data)), random_state=0,
         ),
     }
     return result

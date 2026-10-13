@@ -138,8 +138,10 @@ def predict_proba(model, image, device: str = "cpu"):
     """Returns class probabilities for one PIL image of any size, using the
     preprocessing that matches ``model.arch``.
     """
+    from src.image_io import to_8bit
+
     tfm = input_transform(getattr(model, "arch", "cnn"), from_upload=True)
-    x = tfm(image.convert("RGB")).unsqueeze(0).to(device)
+    x = tfm(to_8bit(image, "RGB")).unsqueeze(0).to(device)
     with torch.no_grad():
         return torch.softmax(model(x), dim=1).squeeze(0).cpu().numpy()
 

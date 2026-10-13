@@ -87,3 +87,4 @@ improves; CLI silently ignoring `--optuna`/`--epochs`; duplicated
 
 | Round | Extra focus | Verified findings | Fixed | Tests |
 |---|---|---|---|---|
+| 1 | Core-module correctness | 7 verified: adaptive threshold sign (background as foreground); 16-bit uploads saturated to white; FashionMNIST page always inverted (8.8% on its own test images); Cellpose empty on large cells; unseeded DecisionTree/silhouette/train.py; silhouette in wrong feature space; degenerate inputs (empty-mask Dice 0 vs F1 1, flat-image K-Means, tiny images, convolve2d/eda_report/KMeansExplorer validation) | All 7; added `src/image_io.py`; README Adaptive row re-measured | 29 → 44 |

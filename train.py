@@ -9,6 +9,7 @@ from src.vision_cnn import (
 )
 
 def main():
+    torch.manual_seed(0)  # reproducible initialization and shuffling
     print("1. Detecting hardware and downloading the FashionMNIST dataset...")
     device = get_device()
 

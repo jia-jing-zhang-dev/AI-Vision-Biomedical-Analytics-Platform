@@ -58,6 +58,8 @@ def eda_report(df: pd.DataFrame, numeric_cols: Optional[list[str]] = None,
     Returns the matplotlib Figure.
     """
     numeric_cols = numeric_cols or df.select_dtypes("number").columns.tolist()
+    if not numeric_cols:
+        raise ValueError("eda_report needs at least one numeric column")
     n = len(numeric_cols) + (1 if category_col else 0)
     cols = min(3, n)
     rows = -(-n // cols)

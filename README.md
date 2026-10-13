@@ -168,7 +168,7 @@ Results on 50 synthetic cell images (~45 nuclei each, mean ± std):
 | Top-hat + Otsu | 0.935 ± 0.017 | 0.879 ± 0.030 | 0.606 ± 0.082 |
 | Otsu | 0.932 ± 0.018 | 0.873 ± 0.032 | 0.595 ± 0.084 |
 | K-Means (K=2) | 0.932 ± 0.018 | 0.873 ± 0.031 | 0.595 ± 0.083 |
-| Adaptive threshold | 0.528 ± 0.034 | 0.359 ± 0.032 | 0.509 ± 0.070 |
+| Adaptive threshold | 0.774 ± 0.027 | 0.632 ± 0.035 | 0.519 ± 0.078 |
 | Canny + hole filling | 0.823 ± 0.014 | 0.700 ± 0.021 | 0.387 ± 0.074 |
 
 ![Segmentation benchmark example](public/cell-segmentation-benchmark.png)
@@ -203,5 +203,5 @@ Both `train.py` and `train_medical.py` download their datasets on the first run.
 
 ### Uploaded clothing images produce weak predictions
 
-The model is trained on 28×28 grayscale FashionMNIST images. For better results, use a clear, centered image of a single clothing item. The application converts images to grayscale, resizes them, and inverts their colors before inference.
+The model is trained on 28×28 grayscale FashionMNIST images. For better results, use a clear, centered image of a single clothing item. The application converts images to grayscale and 28×28, and inverts them only when the background is light (FashionMNIST items are light on black).
 

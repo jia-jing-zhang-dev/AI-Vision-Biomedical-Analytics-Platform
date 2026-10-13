@@ -43,7 +43,7 @@ def train_random_forest(X_train, y_train, X_test, y_test,
 
 
 def train_decision_tree(X_train, y_train, X_test, y_test) -> ModelResult:
-    clf = DecisionTreeClassifier()
+    clf = DecisionTreeClassifier(random_state=0)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     return ModelResult(

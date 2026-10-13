@@ -1,14 +1,8 @@
 import streamlit as st
 from PIL import Image
 import torch
-import torchvision.transforms as transforms
 
-from src.vision_cnn import build_model
-
-FASHION_MNIST_CLASSES = [
-    "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
-    "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
-]
+from src.vision_cnn import FASHION_MNIST_CLASSES, build_model, prepare_upload
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
 
@@ -26,12 +20,6 @@ def get_model():
 
 model, device = get_model()
 
-preprocess = transforms.Compose([
-    transforms.Grayscale(num_output_channels=1),
-    transforms.Resize((28, 28)),                 
-    transforms.ToTensor()                       
-])
-
 uploaded_file = st.file_uploader(
     "Upload a clothing image (JPG/PNG)",
     type=["jpg", "jpeg", "png"]
@@ -48,10 +36,9 @@ if uploaded_file is not None:
     
     if st.button("Run the PyTorch Model for Classification"):
         with st.spinner("Model inference in progress..."):
-            input_tensor = preprocess(image).unsqueeze(0).to(device)
+            # Grayscale 28x28; inverted only if the background is light
+            input_tensor = prepare_upload(image).to(device)
 
-            input_tensor = 1.0 - input_tensor
-            
             with torch.no_grad():
                 output = model(input_tensor)
                 predicted_class_idx = output.argmax(1).item()
