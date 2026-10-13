@@ -50,7 +50,7 @@ if not models:
 
 
 def test_accuracy(weights: str):
-    path = Path(weights.replace(".pth", "_results.json"))
+    path = Path(str(Path(weights).with_suffix("")) + "_results.json")   # as train_medical.output_paths
     return json.loads(path.read_text())["test_accuracy"] if path.exists() else None
 
 

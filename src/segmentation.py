@@ -100,8 +100,12 @@ def label_objects(mask: np.ndarray, min_size: int = 20) -> np.ndarray:
 def _compact_ids(labels: np.ndarray) -> np.ndarray:
     """Renumbers label ids to 0..N (0 stays background), so per-id arrays
     scale with the number of objects rather than the largest id (a uint16
-    label file can use ids up to 65535)."""
+    label file can use ids up to 65535). Negative ids are rejected: they
+    would push the background to id 1 and count it as an object."""
     ids, inverse = np.unique(labels, return_inverse=True)
+    if ids.size and ids[0] < 0:
+        raise ValueError(f"label images must not contain negative ids (found {int(ids[0])}); "
+                         "use 0 for background")
     if ids[0] != 0:                     # no background pixel: keep ids starting at 1
         inverse = inverse + 1
     return inverse.reshape(labels.shape).astype(np.int32)
@@ -109,8 +113,8 @@ def _compact_ids(labels: np.ndarray) -> np.ndarray:
 
 def color_labels(labels: np.ndarray) -> np.ndarray:
     """uint8 RGB image with a random colour per instance and a black
-    background. The palette is seeded, so an id gets the same colour in
-    every panel.
+    background. Ids are compacted first, so colours are reproducible for a
+    given image but not tied to an id across different images.
     """
     labels = _compact_ids(labels)
     palette = (np.random.default_rng(1).uniform(0.25, 1.0, (int(labels.max()) + 1, 3)) * 255).astype(np.uint8)

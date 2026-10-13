@@ -274,6 +274,7 @@ def test_benchmark_script_runs_and_writes_its_figure(tmp_path, capsys):
 
 
 # -------------------------------------------------------------- Cellpose
+@pytest.mark.cellpose
 def test_cellpose_falls_back_when_auto_diameter_finds_nothing():
     pytest.importorskip("cellpose")
     from src.segmentation import segment_cellpose
@@ -282,3 +283,68 @@ def test_cellpose_falls_back_when_auto_diameter_finds_nothing():
         yy, xx = np.ogrid[:512, :512]
         img[(yy - cy) ** 2 + (xx - cx) ** 2 < 70 ** 2] = 200
     assert segment_cellpose(img).max() >= 2
+
+
+# ------------------------------------------------------- round 10 additions
+def test_label_ids_are_compacted_so_memory_follows_object_count():
+    from src.segmentation import color_labels
+    labels = np.zeros((64, 64), np.int64)
+    labels[5:25, 5:25], labels[40:60, 40:60] = 10**8, 65535      # two objects, huge ids
+    out = label_objects(labels, min_size=1)
+    assert out.dtype == np.int32 and set(np.unique(out)) == {0, 1, 2}
+    assert instance_f1(labels, labels) == (1.0, 2, 2)
+    import tracemalloc
+    tracemalloc.start()
+    try:
+        colors = color_labels(labels)
+        label_objects(labels, min_size=1)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert colors.dtype == np.uint8 and colors.shape == (64, 64, 3)
+    assert peak < 20 * 2**20, f"peak {peak / 2**20:.0f} MiB: per-id arrays sized by the largest id"
+
+
+def test_negative_label_ids_are_rejected_not_counted_as_cells():
+    labels = np.zeros((10, 10), np.int32)
+    labels[2:6, 2:6] = 1
+    labels[0, 0] = -1
+    for fn in (lambda: instance_f1(labels, labels), lambda: label_objects(labels),
+               lambda: evaluate(labels, {"p": labels})):
+        with pytest.raises(ValueError, match="negative ids"):
+            fn()
+
+
+def test_mismatched_checkpoints_raise_value_error(tmp_path):
+    torch = pytest.importorskip("torch")
+    from src.medical_cnn import BloodCNN, load_model
+    good = BloodCNN(base_channels=8).state_dict()
+    cases = {
+        "wrong_sizes": {"params": {"base_channels": 16, "dropout": 0.1}, "state_dict": good},
+        "missing_param": {"params": {"dropout": 0.1}, "state_dict": good},
+        "params_list": {"params": [1, 2], "state_dict": good},
+    }
+    for name, checkpoint in cases.items():
+        path = tmp_path / f"{name}.pth"
+        torch.save(checkpoint, path)
+        with pytest.raises(ValueError, match="does not match the expected model"):
+            load_model(str(path))
+
+
+def test_very_thin_uploads_are_rejected():
+    import io
+    from src.image_io import UploadError, load_upload
+    for size in ((5000, 1), (1, 2000), (600, 10)):
+        buf = io.BytesIO(); Image.new("L", size, 128).save(buf, format="PNG"); buf.seek(0)
+        with pytest.raises(UploadError, match="wider than tall"):
+            load_upload(buf)
+    buf = io.BytesIO(); Image.new("L", (1, 1), 128).save(buf, format="PNG"); buf.seek(0)
+    assert load_upload(buf)[0].size == (1, 1)
+
+
+def test_train_medical_checks_the_figure_folder_too(tmp_path, monkeypatch):
+    import train_medical
+    monkeypatch.chdir(tmp_path)                       # no public/ folder here
+    with pytest.raises(SystemExit) as exc:
+        train_medical.parse_args([])
+    assert exc.value.code == 2

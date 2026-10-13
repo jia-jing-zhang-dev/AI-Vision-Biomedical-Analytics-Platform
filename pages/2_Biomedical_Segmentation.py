@@ -77,7 +77,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
         with col2:
             if realistic:
                 # Same count as the table: cells under 20 px are ignored in scoring
-                show_image(color_labels(gt), f"Ground Truth ({scores[0]['cells_true']} cells)")
+                show_image(color_labels(label_objects(gt)), f"Ground Truth ({scores[0]['cells_true']} cells)")
             else:
                 show_image(gt, "Ground Truth")
 

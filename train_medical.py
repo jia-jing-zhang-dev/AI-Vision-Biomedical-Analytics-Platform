@@ -120,9 +120,12 @@ def parse_args(argv=None) -> argparse.Namespace:
     if args.optuna < 0:
         parser.error("--optuna must be 0 (off) or a positive number of trials")
     # Fail before hours of training, not when saving at the end
-    out_dir = Path(output_paths(args.model, args.out)["weights"]).resolve().parent
-    if args.model != "mlp" and not out_dir.is_dir():
-        parser.error(f"output folder {out_dir} does not exist")
+    if args.model != "mlp":
+        for kind, path in output_paths(args.model, args.out).items():
+            folder = Path(path).resolve().parent
+            if not folder.is_dir():
+                parser.error(f"folder for the {kind} file ({folder}) does not exist "
+                             "(run from the repository root, or create it first)")
     if args.epochs is None:     # the MLP baseline always trains its original 5 epochs
         args.epochs = {"resnet18": 10, "mlp": 5}.get(args.model, 15)
     if args.tune_epochs is None:

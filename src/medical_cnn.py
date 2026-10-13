@@ -157,14 +157,19 @@ def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Modu
         raise ValueError(f"{Path(path).name} was not written by train_medical.py (no 'params'/'state_dict'); "
                          "plain state_dicts such as fashion_model.pth are loaded with src.vision_cnn")
     params = checkpoint["params"]
-    arch = params.get("arch", "cnn")
-    if arch not in ("cnn", "resnet18"):
-        raise ValueError(f"{Path(path).name}: unsupported architecture {arch!r} in checkpoint")
-    if arch == "resnet18":
-        model = build_resnet18(pretrained=False)
-    else:
-        model = BloodCNN(params["base_channels"], params["dropout"])
-    model.load_state_dict(checkpoint["state_dict"])
+    try:
+        arch = params.get("arch", "cnn")
+        if arch not in ("cnn", "resnet18"):
+            raise ValueError(f"unsupported architecture {arch!r}")
+        if arch == "resnet18":
+            model = build_resnet18(pretrained=False)
+        else:
+            model = BloodCNN(params["base_channels"], params["dropout"])
+        model.load_state_dict(checkpoint["state_dict"])
+    except (ValueError, KeyError, TypeError, AttributeError, RuntimeError) as err:
+        # Shaped like train_medical output but not matching this code's models
+        raise ValueError(f"{Path(path).name} does not match the expected model "
+                         f"({err.__class__.__name__}: {str(err)[:200]})") from err
     model.arch = arch
     return model.to(device).eval()
 

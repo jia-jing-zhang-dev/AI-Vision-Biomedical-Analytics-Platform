@@ -21,6 +21,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 HIGH_BIT_DEPTH_MODES = {"I", "I;16", "I;16B", "I;16L", "I;16N", "F"}
 MAX_UPLOAD_PIXELS = 25_000_000      # 5000 x 5000; keeps worst-case decoding near 200 MB
+MAX_ASPECT_RATIO = 50               # thinner images shrink to 0 px when previewed
 
 
 class UploadError(ValueError):
@@ -81,6 +82,10 @@ def load_upload(source, mode: str = "RGB", max_side: int = 1024) -> Tuple[Image.
                           f"{MAX_UPLOAD_PIXELS // 1_000_000} megapixels.") from None
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
         raise UploadError("Could not read this file as an image. Please upload a valid JPG or PNG.") from None
+
+    if max(width, height) > MAX_ASPECT_RATIO * min(width, height):
+        raise UploadError(f"The image is {width}×{height} pixels; images more than "
+                          f"{MAX_ASPECT_RATIO}× wider than tall (or vice versa) are not supported.")
 
     # Size as the user sees it: before JPEG draft decoding, after EXIF rotation.
     rotated = image.getexif().get(0x0112) in (5, 6, 7, 8)

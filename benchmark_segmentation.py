@@ -28,7 +28,7 @@ def save_example(path: str, seed: int = 0, include_cellpose: bool = True):
     img, gt = make_cell_image(seed=seed)
     panels = [
         ("Input (uneven illumination, noise)", img, "gray"),
-        (f"Ground truth ({len(np.unique(label_objects(gt))) - 1} cells)", color_labels(gt), None),
+        (f"Ground truth ({len(np.unique(label_objects(gt))) - 1} cells)", color_labels(label_objects(gt)), None),
         ("Otsu + connected components", color_labels(label_objects(segment_otsu(img))), None),
         ("Top-hat + watershed", color_labels(label_objects(segment_watershed(img))), None),
     ]

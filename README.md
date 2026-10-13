@@ -107,7 +107,7 @@ Open the local URL displayed in the terminal, then use the sidebar to switch bet
 
 1. **Deep Learning** — upload a JPG, JPEG, or PNG clothing image and run FashionMNIST classification.
 2. **Biomedical Segmentation** — either generate a synthetic benchmark image (realistic cells or simple shapes) to compare masks, Dice / IoU and instance F1, run a 10-image benchmark, or upload a grayscale or color medical image to view segmentation results from every algorithm.
-3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see the CNN's prediction and class probabilities.
+3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see both models' predictions (custom CNN and ResNet-18) and class probabilities.
 
 Uploads (JPG/PNG, including 16-bit and transparent PNGs and rotated phone photos) are accepted up to 25 megapixels and downscaled to at most 1024 px before processing, which keeps the app within Streamlit Cloud's memory limit.
 
@@ -138,7 +138,7 @@ python train_medical.py --optuna 20   # reproduces the shipped model (96.7%)
 
 The script downloads BloodMNIST from MedMNIST, runs a 20-trial Optuna search on the validation split, trains the chosen CNN for 15 epochs, keeps the epoch with the best **validation** accuracy, evaluates the held-out **test** split once, and writes `biomedical_cnn.pth`, `biomedical_cnn_results.json` and `public/bloodmnist-confusion.png`. The Blood Cell Classifier page loads these files.
 
-> Without `--optuna`, the default hyperparameters are used (96.0%) and the shipped weights, results and figure are **overwritten**. Pass `--out runs/model.pth` to write an experiment elsewhere; its results and figure then go next to it.
+> Without `--optuna`, the default hyperparameters are used (96.0%) and the shipped weights, results and figure are **overwritten**. Pass `--out runs/model.pth` (create `runs/` first) to write an experiment elsewhere; its results and figure then go next to it.
 
 ```bash
 python train_medical.py --model mlp   # reproduce the original fully connected baseline

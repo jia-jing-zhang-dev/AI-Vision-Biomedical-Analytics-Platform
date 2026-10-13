@@ -167,6 +167,7 @@ def test_uploads_accept_only_png_and_jpeg_content():
             load_upload(buf)
 
 
+@pytest.mark.cellpose
 def test_cellpose_files_are_hash_checked_and_tls_checks_restored(monkeypatch):
     pytest.importorskip("cellpose")
     import ssl
@@ -178,7 +179,7 @@ def test_cellpose_files_are_hash_checked_and_tls_checks_restored(monkeypatch):
 
 
 def test_streamlit_config_limits_uploads_and_error_details():
-    import tomllib
+    tomllib = pytest.importorskip("tomllib")              # Python 3.11+
     config = tomllib.loads((ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8"))
     assert config["server"]["maxUploadSize"] <= 50
     assert config["client"]["showErrorDetails"] in ("type", "none")
