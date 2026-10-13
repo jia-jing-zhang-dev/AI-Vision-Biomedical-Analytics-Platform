@@ -4,7 +4,7 @@ import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
 from src.segmentation import (
-    benchmark, evaluate, has_bright_background, label_objects, make_cell_image,
+    benchmark, color_labels, evaluate, has_bright_background, label_objects, make_cell_image,
     make_synthetic_image, run_all, cellpose_available,
 )
 
@@ -19,13 +19,6 @@ st.write(
     "pixel-level **Dice / IoU** and with **instance F1**, which checks whether each cell "
     "was segmented as its own object (a match needs IoU > 0.5 with a true cell)."
 )
-
-
-def color_labels(labels: np.ndarray) -> np.ndarray:
-    """Random colour per instance, black background."""
-    palette = np.random.default_rng(1).uniform(0.25, 1.0, (labels.max() + 1, 3))
-    palette[0] = 0
-    return palette[labels]
 
 
 def show_image(img, title, cmap=None, size=4):

@@ -64,7 +64,7 @@ def train_mlp_baseline(device: str, data_dir: str) -> float:
     return evaluate(model, test_loader, loss_fn, device)[1]
 
 
-def save_confusion_matrix(model, test_loader, device: str, path: str):
+def save_confusion_matrix(model, test_loader, device: str, path: str, title: str):
     """Plots a row-normalized confusion matrix of the test set."""
     import matplotlib.pyplot as plt
     from sklearn.metrics import ConfusionMatrixDisplay
@@ -83,7 +83,7 @@ def save_confusion_matrix(model, test_loader, device: str, path: str):
         values_format=".2f", cmap="Blues", xticks_rotation=45, ax=ax, colorbar=False,
     )
     plt.setp(ax.get_xticklabels(), ha="right", rotation_mode="anchor")
-    ax.set_title("BloodMNIST test set (row-normalized)")
+    ax.set_title(f"{title}: BloodMNIST test set (row-normalized)")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     print(f"Saved confusion matrix to {path}")
@@ -101,6 +101,12 @@ def main():
     parser.add_argument("--out", default=None,
                         help="weights file (default: biomedical_cnn.pth / biomedical_resnet18.pth)")
     args = parser.parse_args()
+    # Options that only apply to some models are rejected rather than silently ignored.
+    if args.optuna and args.model != "cnn":
+        parser.error("--optuna only applies to --model cnn")
+    if args.model == "mlp" and (args.out or args.epochs != parser.get_default("epochs")):
+        parser.error("--model mlp reproduces the fixed original baseline (5 epochs, no saved "
+                     "weights); --epochs and --out do not apply")
 
     torch.manual_seed(args.seed)
     device = get_device()
@@ -136,7 +142,8 @@ def main():
                    "test_accuracy": test_acc}, f, indent=2)
     print(f"Saved weights to {out}")
     suffix = "-resnet18" if args.model == "resnet18" else ""
-    save_confusion_matrix(model, test_loader, device, f"public/bloodmnist-confusion{suffix}.png")
+    title = "ResNet-18 (pretrained)" if args.model == "resnet18" else "Custom CNN"
+    save_confusion_matrix(model, test_loader, device, f"public/bloodmnist-confusion{suffix}.png", title)
 
 
 if __name__ == "__main__":

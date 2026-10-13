@@ -1,8 +1,10 @@
 """
 medical_cnn.py
 ==============
-Convolutional neural network for BloodMNIST (28x28 RGB blood-cell images,
-8 classes), plus data loading, training and evaluation helpers.
+Blood-cell classifiers for BloodMNIST (28x28 RGB images, 8 classes): a
+compact custom CNN, the fully connected baseline it replaced, and an
+ImageNet-pretrained ResNet-18 reference; plus preprocessing, data loading,
+training, evaluation and checkpoint helpers.
 
 Requires the optional `torch`, `torchvision` and `medmnist` packages
 (``pip install torch torchvision medmnist``).
@@ -222,5 +224,7 @@ def fit(model, train_loader, val_loader, device: str, epochs: int = 15,
         if verbose:
             print(f"Epoch [{epoch + 1}/{epochs}] train loss {train_loss:.4f} | val acc {val_acc:.4f}")
 
+    if best_state is None:
+        raise RuntimeError("Validation accuracy never rose above 0; check epochs and data.")
     model.load_state_dict(best_state)
     return best_acc

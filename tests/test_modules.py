@@ -122,3 +122,25 @@ def test_convolve2d_output_shape():
     image = np.random.rand(20, 20)
     out = convolve2d(image, KERNELS["box_blur"], padding=1)
     assert out.shape == (20, 20)
+
+
+def test_evaluate_detects_ground_truth_type_by_dtype():
+    one_cell = np.zeros((20, 20), dtype=np.int32)
+    one_cell[5:12, 5:12] = 1                          # instance labels with a single cell
+    rows = evaluate(one_cell, {"perfect": one_cell.copy()})
+    assert rows[0]["instance_f1"] == 1.0 and rows[0]["cells_true"] == 1
+
+    mask_255 = (one_cell * 255).astype(np.uint8)       # binary mask saved as 0/255
+    rows = evaluate(mask_255, {"perfect": mask_255.copy()})
+    assert "instance_f1" not in rows[0]
+    assert rows[0]["dice"] == pytest.approx(1.0)
+
+
+def test_train_medical_rejects_options_that_do_not_apply(monkeypatch):
+    sys.modules.pop("train_medical", None)
+    import train_medical
+    for argv in (["--model", "resnet18", "--optuna", "5"], ["--model", "mlp", "--epochs", "3"]):
+        monkeypatch.setattr(sys, "argv", ["train_medical.py", *argv])
+        with pytest.raises(SystemExit) as exc:
+            train_medical.main()
+        assert exc.value.code == 2                     # argparse usage error, before any training

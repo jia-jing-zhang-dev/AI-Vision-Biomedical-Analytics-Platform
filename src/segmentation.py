@@ -78,6 +78,15 @@ def label_objects(mask: np.ndarray, min_size: int = 20) -> np.ndarray:
     return labels
 
 
+def color_labels(labels: np.ndarray) -> np.ndarray:
+    """RGB image with a random colour per instance and a black background.
+    The palette is seeded, so an id gets the same colour in every panel.
+    """
+    palette = np.random.default_rng(1).uniform(0.25, 1.0, (int(labels.max()) + 1, 3))
+    palette[0] = 0
+    return palette[labels]
+
+
 def instance_f1(gt_labels: np.ndarray, pred_labels: np.ndarray,
                 iou_thresh: float = 0.5) -> Tuple[float, int, int]:
     """Object-level F1. A true cell and a predicted object match when their
@@ -291,11 +300,13 @@ def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]
     """Score every method's mask against the ground truth. Returns a list
     of dicts (ready for ``pd.DataFrame``), sorted by Dice descending.
 
-    ``gt_mask`` may be a binary mask or an instance label image; with
-    instance labels, instance F1 and the object counts are added.
+    ``gt_mask`` may be a binary mask (any non-int32 dtype, e.g. 0/1 or 0/255
+    uint8) or an int32 instance label image, the same convention as
+    ``label_objects``; with instance labels, instance F1 and the object
+    counts are added.
     """
     gt_bin = (gt_mask > 0)
-    gt_labels = gt_mask.astype(np.int32) if gt_mask.max() > 1 else None
+    gt_labels = gt_mask if gt_mask.dtype == np.int32 else None
     rows = []
     for name, mask in results.items():
         pred_bin = (mask > 0)

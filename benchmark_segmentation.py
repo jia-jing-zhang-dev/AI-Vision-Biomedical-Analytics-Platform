@@ -17,16 +17,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from src.segmentation import (
-    benchmark, cellpose_available, label_objects, make_cell_image, segment_cellpose,
+    benchmark, cellpose_available, color_labels, label_objects, make_cell_image, segment_cellpose,
     segment_otsu, segment_watershed,
 )
-
-
-def color_labels(labels: np.ndarray) -> np.ndarray:
-    """Random colour per instance, black background."""
-    palette = np.random.default_rng(1).uniform(0.25, 1.0, (labels.max() + 1, 3))
-    palette[0] = 0
-    return palette[labels]
 
 
 def save_example(path: str, seed: int = 0, include_cellpose: bool = True):
