@@ -65,7 +65,9 @@ def load_upload(source, mode: str = "RGB", max_side: int = 1024) -> Tuple[Image.
         if not os.path.exists(source):
             raise FileNotFoundError(source)
     try:
-        image = Image.open(source)
+        # Only the formats the UI accepts: Streamlit checks just the file name,
+        # so a renamed TIFF/EPS/... would otherwise reach other decoders.
+        image = Image.open(source, formats=["PNG", "JPEG"])
         width, height = image.size
         if width * height > MAX_UPLOAD_PIXELS:
             raise UploadError(f"The image is {width}×{height} pixels; please upload one under "

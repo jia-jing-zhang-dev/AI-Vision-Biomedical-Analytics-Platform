@@ -12,6 +12,7 @@ Requires the optional `torch`, `torchvision` and `medmnist` packages
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Tuple
 
 import torch
@@ -150,15 +151,15 @@ def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Modu
     except FileNotFoundError:
         raise
     except Exception as err:   # truncated download, git-LFS pointer, wrong file type
-        raise ValueError(f"{path} is not a readable PyTorch checkpoint ({err.__class__.__name__}); "
+        raise ValueError(f"{Path(path).name} is not a readable PyTorch checkpoint ({err.__class__.__name__}); "
                          "re-download it or re-run train_medical.py") from err
     if not isinstance(checkpoint, dict) or "params" not in checkpoint or "state_dict" not in checkpoint:
-        raise ValueError(f"{path} was not written by train_medical.py (no 'params'/'state_dict'); "
+        raise ValueError(f"{Path(path).name} was not written by train_medical.py (no 'params'/'state_dict'); "
                          "plain state_dicts such as fashion_model.pth are loaded with src.vision_cnn")
     params = checkpoint["params"]
     arch = params.get("arch", "cnn")
     if arch not in ("cnn", "resnet18"):
-        raise ValueError(f"{path}: unsupported architecture {arch!r} in checkpoint")
+        raise ValueError(f"{Path(path).name}: unsupported architecture {arch!r} in checkpoint")
     if arch == "resnet18":
         model = build_resnet18(pretrained=False)
     else:

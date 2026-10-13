@@ -121,7 +121,10 @@ with st.expander("Model details and comparison with published results"):
     ]
     st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
     st.caption("Published results: Yang et al., MedMNIST v2, Scientific Data 2023, Table 3.")
-    st.image(str(ROOT / "public" / "bloodmnist-confusion.png"), caption="Custom CNN: test-set confusion matrix")
+    cm_cnn, cm_resnet = st.columns(2)
+    cm_cnn.image(str(ROOT / "public" / "bloodmnist-confusion.png"), caption="Custom CNN: test-set confusion matrix")
+    cm_resnet.image(str(ROOT / "public" / "bloodmnist-confusion-resnet18.png"),
+                    caption="ResNet-18: test-set confusion matrix")
 
 st.caption(
     "Educational project, not a medical device. Data: MedMNIST v2 BloodMNIST (CC BY 4.0)."

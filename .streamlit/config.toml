@@ -1,0 +1,8 @@
+[server]
+# load_upload rejects images over 25 megapixels; a smaller upload cap stops
+# huge files from being held in memory first (~1 GB on Streamlit Cloud).
+maxUploadSize = 30
+
+[client]
+# Show only the exception type to visitors, not tracebacks with server paths.
+showErrorDetails = "type"

@@ -154,3 +154,31 @@ def test_pages_work_from_another_working_directory(tmp_path, monkeypatch):
     assert {m.label for m in at.metric} >= {"Custom CNN", "ResNet-18 (pretrained)"}
     home = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
     assert not home.exception and len(home.image) == 4
+
+
+# ---------------------------------------------------------------- security
+def test_uploads_accept_only_png_and_jpeg_content():
+    from src.image_io import UploadError
+    for fmt in ("TIFF", "GIF", "BMP", "WEBP"):
+        buf = io.BytesIO()
+        Image.new("RGB", (16, 16), (200, 50, 50)).save(buf, format=fmt)
+        buf.seek(0)
+        with pytest.raises(UploadError):                 # e.g. a .tif renamed to .png
+            load_upload(buf)
+
+
+def test_cellpose_files_are_hash_checked_and_tls_checks_restored(monkeypatch):
+    pytest.importorskip("cellpose")
+    import ssl
+    monkeypatch.setattr(seg, "_cellpose_model", None)
+    monkeypatch.setitem(seg.CELLPOSE_FILE_SHA256, "size_nucleitorch_0.npy", "0" * 64)
+    with pytest.raises(RuntimeError, match="pinned SHA-256"):
+        seg.segment_cellpose(np.zeros((64, 64), np.uint8))
+    assert ssl._create_default_https_context is ssl.create_default_context
+
+
+def test_streamlit_config_limits_uploads_and_error_details():
+    import tomllib
+    config = tomllib.loads((ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8"))
+    assert config["server"]["maxUploadSize"] <= 50
+    assert config["client"]["showErrorDetails"] in ("type", "none")

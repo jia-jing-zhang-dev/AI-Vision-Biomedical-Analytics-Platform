@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  UV_VERSION: "0.13.0"
+
 jobs:
   pytest:
     runs-on: ubuntu-latest
@@ -36,16 +39,18 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~/.cellpose
-          key: cellpose-models-v1
+          key: cellpose-nuclei-89ca45e4-a79107c9
       - name: Install dependencies (full)
         if: ${{ !matrix.deployment-like }}
         run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Install dependencies (as Streamlit Cloud does)
         if: ${{ matrix.deployment-like }}
         run: |
-          pip install uv
+          pip install "uv==${{ env.UV_VERSION }}"
           uv pip install --system --only-binary :all: -r requirements.txt
           python -c "import torch; assert '+cpu' in torch.__version__, torch.__version__"
+          # Guard against outdated HTTP libraries being pulled from a secondary index
+          python -c "import requests, urllib3; from packaging.version import Version as V; assert V(requests.__version__) >= V('2.32') and V(urllib3.__version__) >= V('2'), (requests.__version__, urllib3.__version__)"
           pip install -r requirements-ml.txt pytest
       - name: Run tests
         run: pytest tests/ -v

@@ -301,6 +301,37 @@ SEGMENTERS = {
 CELLPOSE_NAME = "Cellpose"
 _cellpose_model = None
 
+# SHA-256 of Cellpose 3's "nuclei" model files, taken from a download with
+# full TLS verification. The size model is a pickled .npy that Cellpose loads
+# with allow_pickle=True, so an unverified file could execute code.
+CELLPOSE_FILE_SHA256 = {
+    "nucleitorch_0": "89ca45e4a45048d5010d29621466b1274b91b3dcb9714dce9f9e90a9a8671303",
+    "size_nucleitorch_0.npy": "a79107c9f284b569dd65f3a7363014d613a3403241c062822f07b6f026b4d3ef",
+}
+
+
+def _load_verified_cellpose():
+    """Builds the Cellpose model only after its downloaded files match the
+    pinned hashes. Importing cellpose turns off TLS certificate checks for
+    the whole process (cellpose/utils.py); they are switched back on first.
+    """
+    import hashlib
+    import os
+    import ssl
+
+    from cellpose import models
+    ssl._create_default_https_context = ssl.create_default_context
+
+    for path in (models.model_path("nuclei"), models.size_model_path("nuclei")):
+        with open(path, "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        expected = CELLPOSE_FILE_SHA256[os.path.basename(path)]
+        if digest != expected:
+            raise RuntimeError(f"Cellpose model file {path} does not match its pinned SHA-256 "
+                               f"(got {digest[:12]}..., expected {expected[:12]}...); delete it "
+                               "so it is downloaded again, and check your network")
+    return models.Cellpose(gpu=False, model_type="nuclei")
+
 
 def cellpose_available() -> bool:
     """Cellpose is an optional dependency (``pip install "cellpose<4"``)."""
@@ -317,8 +348,7 @@ def segment_cellpose(img: np.ndarray) -> np.ndarray:
     _require_gray_uint8(img)
     global _cellpose_model
     if _cellpose_model is None:
-        from cellpose import models
-        _cellpose_model = models.Cellpose(gpu=False, model_type="nuclei")
+        _cellpose_model = _load_verified_cellpose()
     masks = _cellpose_model.eval(img, diameter=None, channels=[0, 0])[0]
     if masks.max() == 0:
         # The automatic size model fails on cells much larger than its training

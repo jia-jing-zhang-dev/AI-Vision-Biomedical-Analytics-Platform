@@ -1,7 +1,11 @@
 # Packages the Streamlit app needs (this is what Streamlit Cloud installs).
-# CPU-only PyTorch: without this index, Linux installs the CUDA build plus
+# CPU-only PyTorch: without these links, Linux installs the CUDA build plus
 # ~3 GB of nvidia-* packages, which the CPU-only deployment never uses.
---extra-index-url https://download.pytorch.org/whl/cpu
+# --find-links (not --extra-index-url) limits the PyTorch server to torch and
+# torchvision; as an extra index, uv also took outdated requests/urllib3/
+# certifi from it.
+--find-links https://download.pytorch.org/whl/cpu/torch/
+--find-links https://download.pytorch.org/whl/cpu/torchvision/
 torch==2.10.0
 torchvision==0.25.0
 

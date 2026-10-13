@@ -10,3 +10,6 @@ __pycache__/
 .idea/
 .DS_Store
 desktop.ini
+.env.*
+.ipynb_checkpoints/
+*.egg-info/
