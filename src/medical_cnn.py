@@ -25,6 +25,26 @@ CLASS_NAMES = [
 ]
 
 
+def set_deterministic(seed: int = 0) -> None:
+    """Seeds every RNG and forces deterministic GPU kernels, so a training
+    run gives bit-identical results when repeated on the same hardware.
+    (cuDNN/cuBLAS otherwise pick fast non-deterministic algorithms, and the
+    same seed varies by a few tenths of a percent between runs.)
+    """
+    import os
+    import random
+
+    import numpy as np
+
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)
+
+
 def get_device() -> str:
     """Pick the best available compute device."""
     if torch.cuda.is_available():

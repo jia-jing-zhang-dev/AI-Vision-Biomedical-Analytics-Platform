@@ -323,7 +323,9 @@ def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]
     counts are added.
     """
     gt_bin = (gt_mask > 0)
-    gt_labels = gt_mask if gt_mask.dtype == np.int32 else None
+    # Ground-truth cells get the same min_size filter as predictions, so a
+    # cell too small to ever be predicted does not count as a miss.
+    gt_labels = label_objects(gt_mask) if gt_mask.dtype == np.int32 else None
     rows = []
     for name, mask in results.items():
         pred_bin = (mask > 0)

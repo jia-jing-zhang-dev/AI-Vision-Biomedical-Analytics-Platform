@@ -7,6 +7,6 @@
   "seed": 0,
   "epochs": 10,
   "optuna_trials": 0,
-  "val_accuracy": 0.9813084112149533,
-  "test_accuracy": 0.9783688979830459
+  "val_accuracy": 0.9824766355140186,
+  "test_accuracy": 0.9792458345513008
 }

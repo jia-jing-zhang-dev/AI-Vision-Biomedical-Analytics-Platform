@@ -7,4 +7,5 @@ __pycache__
 .idea
 .env
 .env.*
-.DS_Storedata/
+.DS_Store
+data/

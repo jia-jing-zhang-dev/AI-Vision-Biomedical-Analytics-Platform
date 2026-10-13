@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from src.medical_cnn import set_deterministic
 from src.vision_cnn import (
     get_device, 
     build_model, 
@@ -9,7 +10,7 @@ from src.vision_cnn import (
 )
 
 def main():
-    torch.manual_seed(0)  # reproducible initialization and shuffling
+    set_deterministic(0)  # bit-identical reruns on the same hardware
     print("1. Detecting hardware and downloading the FashionMNIST dataset...")
     device = get_device()
 

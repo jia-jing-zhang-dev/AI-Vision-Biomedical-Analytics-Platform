@@ -7,9 +7,9 @@ Guidance for Claude (and humans) working on this repository.
 Streamlit app + reusable modules for biomedical image analysis, deployed at
 <https://visionserve-full-stack-ml-framework.streamlit.app/>.
 
-- `src/medical_cnn.py` — BloodMNIST classifiers: custom CNN (shipped, 96.6%), MLP baseline (72.9%), ImageNet-pretrained ResNet-18 reference (97.8%)
+- `src/medical_cnn.py` — BloodMNIST classifiers: custom CNN (shipped, 96.7%), MLP baseline (72.9%), ImageNet-pretrained ResNet-18 reference (97.9%)
 - `src/segmentation.py` — classical segmentation, synthetic cell benchmark, Dice/IoU/instance F1, optional Cellpose reference
-- `src/vision_cnn.py` — FashionMNIST MLP (88.1%)
+- `src/vision_cnn.py` — FashionMNIST MLP (86.9%)
 - `src/classification.py`, `src/clustering.py`, `src/convolution.py`, `src/visualization.py` — ML utilities
 - `pages/` — Streamlit pages; `app.py` — home page
 - `train.py`, `train_medical.py`, `benchmark_segmentation.py` — reproducible scripts behind every number in the README

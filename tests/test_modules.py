@@ -42,8 +42,9 @@ def test_classification_pipeline_runs():
     assert len(results) == 3
     for r in results:
         assert 0.0 <= r.accuracy <= 1.0
-    # sorted best-first
-    assert results[0].accuracy >= results[-1].accuracy
+    # ranked by cross-validation on the training set, never by test accuracy
+    cv = [r.cv_accuracy for r in results]
+    assert cv == sorted(cv, reverse=True)
 
 
 def test_optuna_tuning_reports_held_out_test_accuracy():

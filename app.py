@@ -26,7 +26,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader("🖼️ Module 1: PyTorch Deep Learning Classification")
     st.write("- A fully connected neural network built with PyTorch.")
-    st.write("- Supports real-time image uploads for 10-class classification (88.1% test accuracy).")
+    st.write("- Supports real-time image uploads for 10-class classification (86.9% test accuracy).")
 
     st.image(
         "public/fashion-demo.png",
@@ -42,8 +42,8 @@ with col2:
     )
     st.write(
         "- Benchmarked with **Dice / IoU** and **instance F1**: the watershed raises "
-        "instance F1 from 0.60 (Otsu) to 0.79 on images of touching cells; "
-        "Cellpose, the standard deep-learning tool, is included as a reference (0.89)."
+        "instance F1 from 0.60 (Otsu) to 0.80 on images of touching cells; "
+        "Cellpose, the standard deep-learning tool, is included as a reference (0.90)."
     )
 
     st.image(
@@ -62,11 +62,11 @@ with col3:
     st.subheader("🩸 Module 3: Blood Cell Classification")
     st.write("- A PyTorch CNN that classifies 8 blood-cell types (BloodMNIST).")
     st.write(
-        "- **96.6% test accuracy**, up from 72.9% for a fully connected baseline; "
+        "- **96.7% test accuracy**, up from 72.9% for a fully connected baseline; "
         "hyperparameters tuned with Optuna on the validation split."
     )
     st.write(
-        "- Compared with an ImageNet-pretrained ResNet-18 (97.8%, 77× larger) and the "
+        "- Compared with an ImageNet-pretrained ResNet-18 (97.9%, 20× larger) and the "
         "published MedMNIST v2 benchmarks."
     )
 

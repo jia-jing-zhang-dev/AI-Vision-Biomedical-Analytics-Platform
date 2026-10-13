@@ -27,6 +27,7 @@ class ModelResult:
     model: object
     accuracy: float
     report: str
+    cv_accuracy: Optional[float] = None
 
 
 def train_random_forest(X_train, y_train, X_test, y_test,
@@ -76,15 +77,22 @@ def train_random_forest_with_feature_selection(
 
 
 def compare_classifiers(X_train, y_train, X_test, y_test) -> list[ModelResult]:
-    """Run the standard suite of classifiers and return their results,
-    sorted by test accuracy (best first).
+    """Run the standard suite of classifiers and return their results, ranked
+    by 3-fold cross-validation accuracy on the training set (best first).
+    Ranking by test accuracy would select a model on the test set; each
+    result still reports its test accuracy.
     """
+    from sklearn.base import clone
+    from sklearn.model_selection import cross_val_score
+
     results = [
         train_decision_tree(X_train, y_train, X_test, y_test),
         train_random_forest(X_train, y_train, X_test, y_test),
         train_random_forest_with_feature_selection(X_train, y_train, X_test, y_test),
     ]
-    return sorted(results, key=lambda r: r.accuracy, reverse=True)
+    for r in results:
+        r.cv_accuracy = float(cross_val_score(clone(r.model), X_train, y_train, cv=3).mean())
+    return sorted(results, key=lambda r: r.cv_accuracy, reverse=True)
 
 
 def tune_with_optuna(X_train, y_train, X_test, y_test, n_trials: int = 50):

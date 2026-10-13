@@ -12,6 +12,7 @@ evaluated once, at the end, so the reported accuracy is not over-fit.
 
 import argparse
 import json
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -19,7 +20,7 @@ from torch import nn
 
 from src.medical_cnn import (
     CLASS_NAMES, BloodCNN, build_mlp_baseline, build_resnet18, evaluate, fit,
-    get_bloodmnist_loaders, get_device, train_one_epoch,
+    get_bloodmnist_loaders, get_device, set_deterministic, train_one_epoch,
 )
 
 DEFAULTS = {"lr": 1e-3, "weight_decay": 1e-4, "dropout": 0.3, "base_channels": 32}
@@ -92,7 +93,8 @@ def save_confusion_matrix(model, test_loader, device: str, path: str, title: str
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", choices=["cnn", "mlp", "resnet18"], default="cnn")
-    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument("--epochs", type=int, default=None,
+                        help="training epochs (default: 15 for cnn, 10 for resnet18)")
     parser.add_argument("--optuna", type=int, default=0, metavar="N_TRIALS",
                         help="run an Optuna search with this many trials first")
     parser.add_argument("--tune-epochs", type=int, default=6)
@@ -104,11 +106,13 @@ def main():
     # Options that only apply to some models are rejected rather than silently ignored.
     if args.optuna and args.model != "cnn":
         parser.error("--optuna only applies to --model cnn")
-    if args.model == "mlp" and (args.out or args.epochs != parser.get_default("epochs")):
+    if args.model == "mlp" and (args.out or args.epochs is not None):
         parser.error("--model mlp reproduces the fixed original baseline (5 epochs, no saved "
                      "weights); --epochs and --out do not apply")
 
-    torch.manual_seed(args.seed)
+    if args.epochs is None:
+        args.epochs = 10 if args.model == "resnet18" else 15
+    set_deterministic(args.seed)   # bit-identical reruns on the same hardware
     device = get_device()
 
     if args.model == "mlp":
@@ -136,14 +140,17 @@ def main():
     print(f"Test accuracy:       {test_acc:.4f}")
 
     torch.save({"params": params, "state_dict": model.state_dict()}, out)
-    with open(out.replace(".pth", "_results.json"), "w") as f:
+    stem = str(Path(out).with_suffix(""))
+    with open(stem + "_results.json", "w") as f:
         json.dump({"params": params, "seed": args.seed, "epochs": args.epochs,
                    "optuna_trials": args.optuna, "val_accuracy": val_acc,
                    "test_accuracy": test_acc}, f, indent=2)
     print(f"Saved weights to {out}")
     suffix = "-resnet18" if args.model == "resnet18" else ""
     title = "ResNet-18 (pretrained)" if args.model == "resnet18" else "Custom CNN"
-    save_confusion_matrix(model, test_loader, device, f"public/bloodmnist-confusion{suffix}.png", title)
+    # The README/app figure is only replaced when the default weights file is written.
+    figure = f"public/bloodmnist-confusion{suffix}.png" if args.out is None else stem + "_confusion.png"
+    save_confusion_matrix(model, test_loader, device, figure, title)
 
 
 if __name__ == "__main__":
