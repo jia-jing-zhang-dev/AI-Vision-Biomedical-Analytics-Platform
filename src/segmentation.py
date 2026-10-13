@@ -238,8 +238,24 @@ SEGMENTERS = {
 # ----------------------------------------------------------------------
 # Benchmark harness
 # ----------------------------------------------------------------------
-def run_all(img: np.ndarray) -> Dict[str, np.ndarray]:
-    """Run every registered segmenter on ``img`` and return a dict of masks."""
+def has_bright_background(img: np.ndarray) -> bool:
+    """True for brightfield-style images (dark cells on a light background,
+    e.g. stained blood smears). The image border is mostly background, so the
+    background is bright when most border pixels lie above the Otsu threshold.
+    """
+    thresh, _ = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    border = np.concatenate([img[0], img[-1], img[:, 0], img[:, -1]])
+    return bool((border > thresh).mean() > 0.5)
+
+
+def run_all(img: np.ndarray, auto_polarity: bool = True) -> Dict[str, np.ndarray]:
+    """Run every registered segmenter on ``img`` and return a dict of masks.
+
+    All methods assume bright objects on a dark background (fluorescence).
+    With ``auto_polarity``, brightfield images are inverted first.
+    """
+    if auto_polarity and has_bright_background(img):
+        img = 255 - img
     return {name: fn(img) for name, fn in SEGMENTERS.items()}
 
 

@@ -16,10 +16,15 @@ st.title("FashionMNIST Image Classification System")
 st.write("An End-to-End Visual Analysis Framework Built with PyTorch")
 
 
-model, device = build_model()
+@st.cache_resource
+def get_model():
+    model, device = build_model()
+    model.load_state_dict(torch.load("fashion_model.pth", map_location=device, weights_only=True))
+    model.eval()
+    return model, device
 
-model.load_state_dict(torch.load("fashion_model.pth", map_location=device, weights_only=True))
-model.eval() 
+
+model, device = get_model()
 
 preprocess = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
@@ -52,4 +57,4 @@ if uploaded_file is not None:
                 predicted_class_idx = output.argmax(1).item()
                 predicted_class_name = FASHION_MNIST_CLASSES[predicted_class_idx]
             
-            st.success(f"**Prediction Result：** {predicted_class_name}")
+            st.success(f"**Prediction Result:** {predicted_class_name}")

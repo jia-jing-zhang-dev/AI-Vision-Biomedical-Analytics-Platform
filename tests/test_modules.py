@@ -13,6 +13,7 @@ from src.clustering import KMeansExplorer, bench_k_means
 from src.classification import compare_classifiers
 from src.segmentation import (
     make_synthetic_image, make_cell_image, run_all, evaluate, benchmark, dice, iou, instance_f1,
+    has_bright_background,
 )
 from src.convolution import convolve2d, KERNELS
 
@@ -83,6 +84,14 @@ def test_cell_image_has_consecutive_instance_labels():
 def test_watershed_separates_touching_cells_better_than_otsu():
     scores = {row["method"]: row for row in benchmark(n_images=5)}
     assert scores["Watershed"]["instance_f1"] > scores["Otsu"]["instance_f1"] + 0.1
+
+
+def test_brightfield_images_are_inverted_before_segmentation():
+    img, _ = make_cell_image(seed=1)
+    brightfield = 255 - img                     # dark cells on a light background
+    assert not has_bright_background(img)
+    assert has_bright_background(brightfield)
+    assert np.array_equal(run_all(img)["Otsu"], run_all(brightfield)["Otsu"])
 
 
 def test_convolve2d_output_shape():

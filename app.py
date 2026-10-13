@@ -26,7 +26,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader("🖼️ Module 1: PyTorch Deep Learning Classification")
     st.write("- A fully connected neural network built with PyTorch.")
-    st.write("- Supports real-time image uploads for 10-class classification.")
+    st.write("- Supports real-time image uploads for 10-class classification (88.1% test accuracy).")
 
     st.image(
         "public/fashion-demo.png",
@@ -37,23 +37,23 @@ with col1:
 with col2:
     st.subheader("🔬 Module 2: Biomedical Image Segmentation")
     st.write(
-        "- Includes traditional computer vision algorithms "
-        "such as Otsu thresholding and Watershed."
+        "- Six classical computer vision methods, including Otsu thresholding, "
+        "top-hat background correction and a watershed that splits touching cells."
     )
     st.write(
-        "- Automatically calculates and outputs **Dice / IoU** "
-        "performance metrics for biomedical image segmentation."
+        "- Benchmarked with **Dice / IoU** and **instance F1**: the watershed raises "
+        "instance F1 from 0.60 (Otsu) to 0.79 on images of touching cells."
     )
 
     st.image(
-        "public/segmentation-demo.png",
-        caption="Synthetic Biomedical Image Demo",
+        "public/cell-segmentation-benchmark.png",
+        caption="Synthetic Cell Benchmark: Ground Truth vs. Otsu vs. Watershed",
         use_container_width=True
     )
 
     st.image(
-        "public/Lymphocyte-demo.png",
-        caption="Lymphocyte Segmentation Image Demo",
+        "public/brightfield-demo.png",
+        caption="Real Blood Smear: Automatic Inversion + Watershed",
         use_container_width=True
     )
 

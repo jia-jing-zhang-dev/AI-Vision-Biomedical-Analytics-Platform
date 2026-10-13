@@ -1,12 +1,23 @@
 # AI Vision & Biomedical Analytics Platform
 
-An educational machine-learning, computer-vision, and biomedical-image-analysis project. It includes a Streamlit interface and reusable modules for classification, clustering, image segmentation, convolution, visualization, and deep learning.
+[![tests](https://github.com/jia-jing-zhang-dev/AI-Vision-Biomedical-Analytics-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/jia-jing-zhang-dev/AI-Vision-Biomedical-Analytics-Platform/actions/workflows/tests.yml)
+[![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://visionserve-full-stack-ml-framework.streamlit.app/)
+
+A machine-learning, computer-vision, and biomedical-image-analysis project with a deployed Streamlit app and reusable, tested modules for classification, clustering, image segmentation, convolution, visualization, and deep learning.
+
+**Live demo:** <https://visionserve-full-stack-ml-framework.streamlit.app/>
+
+| Result | Value |
+|---|---|
+| BloodMNIST blood-cell classification (CNN, 8 classes) | **96.6%** test accuracy (fully connected baseline: 72.9%) |
+| Touching-cell segmentation, instance F1 (50 images) | **0.79** watershed vs. 0.60 Otsu |
+| FashionMNIST clothing classification (MLP, 10 classes) | 88.1% test accuracy |
 
 ## Features
 
 - **Blood-cell classification** — a PyTorch CNN that classifies 8 blood-cell types from BloodMNIST at **96.6% test accuracy** (vs. 72.9% for a fully connected baseline), with hyperparameters tuned by Optuna on the validation split.
-- **FashionMNIST clothing classification** — a PyTorch three-layer fully connected network that predicts one of ten clothing classes from an uploaded image.
-- **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells.
+- **FashionMNIST clothing classification** — a PyTorch three-layer fully connected network that predicts one of ten clothing classes from an uploaded image (88.1% test accuracy).
+- **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells. Brightfield images (dark cells on a light background, such as stained blood smears) are detected and inverted automatically.
 - **Segmentation benchmark** — generates realistic synthetic microscopy images (touching nuclei, uneven illumination, blur, noise) with per-cell ground truth, and scores every method with pixel-level Dice / IoU and object-level instance F1.
 - **Machine-learning utilities** — decision trees, random forests, ANOVA feature selection, Optuna tuning, and K-Means clustering analysis.
 - **Image-processing fundamentals** — a NumPy implementation of 2D convolution with edge-detection, sharpening, Sobel, and box-blur kernels.
@@ -29,14 +40,17 @@ An educational machine-learning, computer-vision, and biomedical-image-analysis 
 │   ├── clustering.py                # K-Means and silhouette-based model selection
 │   ├── convolution.py               # NumPy 2D convolution
 │   └── visualization.py             # EDA visualization helpers
+├── notebooks/demo_end_to_end.ipynb  # Walkthrough of every module
+├── public/                          # Figures and BloodMNIST sample images
 ├── train.py                         # FashionMNIST training script
-├── benchmark_segmentation.py       # Segmentation benchmark over many images
 ├── train_medical.py                 # BloodMNIST training / tuning script
+├── benchmark_segmentation.py        # Segmentation benchmark over many images
 ├── fashion_model.pth                # Trained FashionMNIST weights
 ├── biomedical_cnn.pth               # Trained BloodMNIST CNN weights
 ├── biomedical_cnn_results.json      # Hyperparameters and val/test accuracy
 ├── requirements.txt                 # Base dependencies
-└── tests/                          # pytest suite
+├── Dockerfile                       # Container for the Streamlit app (CPU-only PyTorch)
+└── tests/                           # pytest suite (run in CI on every push)
 ```
 
 ## Requirements
@@ -82,6 +96,15 @@ Open the local URL displayed in the terminal, then use the sidebar to switch bet
 2. **Biomedical Segmentation** — either generate a synthetic benchmark image (realistic cells or simple shapes) to compare masks, Dice / IoU and instance F1, run a 10-image benchmark, or upload a grayscale or color medical image to view segmentation results from every algorithm.
 3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see the CNN's prediction and class probabilities.
 
+### Run with Docker
+
+```bash
+docker build -t vision-analytics .
+docker run -p 8501:8501 vision-analytics
+```
+
+Then open <http://localhost:8501>.
+
 ## Train Models
 
 ### FashionMNIST Clothing Classifier
@@ -90,7 +113,7 @@ Open the local URL displayed in the terminal, then use the sidebar to switch bet
 python train.py
 ```
 
-The script downloads FashionMNIST to `data/`, trains for five epochs, and saves the weights as `fashion_model.pth`. The classification page loads this file; if it is removed or replaced, train the model again before starting the page.
+The script downloads FashionMNIST to `data/`, trains for five epochs (the shipped model reaches 88.1% test accuracy), and saves the weights as `fashion_model.pth`. The classification page loads this file; if it is removed or replaced, train the model again before starting the page.
 
 ### BloodMNIST Biomedical Classifier
 
@@ -139,6 +162,10 @@ Results on 50 synthetic cell images (~45 nuclei each, mean ± std):
 | Canny + hole filling | 0.823 ± 0.014 | 0.700 ± 0.021 | 0.387 ± 0.074 |
 
 ![Segmentation benchmark example](public/cell-segmentation-benchmark.png)
+
+On a real brightfield blood smear, the light background is detected and the image inverted before segmentation:
+
+![Brightfield example](public/brightfield-demo.png)
 
 **What this shows:** pixel-level Dice cannot tell the thresholding methods apart — they all find the foreground well. Instance F1 can: thresholding merges touching nuclei into one object, while the watershed, seeded at peaks of the distance transform, separates them (+0.19 instance F1). Top-hat illumination correction helps only slightly here, because Otsu is already fairly robust to this level of shading. Instance F1 counts a predicted object as correct when it overlaps a true cell with IoU > 0.5.
 

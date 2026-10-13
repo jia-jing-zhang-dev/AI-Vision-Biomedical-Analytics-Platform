@@ -4,7 +4,8 @@ import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
 from src.segmentation import (
-    benchmark, evaluate, label_objects, make_cell_image, make_synthetic_image, run_all,
+    benchmark, evaluate, has_bright_background, label_objects, make_cell_image,
+    make_synthetic_image, run_all,
 )
 
 st.title("🔬 Biomedical Image & Cell Segmentation System")
@@ -127,4 +128,9 @@ else:
             with st.spinner("Running classical computer vision algorithms..."):
                 results = run_all(img)
 
+            if has_bright_background(img):
+                st.info(
+                    "Detected a light background with dark cells (brightfield), so the image "
+                    "was inverted before segmentation."
+                )
             show_masks(results)
