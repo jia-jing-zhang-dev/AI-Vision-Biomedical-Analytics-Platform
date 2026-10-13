@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import streamlit as st
 import torch
 
@@ -10,15 +12,25 @@ st.title("FashionMNIST Image Classification System")
 st.write("An End-to-End Visual Analysis Framework Built with PyTorch")
 
 
+WEIGHTS = Path(__file__).resolve().parent.parent / "fashion_model.pth"
+
+
 @st.cache_resource
 def get_model():
     model, device = build_model()
-    model.load_state_dict(torch.load("fashion_model.pth", map_location=device, weights_only=True))
+    model.load_state_dict(torch.load(WEIGHTS, map_location=device, weights_only=True))
     model.eval()
     return model, device
 
 
-model, device = get_model()
+if not WEIGHTS.exists():
+    st.error("fashion_model.pth not found. Run `python train.py` first.")
+    st.stop()
+try:
+    model, device = get_model()
+except Exception as err:     # truncated download, git-LFS pointer, other architecture
+    st.error(f"Could not load fashion_model.pth ({err.__class__.__name__}). Re-run `python train.py`.")
+    st.stop()
 
 uploaded_file = st.file_uploader(
     "Upload a clothing image (JPG/PNG)",

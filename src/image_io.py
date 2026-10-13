@@ -30,12 +30,17 @@ class UploadError(ValueError):
 def to_8bit(image: Image.Image, mode: str = "RGB") -> Image.Image:
     """Returns ``image`` as an 8-bit ``mode`` ("RGB" or "L") image.
 
-    - 16-bit / 32-bit / float images are min-max rescaled to 0-255.
+    - 16-bit / 32-bit / float images are min-max rescaled to 0-255 using
+      their finite pixels; NaN/inf pixels become 0.
     - Transparent pixels are composited onto white.
     """
+    if image.width == 0 or image.height == 0:
+        raise ValueError("the image is empty (0 pixels)")
     if image.mode in HIGH_BIT_DEPTH_MODES:
         arr = np.asarray(image, dtype=np.float32)
-        lo, hi = float(arr.min()), float(arr.max())
+        finite = np.isfinite(arr)
+        lo, hi = (float(arr[finite].min()), float(arr[finite].max())) if finite.any() else (0.0, 0.0)
+        arr = np.where(finite, arr, lo)
         scaled = np.zeros_like(arr) if hi == lo else (arr - lo) * (255.0 / (hi - lo))
         image = Image.fromarray(np.round(scaled).astype(np.uint8), mode="L")
     elif image.mode in ("RGBA", "LA", "PA") or (image.mode == "P" and "transparency" in image.info):
@@ -53,6 +58,12 @@ def load_upload(source, mode: str = "RGB", max_side: int = 1024) -> Tuple[Image.
     ``max_side``. Raises ``UploadError`` for unreadable, truncated or
     oversized files.
     """
+    if max_side < 1:
+        raise ValueError(f"max_side must be at least 1, got {max_side}")
+    if isinstance(source, (str, bytes)) or hasattr(source, "__fspath__"):
+        import os
+        if not os.path.exists(source):
+            raise FileNotFoundError(source)
     try:
         image = Image.open(source)
         width, height = image.size

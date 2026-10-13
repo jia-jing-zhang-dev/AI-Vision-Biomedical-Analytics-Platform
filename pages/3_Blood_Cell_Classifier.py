@@ -8,12 +8,13 @@ from PIL import Image
 from src.image_io import UploadError, load_upload
 from src.medical_cnn import CLASS_NAMES, load_model, predict_proba
 
-SAMPLE_DIR = Path("public/blood_samples")
+ROOT = Path(__file__).resolve().parent.parent   # works from any working directory
+SAMPLE_DIR = ROOT / "public" / "blood_samples"
 
 # Display name -> weights file written by train_medical.py
 MODELS = {
-    "Custom CNN": "biomedical_cnn.pth",
-    "ResNet-18 (pretrained)": "biomedical_resnet18.pth",
+    "Custom CNN": str(ROOT / "biomedical_cnn.pth"),
+    "ResNet-18 (pretrained)": str(ROOT / "biomedical_resnet18.pth"),
 }
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
@@ -30,10 +31,19 @@ st.write(
 def get_models(name_to_path: tuple):
     # Takes the model list as an argument so the cache is keyed on it and
     # never returns models under outdated names.
-    return {name: load_model(path) for name, path in name_to_path if Path(path).exists()}
+    loaded, errors = {}, []
+    for name, path in name_to_path:
+        if Path(path).exists():
+            try:
+                loaded[name] = load_model(path)
+            except ValueError as err:          # corrupt or foreign checkpoint
+                errors.append(f"{name}: {err}")
+    return loaded, errors
 
 
-models = get_models(tuple(MODELS.items()))
+models, load_errors = get_models(tuple(MODELS.items()))
+for message in load_errors:
+    st.warning(message)
 if not models:
     st.error("No trained model weights found. Run `python train_medical.py` first.")
     st.stop()
@@ -111,7 +121,7 @@ with st.expander("Model details and comparison with published results"):
     ]
     st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
     st.caption("Published results: Yang et al., MedMNIST v2, Scientific Data 2023, Table 3.")
-    st.image("public/bloodmnist-confusion.png", caption="Custom CNN: test-set confusion matrix")
+    st.image(str(ROOT / "public" / "bloodmnist-confusion.png"), caption="Custom CNN: test-set confusion matrix")
 
 st.caption(
     "Educational project, not a medical device. Data: MedMNIST v2 BloodMNIST (CC BY 4.0)."

@@ -61,15 +61,33 @@ def _to_uint8(mask_bool: np.ndarray) -> np.ndarray:
     return (mask_bool.astype(np.uint8) * 255)
 
 
-def label_objects(mask: np.ndarray, min_size: int = 20) -> np.ndarray:
-    """Turns a segmentation output into an instance label image.
-
-    Label images (int32, as returned by the watershed) are kept as they are;
-    binary masks are split into connected components. Objects smaller than
-    ``min_size`` pixels are treated as noise and dropped.
+def is_label_image(arr: np.ndarray) -> bool:
+    """Instance label images use a wide integer dtype (int32 from the
+    watershed/Cellpose, uint16 from .tif label files, int64 from numpy);
+    binary masks are bool or uint8 (0/1 or 0/255).
     """
-    if mask.dtype == np.int32:
-        labels = mask.copy()
+    return np.issubdtype(arr.dtype, np.integer) and arr.dtype != np.uint8
+
+
+def _require_gray_uint8(img: np.ndarray) -> None:
+    """The segmenters need a 2-D uint8 grayscale image; fail early and clearly."""
+    if not isinstance(img, np.ndarray) or img.ndim != 2 or img.dtype != np.uint8:
+        shape = getattr(img, "shape", None)
+        dtype = getattr(img, "dtype", type(img).__name__)
+        raise ValueError(f"expected a 2-D uint8 grayscale image, got shape {shape} and dtype {dtype}; "
+                         "convert with src.image_io.to_8bit(..., 'L') or cv2.normalize first")
+
+
+def label_objects(mask: np.ndarray, min_size: int = 20) -> np.ndarray:
+    """Turns a segmentation output into an int32 instance label image.
+
+    Label images (any integer dtype except uint8, see ``is_label_image``) keep
+    their ids; binary masks are split into connected components. Objects
+    smaller than ``min_size`` pixels are treated as noise and dropped. The
+    input array is never modified.
+    """
+    if is_label_image(mask):
+        labels = mask.astype(np.int32, copy=True)
     else:
         _, labels = cv2.connectedComponents((mask > 0).astype(np.uint8), connectivity=8)
     sizes = np.bincount(labels.ravel())
@@ -91,9 +109,15 @@ def color_labels(labels: np.ndarray) -> np.ndarray:
 def instance_f1(gt_labels: np.ndarray, pred_labels: np.ndarray,
                 iou_thresh: float = 0.5) -> Tuple[float, int, int]:
     """Object-level F1. A true cell and a predicted object match when their
-    IoU exceeds ``iou_thresh`` (> 0.5 makes matches one-to-one).
+    IoU exceeds ``iou_thresh``. Thresholds of at least 0.5 make matches
+    one-to-one, which the counting below relies on (lower values could
+    count one object twice and give F1 > 1).
     Returns (f1, n_true, n_pred).
     """
+    if gt_labels.shape != pred_labels.shape:
+        raise ValueError(f"shape mismatch: ground truth {gt_labels.shape} vs prediction {pred_labels.shape}")
+    if not 0.5 <= iou_thresh < 1:
+        raise ValueError(f"iou_thresh must be in [0.5, 1), got {iou_thresh}")
     n_gt = len(np.unique(gt_labels[gt_labels > 0]))
     n_pred = len(np.unique(pred_labels[pred_labels > 0]))
     if n_gt == 0 and n_pred == 0:
@@ -178,6 +202,7 @@ def make_cell_image(h: int = 256, w: int = 256, n_cells: int = 45,
 # Segmentation methods
 # ----------------------------------------------------------------------
 def segment_otsu(img: np.ndarray) -> np.ndarray:
+    _require_gray_uint8(img)
     if img.min() == img.max():          # a flat image has no foreground
         return np.zeros(img.shape, np.uint8)
     _, mask = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -189,12 +214,14 @@ def segment_adaptive(img: np.ndarray, block_size: int = 31, offset: int = 5) -> 
     local mean. (OpenCV keeps ``pixel > mean - C``, so C = -offset; a positive
     C would mark flat background as foreground.)
     """
+    _require_gray_uint8(img)
     return cv2.adaptiveThreshold(
         img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block_size, -offset
     )
 
 
 def segment_kmeans(img: np.ndarray, k: int = 2) -> np.ndarray:
+    _require_gray_uint8(img)
     Z = img.reshape(-1, 1).astype(np.float32)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 0.5)
     if img.min() == img.max():                     # a flat image has no foreground
@@ -205,6 +232,7 @@ def segment_kmeans(img: np.ndarray, k: int = 2) -> np.ndarray:
 
 
 def segment_canny_fill(img: np.ndarray, low: int = 50, high: int = 150) -> np.ndarray:
+    _require_gray_uint8(img)
     edges = cv2.Canny(img, low, high)
     edges_dil = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
     filled = binary_fill_holes(edges_dil.astype(bool))
@@ -218,6 +246,7 @@ def segment_tophat_otsu(img: np.ndarray, radius: int | None = None) -> np.ndarra
     By default the disk radius is 1.5x the equivalent radius of the largest
     object in a plain Otsu mask, so large structures are not erased.
     """
+    _require_gray_uint8(img)
     if radius is None:
         _, _, stats, _ = cv2.connectedComponentsWithStats((segment_otsu(img) > 0).astype(np.uint8))
         largest = stats[1:, cv2.CC_STAT_AREA].max() if len(stats) > 1 else 0
@@ -233,6 +262,7 @@ def segment_watershed(img: np.ndarray, min_distance: int = 6) -> np.ndarray:
     peak of the distance transform seeds one cell, and the watershed grows
     the seeds until they meet. Returns an int32 instance label image.
     """
+    _require_gray_uint8(img)
     fg = binary_fill_holes(segment_tophat_otsu(img) > 0)
     dist = distance_transform_edt(fg)
     _, components = cv2.connectedComponents(fg.astype(np.uint8))
@@ -268,6 +298,7 @@ def segment_cellpose(img: np.ndarray) -> np.ndarray:
     estimated automatically, so nothing is tuned to these images. Runs on
     CPU so results match between machines. Returns an int32 label image.
     """
+    _require_gray_uint8(img)
     global _cellpose_model
     if _cellpose_model is None:
         from cellpose import models
@@ -294,6 +325,7 @@ def has_bright_background(img: np.ndarray) -> bool:
     e.g. stained blood smears). The image border is mostly background, so the
     background is bright when most border pixels lie above the Otsu threshold.
     """
+    _require_gray_uint8(img)
     if img.min() == img.max():          # a flat image has no background/foreground
         return False
     thresh, _ = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -309,6 +341,7 @@ def run_all(img: np.ndarray, auto_polarity: bool = True,
     With ``auto_polarity``, brightfield images are inverted first. With
     ``include_cellpose`` (and Cellpose installed), Cellpose is run as well.
     """
+    _require_gray_uint8(img)
     if auto_polarity and has_bright_background(img):
         img = 255 - img
     results = {name: fn(img) for name, fn in SEGMENTERS.items()}
@@ -321,15 +354,15 @@ def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]
     """Score every method's mask against the ground truth. Returns a list
     of dicts (ready for ``pd.DataFrame``), sorted by Dice descending.
 
-    ``gt_mask`` may be a binary mask (any non-int32 dtype, e.g. 0/1 or 0/255
-    uint8) or an int32 instance label image, the same convention as
+    ``gt_mask`` may be a binary mask (bool or uint8, e.g. 0/1 or 0/255) or an
+    instance label image (any other integer dtype), the same convention as
     ``label_objects``; with instance labels, instance F1 and the object
     counts are added.
     """
     gt_bin = (gt_mask > 0)
     # Ground-truth cells get the same min_size filter as predictions, so a
     # cell too small to ever be predicted does not count as a miss.
-    gt_labels = label_objects(gt_mask) if gt_mask.dtype == np.int32 else None
+    gt_labels = label_objects(gt_mask) if is_label_image(gt_mask) else None
     rows = []
     for name, mask in results.items():
         pred_bin = (mask > 0)

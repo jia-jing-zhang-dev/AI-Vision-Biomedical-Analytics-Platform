@@ -1,4 +1,8 @@
+from pathlib import Path
+
 import streamlit as st
+
+ROOT = Path(__file__).resolve().parent   # works from any working directory
 
 st.set_page_config(
     page_title="Vision Analytics Framework",
@@ -29,7 +33,7 @@ with col1:
     st.write("- Supports real-time image uploads for 10-class classification (86.9% test accuracy).")
 
     st.image(
-        "public/fashion-demo.png",
+        str(ROOT / "public" / "fashion-demo.png"),
         caption="FashionMNIST Classification Demo",
         width="stretch"
     )
@@ -48,13 +52,13 @@ with col2:
     )
 
     st.image(
-        "public/cell-segmentation-benchmark.png",
+        str(ROOT / "public" / "cell-segmentation-benchmark.png"),
         caption="Synthetic Cell Benchmark: Ground Truth vs. Otsu vs. Watershed",
         width="stretch"
     )
 
     st.image(
-        "public/brightfield-demo.png",
+        str(ROOT / "public" / "brightfield-demo.png"),
         caption="Real Blood Smear: Automatic Inversion + Watershed",
         width="stretch"
     )
@@ -72,7 +76,7 @@ with col3:
     )
 
     st.image(
-        "public/bloodmnist-confusion.png",
+        str(ROOT / "public" / "bloodmnist-confusion.png"),
         caption="BloodMNIST Test-Set Confusion Matrix",
         width="stretch"
     )

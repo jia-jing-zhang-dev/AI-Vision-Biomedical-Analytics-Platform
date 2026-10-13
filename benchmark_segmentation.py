@@ -12,6 +12,7 @@ Cellpose is included when it is installed (pip install "cellpose<4").
 """
 
 import argparse
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,6 +41,7 @@ def save_example(path: str, seed: int = 0, include_cellpose: bool = True):
         ax.axis("off")
     fig.tight_layout()
     fig.savefig(path, dpi=110)
+    plt.close(fig)
     print(f"Saved example figure to {path}")
 
 
@@ -50,6 +52,12 @@ def main(argv=None):
     parser.add_argument("--no-cellpose", action="store_true")
     parser.add_argument("--figure", default="public/cell-segmentation-benchmark.png")
     args = parser.parse_args(argv)
+    if args.images < 1:
+        parser.error("--images must be at least 1")
+    if args.start_seed < 0:
+        parser.error("--start-seed must be non-negative")
+    if not Path(args.figure).resolve().parent.is_dir():   # fail before the benchmark, not after
+        parser.error(f"folder for --figure {args.figure} does not exist (run from the repository root?)")
     use_cellpose = cellpose_available() and not args.no_cellpose
     if not use_cellpose and not args.no_cellpose:
         print('Cellpose is not installed; run `pip install "cellpose<4"` to include it.')

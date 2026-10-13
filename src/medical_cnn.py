@@ -99,6 +99,7 @@ def build_mlp_baseline(n_classes: int = N_CLASSES) -> nn.Module:
     )
 
 
+ARCHITECTURES = ("cnn", "mlp", "resnet18")
 RESNET_INPUT_SIZE = 224
 IMAGENET_MEAN, IMAGENET_STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 
@@ -125,6 +126,8 @@ def input_transform(arch: str = "cnn", from_upload: bool = False):
     """
     from torchvision import transforms
 
+    if arch not in ARCHITECTURES:
+        raise ValueError(f"unknown architecture {arch!r}; expected one of {ARCHITECTURES}")
     steps = []
     if from_upload:
         steps.append(transforms.Resize((28, 28), interpolation=transforms.InterpolationMode.BOX))
@@ -142,9 +145,20 @@ def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Modu
     hyperparameters needed to rebuild the architecture). The returned model
     carries its architecture name in ``model.arch``.
     """
-    checkpoint = torch.load(path, map_location=device, weights_only=True)
+    try:
+        checkpoint = torch.load(path, map_location=device, weights_only=True)
+    except FileNotFoundError:
+        raise
+    except Exception as err:   # truncated download, git-LFS pointer, wrong file type
+        raise ValueError(f"{path} is not a readable PyTorch checkpoint ({err.__class__.__name__}); "
+                         "re-download it or re-run train_medical.py") from err
+    if not isinstance(checkpoint, dict) or "params" not in checkpoint or "state_dict" not in checkpoint:
+        raise ValueError(f"{path} was not written by train_medical.py (no 'params'/'state_dict'); "
+                         "plain state_dicts such as fashion_model.pth are loaded with src.vision_cnn")
     params = checkpoint["params"]
     arch = params.get("arch", "cnn")
+    if arch not in ("cnn", "resnet18"):
+        raise ValueError(f"{path}: unsupported architecture {arch!r} in checkpoint")
     if arch == "resnet18":
         model = build_resnet18(pretrained=False)
     else:
@@ -154,12 +168,21 @@ def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Modu
     return model.to(device).eval()
 
 
-def predict_proba(model, image, device: str = "cpu"):
-    """Returns class probabilities for one PIL image of any size, using the
-    preprocessing that matches ``model.arch``.
+def predict_proba(model, image, device=None):
+    """Returns class probabilities for one image of any size (PIL image or
+    HxW / HxWxC uint8 array), using the preprocessing that matches
+    ``model.arch``. Runs on the model's own device unless ``device`` is given.
     """
+    import numpy as np
+    from PIL import Image
+
     from src.image_io import to_8bit
 
+    if isinstance(image, np.ndarray):
+        image = Image.fromarray(image)
+    if not isinstance(image, Image.Image):
+        raise TypeError(f"expected a PIL image or numpy array, got {type(image).__name__}")
+    device = device or next(model.parameters()).device
     tfm = input_transform(getattr(model, "arch", "cnn"), from_upload=True)
     x = tfm(to_8bit(image, "RGB")).unsqueeze(0).to(device)
     with torch.no_grad():

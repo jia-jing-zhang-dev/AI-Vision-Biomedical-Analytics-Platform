@@ -87,6 +87,7 @@ def save_confusion_matrix(model, test_loader, device: str, path: str, title: str
     ax.set_title(f"{title}: BloodMNIST test set (row-normalized)")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
+    plt.close(fig)
     print(f"Saved confusion matrix to {path}")
 
 
@@ -98,7 +99,8 @@ def parse_args(argv=None) -> argparse.Namespace:
                         help="training epochs (default: 15 for cnn, 10 for resnet18)")
     parser.add_argument("--optuna", type=int, default=0, metavar="N_TRIALS",
                         help="run an Optuna search with this many trials first")
-    parser.add_argument("--tune-epochs", type=int, default=6)
+    parser.add_argument("--tune-epochs", type=int, default=None,
+                        help="epochs per Optuna trial (default 6; only with --optuna)")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--data-dir", default="./data")
     parser.add_argument("--out", default=None,
@@ -110,8 +112,21 @@ def parse_args(argv=None) -> argparse.Namespace:
     if args.model == "mlp" and (args.out or args.epochs is not None):
         parser.error("--model mlp reproduces the fixed original baseline (5 epochs, no saved "
                      "weights); --epochs and --out do not apply")
+    if args.tune_epochs is not None and not args.optuna:
+        parser.error("--tune-epochs only applies together with --optuna")
+    for name in ("epochs", "tune_epochs"):
+        if getattr(args, name) is not None and getattr(args, name) < 1:
+            parser.error(f"--{name.replace('_', '-')} must be at least 1")
+    if args.optuna < 0:
+        parser.error("--optuna must be 0 (off) or a positive number of trials")
+    # Fail before hours of training, not when saving at the end
+    out_dir = Path(output_paths(args.model, args.out)["weights"]).resolve().parent
+    if args.model != "mlp" and not out_dir.is_dir():
+        parser.error(f"output folder {out_dir} does not exist")
     if args.epochs is None:
         args.epochs = 10 if args.model == "resnet18" else 15
+    if args.tune_epochs is None:
+        args.tune_epochs = 6
     return args
 
 
