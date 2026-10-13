@@ -1,0 +1,12 @@
+# Datasets are downloaded by the training scripts
+data/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+.vscode/
+.idea/
+.DS_Store
+desktop.ini

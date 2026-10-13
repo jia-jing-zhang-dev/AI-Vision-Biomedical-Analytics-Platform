@@ -1,97 +1,132 @@
+"""
+Train a classifier on BloodMNIST (8 blood-cell classes) and report test accuracy.
+
+    python train_medical.py                  # CNN with default hyperparameters
+    python train_medical.py --optuna 20      # tune the CNN on the validation set first
+    python train_medical.py --model mlp      # reproduce the original fully connected baseline
+
+Hyperparameters are chosen on the validation split only; the test split is
+evaluated once, at the end, so the reported accuracy is not over-fit.
+"""
+
+import argparse
+import json
+
+import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-from torchvision import transforms
-import medmnist
-from medmnist import INFO
+from torch import nn
 
-# 1. Image preprocessing: convert images to PyTorch tensors
-# and normalize them
-data_transform = transforms.Compose([
-    transforms.ToTensor()
-])
-
-# 2. Load the biomedical dataset
-# BloodMNIST: blood cell classification with 3-channel RGB images
-data_flag = "bloodmnist"
-info = INFO[data_flag]
-DataClass = getattr(medmnist, info["python_class"])
-
-n_channels = info["n_channels"]     # BloodMNIST has 3 channels
-n_classes = len(info["label"])      # BloodMNIST contains 8 blood cell classes
-
-print(
-    f"Loading biomedical dataset: {data_flag} "
-    f"(Channels: {n_channels}, Classes: {n_classes})..."
+from src.medical_cnn import (
+    CLASS_NAMES, BloodCNN, build_mlp_baseline, evaluate, fit,
+    get_bloodmnist_loaders, get_device, train_one_epoch,
 )
 
-train_dataset = DataClass(
-    split="train",
-    transform=data_transform,
-    download=True
-)
+DEFAULTS = {"lr": 1e-3, "weight_decay": 1e-4, "dropout": 0.3, "base_channels": 32}
 
-test_dataset = DataClass(
-    split="test",
-    transform=data_transform,
-    download=True
-)
 
-train_loader = DataLoader(
-    dataset=train_dataset,
-    batch_size=64,
-    shuffle=True
-)
+def tune(n_trials: int, epochs: int, train_loader, val_loader, device: str) -> dict:
+    """Optuna search over learning rate, weight decay, dropout and width,
+    maximizing validation accuracy.
+    """
+    import optuna
 
-test_loader = DataLoader(
-    dataset=test_dataset,
-    batch_size=64,
-    shuffle=False
-)
+    def objective(trial: "optuna.Trial") -> float:
+        params = {
+            "lr": trial.suggest_float("lr", 1e-4, 1e-2, log=True),
+            "weight_decay": trial.suggest_float("weight_decay", 1e-6, 1e-2, log=True),
+            "dropout": trial.suggest_float("dropout", 0.0, 0.5),
+            "base_channels": trial.suggest_categorical("base_channels", [16, 32, 64]),
+        }
+        model = BloodCNN(params["base_channels"], params["dropout"]).to(device)
+        return fit(model, train_loader, val_loader, device, epochs=epochs,
+                   lr=params["lr"], weight_decay=params["weight_decay"], verbose=False)
 
-# 3. Define a fully connected classification network
-# Input dimension: n_channels * 28 * 28 = 2352
-model = nn.Sequential(
-    nn.Flatten(),
-    nn.Linear(n_channels * 28 * 28, 128),
-    nn.ReLU(),
-    nn.Dropout(0.2),
-    nn.Linear(128, n_classes)
-)
+    study = optuna.create_study(direction="maximize",
+                                sampler=optuna.samplers.TPESampler(seed=0))
+    study.optimize(objective, n_trials=n_trials)
+    print(f"Best validation accuracy {study.best_value:.4f} with {study.best_params}")
+    return study.best_params
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-print("Starting biomedical image classification model training...")
+def train_mlp_baseline(device: str, data_dir: str) -> float:
+    """Original setup: no augmentation, Adam(lr=1e-3), 5 epochs. Returns test accuracy."""
+    train_loader, _, test_loader = get_bloodmnist_loaders(batch_size=64, data_dir=data_dir,
+                                                          augment=False)
+    model = build_mlp_baseline().to(device)
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    for epoch in range(5):
+        loss = train_one_epoch(model, train_loader, loss_fn, optimizer, device)
+        print(f"Epoch [{epoch + 1}/5] train loss {loss:.4f}")
+    return evaluate(model, test_loader, loss_fn, device)[1]
 
-# 4. Train for 5 epochs
-for epoch in range(5):
-    model.train()
-    running_loss = 0.0
-    
-    for images, labels in train_loader:
-        # Convert labels to a 1D tensor
-        labels = labels.squeeze().long()
-        
-        optimizer.zero_grad()
-        outputs = model(images.float())
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        
-        running_loss += loss.item()
-    
-    print(
-        f"Epoch [{epoch + 1}/5], "
-        f"Loss: {running_loss / len(train_loader):.4f}"
+
+def save_confusion_matrix(model, test_loader, device: str, path: str):
+    """Plots a row-normalized confusion matrix of the test set."""
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import ConfusionMatrixDisplay
+
+    model.eval()
+    y_true, y_pred = [], []
+    with torch.no_grad():
+        for X, y in test_loader:
+            y_pred.append(model(X.to(device)).argmax(1).cpu().numpy())
+            y_true.append(y.squeeze(1).numpy())
+    y_true, y_pred = np.concatenate(y_true), np.concatenate(y_pred)
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+    ConfusionMatrixDisplay.from_predictions(
+        y_true, y_pred, display_labels=CLASS_NAMES, normalize="true",
+        values_format=".2f", cmap="Blues", xticks_rotation=45, ax=ax, colorbar=False,
     )
+    plt.setp(ax.get_xticklabels(), ha="right", rotation_mode="anchor")
+    ax.set_title("BloodMNIST test set (row-normalized)")
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    print(f"Saved confusion matrix to {path}")
 
-# 5. Save the trained biomedical model weights
-torch.save(model.state_dict(), "biomedical_model.pth")
 
-print(
-    "🎉 Training completed successfully! "
-    "The trained 'biomedical_model.pth' weight file "
-    "has been generated in the project root directory."
-)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", choices=["cnn", "mlp"], default="cnn")
+    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument("--optuna", type=int, default=0, metavar="N_TRIALS",
+                        help="run an Optuna search with this many trials first")
+    parser.add_argument("--tune-epochs", type=int, default=6)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--data-dir", default="./data")
+    parser.add_argument("--out", default="biomedical_cnn.pth")
+    args = parser.parse_args()
+
+    torch.manual_seed(args.seed)
+    device = get_device()
+
+    if args.model == "mlp":
+        print(f"MLP baseline test accuracy: {train_mlp_baseline(device, args.data_dir):.4f}")
+        return
+
+    train_loader, val_loader, test_loader = get_bloodmnist_loaders(data_dir=args.data_dir)
+
+    params = dict(DEFAULTS)
+    if args.optuna:
+        params.update(tune(args.optuna, args.tune_epochs, train_loader, val_loader, device))
+
+    torch.manual_seed(args.seed)
+    model = BloodCNN(params["base_channels"], params["dropout"]).to(device)
+    val_acc = fit(model, train_loader, val_loader, device, epochs=args.epochs,
+                  lr=params["lr"], weight_decay=params["weight_decay"])
+    _, test_acc = evaluate(model, test_loader, nn.CrossEntropyLoss(), device)
+    print(f"Validation accuracy: {val_acc:.4f}")
+    print(f"Test accuracy:       {test_acc:.4f}")
+
+    torch.save({"params": params, "state_dict": model.state_dict()}, args.out)
+    with open(args.out.replace(".pth", "_results.json"), "w") as f:
+        json.dump({"params": params, "seed": args.seed, "epochs": args.epochs,
+                   "optuna_trials": args.optuna, "val_accuracy": val_acc,
+                   "test_accuracy": test_acc}, f, indent=2)
+    print(f"Saved weights to {args.out}")
+    save_confusion_matrix(model, test_loader, device, "public/bloodmnist-confusion.png")
+
+
+if __name__ == "__main__":
+    main()

@@ -7,6 +7,7 @@ Modules:
     segmentation   - classical CV image segmentation + Dice/IoU benchmarking
     convolution    - from-scratch 2D convolution & edge-detection kernels
     vision_cnn     - PyTorch feed-forward network for image classification
+    medical_cnn    - PyTorch CNN for BloodMNIST blood-cell classification
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

@@ -1,0 +1,13 @@
+{
+  "params": {
+    "lr": 0.0026200741157614456,
+    "weight_decay": 0.00020528460092326728,
+    "dropout": 0.05102838178446428,
+    "base_channels": 64
+  },
+  "seed": 0,
+  "epochs": 15,
+  "optuna_trials": 20,
+  "val_accuracy": 0.9713785046728972,
+  "test_accuracy": 0.9660917860274774
+}

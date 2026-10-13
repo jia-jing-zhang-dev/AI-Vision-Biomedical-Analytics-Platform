@@ -13,7 +13,7 @@ st.write(
 )
 
 st.caption(
-    "Please note that this platform works best with 28×28 pixel images."
+    "The classification models are trained on 28×28 images (FashionMNIST, BloodMNIST)."
 )
 
 st.info(
@@ -21,7 +21,7 @@ st.info(
     "to switch between different modules."
 )
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader("🖼️ Module 1: PyTorch Deep Learning Classification")
@@ -57,4 +57,16 @@ with col2:
         use_container_width=True
     )
 
-st.write("VERSION: 2026-08-28 UPDATE")
+with col3:
+    st.subheader("🩸 Module 3: Blood Cell Classification")
+    st.write("- A PyTorch CNN that classifies 8 blood-cell types (BloodMNIST).")
+    st.write(
+        "- **96.6% test accuracy**, up from 72.9% for a fully connected baseline; "
+        "hyperparameters tuned with Optuna on the validation split."
+    )
+
+    st.image(
+        "public/bloodmnist-confusion.png",
+        caption="BloodMNIST Test-Set Confusion Matrix",
+        use_container_width=True
+    )
