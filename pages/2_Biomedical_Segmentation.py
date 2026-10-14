@@ -4,10 +4,11 @@ import pandas as pd
 from src.image_io import UploadError, load_upload
 from src.segmentation import (
     benchmark, color_labels, evaluate, has_bright_background, label_objects, make_cell_image,
-    make_synthetic_image, run_all, cellpose_available,
+    make_synthetic_image, run_all, cellpose_available, unet_available,
 )
 
 USE_CELLPOSE = cellpose_available()
+USE_UNET = unet_available()      # U-Net trained on real BBBC039 nuclei
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
 
@@ -68,7 +69,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
         else:
             img, gt = make_synthetic_image()
         with st.spinner("Running every method" + (" (Cellpose takes a few seconds)" if USE_CELLPOSE else "") + "..."):
-            results = run_all(img, include_cellpose=USE_CELLPOSE)
+            results = run_all(img, include_cellpose=USE_CELLPOSE, include_unet=USE_UNET)
         scores = evaluate(gt, results)
 
         col1, col2 = st.columns(2)
@@ -84,6 +85,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
         st.subheader("📊 Algorithm Performance Evaluation")
         table = pd.DataFrame(scores).rename(columns={
             "method": "Method", "dice": "Dice", "iou": "IoU", "instance_f1": "Instance F1",
+            "average_f1": "Average F1 (IoU .50-.90)",
             "cells_true": "Cells (true)", "cells_found": "Objects found",
         })
         if realistic:
@@ -137,7 +139,7 @@ else:
 
         if st.button("Run Multi-Algorithm Segmentation"):
             with st.spinner("Running classical algorithms" + (" and Cellpose" if USE_CELLPOSE else "") + "..."):
-                results = run_all(img, include_cellpose=USE_CELLPOSE)
+                results = run_all(img, include_cellpose=USE_CELLPOSE, include_unet=USE_UNET)
 
             if has_bright_background(img):
                 st.info(

@@ -28,6 +28,7 @@ finding foreground.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Dict, Tuple
 
 import numpy as np
@@ -109,6 +110,16 @@ def _compact_ids(labels: np.ndarray) -> np.ndarray:
     if ids[0] != 0:                     # no background pixel: keep ids starting at 1
         inverse = inverse + 1
     return inverse.reshape(labels.shape).astype(np.int32)
+
+
+AF1_THRESHOLDS = tuple(round(0.5 + 0.05 * i, 2) for i in range(9))   # 0.50, 0.55, ..., 0.90
+
+
+def average_f1(gt_labels: np.ndarray, pred_labels: np.ndarray) -> float:
+    """Instance F1 averaged over IoU thresholds 0.50-0.90 (step 0.05), the
+    headline metric of Caicedo et al. (Cytometry A, 2019) for BBBC039. It
+    rewards accurate outlines, not only finding each nucleus."""
+    return float(np.mean([instance_f1(gt_labels, pred_labels, t)[0] for t in AF1_THRESHOLDS]))
 
 
 def color_labels(labels: np.ndarray) -> np.ndarray:
@@ -383,13 +394,36 @@ def has_bright_background(img: np.ndarray) -> bool:
     return bool((border > thresh).mean() > 0.5)
 
 
-def run_all(img: np.ndarray, auto_polarity: bool = True,
-            include_cellpose: bool = False) -> Dict[str, np.ndarray]:
+UNET_NAME = "U-Net"
+UNET_WEIGHTS = Path(__file__).resolve().parent.parent / "unet_bbbc039.pth"
+_unet_model = None
+
+
+def unet_available() -> bool:
+    """The U-Net trained on BBBC039 ships as unet_bbbc039.pth (train_unet.py)."""
+    return UNET_WEIGHTS.exists()
+
+
+def segment_unet_bbbc039(img: np.ndarray) -> np.ndarray:
+    """Instance labels from the U-Net trained on real BBBC039 nuclei
+    (inference only; the model is loaded once and never modified)."""
+    _require_gray_uint8(img)
+    global _unet_model
+    if _unet_model is None:
+        from src.unet import load_unet
+        _unet_model = load_unet(str(UNET_WEIGHTS))
+    from src.unet import segment_unet
+    return segment_unet(_unet_model, img)
+
+
+def run_all(img: np.ndarray, auto_polarity: bool = True, include_cellpose: bool = False,
+            include_unet: bool = False) -> Dict[str, np.ndarray]:
     """Run every registered segmenter on ``img`` and return a dict of masks.
 
     All methods assume bright objects on a dark background (fluorescence).
     With ``auto_polarity``, brightfield images are inverted first. With
-    ``include_cellpose`` (and Cellpose installed), Cellpose is run as well.
+    ``include_cellpose`` (and Cellpose installed) / ``include_unet`` (and
+    its weights present), those deep-learning methods run as well.
     """
     _require_gray_uint8(img)
     if auto_polarity and has_bright_background(img):
@@ -402,6 +436,8 @@ def run_all(img: np.ndarray, auto_polarity: bool = True,
             results[name] = fn(img)
     if include_cellpose and cellpose_available():
         results[CELLPOSE_NAME] = segment_cellpose(img)
+    if include_unet and unet_available():
+        results[UNET_NAME] = segment_unet_bbbc039(img)
     return results
 
 
@@ -423,8 +459,10 @@ def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]
         pred_bin = (mask > 0)
         row = {"method": name, "dice": dice(gt_bin, pred_bin), "iou": iou(gt_bin, pred_bin)}
         if gt_labels is not None:
-            f1, n_true, n_pred = instance_f1(gt_labels, label_objects(mask))
-            row.update({"instance_f1": f1, "cells_true": n_true, "cells_found": n_pred})
+            pred_labels = label_objects(mask)
+            f1, n_true, n_pred = instance_f1(gt_labels, pred_labels)
+            row.update({"instance_f1": f1, "average_f1": average_f1(gt_labels, pred_labels),
+                        "cells_true": n_true, "cells_found": n_pred})
         rows.append(row)
     return sorted(rows, key=lambda r: r["dice"], reverse=True)
 

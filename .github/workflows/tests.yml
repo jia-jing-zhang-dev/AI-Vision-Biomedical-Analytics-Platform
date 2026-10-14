@@ -42,7 +42,11 @@ jobs:
           key: cellpose-nuclei-89ca45e4-a79107c9
       - name: Install dependencies (full)
         if: ${{ !matrix.deployment-like }}
-        run: pip install -r requirements.txt -r requirements-dev.txt
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+          # Reference Grad-CAM library for a cross-check test; --no-deps because it
+          # requires the GUI build of OpenCV, which conflicts with opencv-python-headless
+          pip install --no-deps "grad-cam==1.5.7" ttach
       - name: Install dependencies (as Streamlit Cloud does)
         if: ${{ matrix.deployment-like }}
         run: |

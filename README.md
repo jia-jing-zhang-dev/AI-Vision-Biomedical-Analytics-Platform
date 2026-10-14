@@ -13,10 +13,16 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 | BloodMNIST, ImageNet-pretrained ResNet-18 reference | 97.9% test accuracy, with a 20× larger model |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
 | FashionMNIST clothing classification (MLP, 10 classes) | 86.9% test accuracy |
+| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.949** at IoU 0.5 (best of all methods), average F1 0.845; Cellpose 0.902; best classical 0.830 |
+| Confidence calibration (temperature scaling) | ECE 0.89% → 0.65% (CNN), 0.50% → 0.36% (ResNet-18) |
 
 ## Features
 
 - **Blood-cell classification** — a PyTorch CNN that classifies 8 blood-cell types from BloodMNIST at **96.7% test accuracy** (vs. 72.9% for a fully connected baseline), with hyperparameters tuned by Optuna on the validation split. Compared against torchvision's ImageNet-pretrained **ResNet-18** and the published MedMNIST v2 benchmarks.
+- **Real-data segmentation benchmark** — every method evaluated on BBBC039, 200 fluorescence images of U2OS nuclei with expert annotations and an official train/validation/test split, using the metrics of the dataset's reference paper.
+- **U-Net for nucleus segmentation** — a 1.9 M-parameter U-Net trained here on BBBC039 with the three-class (background / interior / boundary) formulation of Caicedo et al. (2019); available in the app's segmentation page.
+- **Explainability (Grad-CAM)** — heatmaps of where each blood-cell model looked, verified to match the `pytorch-grad-cam` library exactly.
+- **Confidence calibration** — temperature scaling fitted on the validation split, so the confidences shown in the app are calibrated; reliability diagrams and ECE on the test split.
 - **FashionMNIST clothing classification** — a PyTorch three-layer fully connected network that predicts one of ten clothing classes from an uploaded image (86.9% test accuracy).
 - **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells — benchmarked against **Cellpose**, the standard deep-learning tool for cell segmentation. Brightfield images (dark cells on a light background, such as stained blood smears) are detected and inverted automatically.
 - **Segmentation benchmark** — generates realistic synthetic microscopy images (touching nuclei, uneven illumination, blur, noise) with per-cell ground truth, and scores every method with pixel-level Dice / IoU and object-level instance F1.
@@ -41,12 +47,22 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 │   ├── clustering.py                # K-Means and silhouette-based model selection
 │   ├── convolution.py               # NumPy 2D convolution
 │   ├── image_io.py                  # Upload loading: 16-bit, transparency, EXIF, size limits
+│   ├── bbbc039.py                   # BBBC039 loader (mask decoding, percentile normalization)
+│   ├── unet.py                      # U-Net, 3-class encoding/decoding for touching nuclei
+│   ├── explain.py                   # Grad-CAM for the blood-cell models
+│   ├── calibration.py               # Temperature scaling, ECE, reliability curves
 │   └── visualization.py             # EDA visualization helpers
 ├── notebooks/demo_end_to_end.ipynb  # Walkthrough of the classical-ML, clustering, segmentation and convolution modules
 ├── public/                          # Figures, BloodMNIST and FashionMNIST sample images
 ├── train.py                         # FashionMNIST training script
 ├── train_medical.py                 # BloodMNIST training / tuning script
 ├── benchmark_segmentation.py        # Segmentation benchmark over many images
+├── benchmark_bbbc039.py             # Real-data segmentation benchmark (BBBC039)
+├── train_unet.py                    # Train the nucleus U-Net on BBBC039
+├── calibrate_medical.py             # Temperature-scale the blood-cell models
+├── unet_bbbc039.pth                 # Trained U-Net weights (7.8 MB) + *_results.json
+├── bbbc039_results.json             # BBBC039 test-set results of every method
+├── biomedical_*_calibration.json    # Fitted temperatures and before/after test metrics
 ├── fashion_model.pth                # Trained FashionMNIST weights
 ├── biomedical_cnn.pth               # Trained BloodMNIST CNN weights
 ├── biomedical_cnn_results.json      # Hyperparameters and val/test accuracy
@@ -205,6 +221,53 @@ Method parameters were chosen while looking at images 0–9. On 50 unseen images
 
 The original three-shape image is still available as an "easy" sanity check, where Otsu, K-Means, top-hat and watershed all reach Dice 1.0.
 
+## Real-Data Segmentation Benchmark (BBBC039)
+
+[BBBC039](https://bbbc.broadinstitute.org/BBBC039) contains 200 fluorescence images (520×696, 12-bit) of U2OS cell nuclei with expert annotations of every nucleus (~23,000 in total) and an official split of 100 training / 50 validation / 50 test images. Download `images.zip`, `masks.zip` and `metadata.zip` from the dataset page and unzip them into `data/bbbc039/`.
+
+```bash
+python train_unet.py --data-dir data/bbbc039                                     # ~5 min on a laptop GPU
+python benchmark_bbbc039.py --data-dir data/bbbc039 --unet unet_bbbc039.pth       # evaluates the 50 test images
+```
+
+Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metrics follow the dataset's reference paper (Caicedo et al., *Cytometry A* 2019): instance F1 at IoU > 0.5, and **average F1** over IoU thresholds 0.50–0.90, which also rewards accurate outlines. Objects under 20 pixels (mostly tiny annotated fragments) are ignored on both sides.
+
+| Method (BBBC039 test set, 50 images) | Dice | Instance F1 @ IoU 0.5 | Average F1, IoU 0.50–0.90 |
+|---|---|---|---|
+| **U-Net (trained here)** | 0.949 ± 0.009 | 0.949 ± 0.077 | 0.845 ± 0.099 |
+| Cellpose 3 (pretrained) | 0.948 ± 0.124 | 0.938 ± 0.148 | 0.902 ± 0.156 |
+| Adaptive threshold | 0.957 ± 0.009 | 0.898 ± 0.087 | 0.830 ± 0.101 |
+| Top-hat + watershed | 0.947 ± 0.014 | 0.900 ± 0.090 | 0.805 ± 0.103 |
+| Otsu | 0.950 ± 0.013 | 0.829 ± 0.107 | 0.744 ± 0.107 |
+| Top-hat + Otsu | 0.946 ± 0.014 | 0.826 ± 0.108 | 0.734 ± 0.107 |
+| Canny + hole filling | 0.868 ± 0.017 | 0.663 ± 0.130 | 0.431 ± 0.099 |
+| *Reference paper: U-Net / DeepCell / CellProfiler (advanced)* | | | *0.898 / 0.858 / 0.811* |
+
+![BBBC039 example](public/bbbc039-segmentation.png)
+
+**What this shows:**
+- The U-Net trained here finds the most nuclei (best F1 at IoU 0.5) and beats the paper's CellProfiler baseline on average F1, but its outlines are less precise than Cellpose's or the paper's own U-Net (0.845 vs. ~0.90). It is a small model (1.9 M parameters, 60 short epochs) without the paper's training budget.
+- Real data reorders the classical methods: the adaptive threshold, weak on the synthetic benchmark, is the best classical method on real nuclei, while Canny edges fail on the soft nucleus borders.
+- The classical methods use the parameters developed on the synthetic benchmark, without tuning on BBBC039.
+- The large standard deviations come from a few test images that contain almost no nuclei.
+
+**Protocol note.** The U-Net checkpoint was selected on the validation split. Its first test-set evaluation exposed a decoding error: the boundary class extends one pixel outside each nucleus (as in the paper), but decoding grew nuclei over that pixel, so every nucleus came out one pixel too large (test average F1 0.622). The fix (erode the predicted foreground by one pixel) follows from the label definition; it was compared with the old decoding on the **validation** split only (average F1 0.635 → 0.854), and the test set was then evaluated once more. A unit test now checks that encoding and decoding reproduce nucleus outlines.
+
+## Explainability and Calibration (blood-cell models)
+
+**Grad-CAM.** The Blood Cell Classifier page can show a Grad-CAM heatmap for each model: the image regions that pushed it towards its prediction. The implementation (`src/explain.py`) splits the forward pass by hand instead of registering hooks, because the app shares one cached model between all visitors. A test checks that its heatmaps match the [`pytorch-grad-cam`](https://github.com/jacobgil/pytorch-grad-cam) library (correlation > 0.999).
+
+**Calibration.** A model is well calibrated when, among predictions made with 90% confidence, about 90% are right. `calibrate_medical.py` fits a single temperature per model on the validation split (temperature scaling, Guo et al. 2017) and measures the expected calibration error (ECE, 15 bins, via `torchmetrics`) on the test split:
+
+| Model | Temperature | Test ECE before → after | Test accuracy |
+|---|---|---|---|
+| Custom CNN | 0.89 | 0.89% → 0.65% | 96.67% (unchanged) |
+| ResNet-18 | 1.09 | 0.50% → 0.36% | 97.92% (unchanged) |
+
+Both models were already well calibrated; temperature scaling reduces the remaining error by about a quarter (T < 1: the CNN was slightly under-confident). The app shows the calibrated confidences.
+
+![Reliability diagrams](public/bloodmnist-calibration.png)
+
 ## Run Tests
 
 From the repository root, after installing at least `requirements.txt`, `requirements-ml.txt` and pytest:
@@ -237,3 +300,5 @@ The model is trained on 28×28 grayscale FashionMNIST images. For better results
 - **FashionMNIST** — Xiao, Rasul & Vollgraf (Zalando Research), MIT License. `public/fashion_samples/` holds one unmodified 28×28 test image per class.
 - **ResNet-18** — initialized from torchvision's ImageNet-pretrained weights before fine-tuning.
 - **Cellpose** — Stringer et al., *Cellpose: a generalist algorithm for cellular segmentation*, Nature Methods 2021.
+- **BBBC039** — Caicedo et al., *Evaluation of Deep Learning Strategies for Nucleus Segmentation in Fluorescence Images*, Cytometry A 2019; available from the Broad Bioimage Benchmark Collection (Ljosa et al., Nature Methods 2012), CC0. The three-class U-Net formulation and the average-F1 metric follow this paper.
+- **Grad-CAM** — Selvaraju et al., ICCV 2017. **Temperature scaling** — Guo et al., *On Calibration of Modern Neural Networks*, ICML 2017 (fitting procedure after github.com/gpleiss/temperature_scaling).

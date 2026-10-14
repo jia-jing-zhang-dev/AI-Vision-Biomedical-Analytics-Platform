@@ -363,3 +363,34 @@ def test_benchmark_never_replaces_the_shipped_figure_without_cellpose(capsys):
     benchmark_segmentation.main(["--images", "1", "--no-cellpose"])
     assert shipped.read_bytes() == before
     assert "Not updating" in capsys.readouterr().out
+
+
+def test_grad_cam_matches_pytorch_grad_cam_library():
+    # The app's hook-free Grad-CAM must equal the widely used reference library.
+    pytest.importorskip("pytorch_grad_cam")
+    from pytorch_grad_cam import GradCAM
+    from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+    from src.explain import grad_cam
+    from src.image_io import to_8bit
+    from src.medical_cnn import input_transform, load_model
+    img = Image.open(ROOT / "public" / "blood_samples" / "5_monocyte.png")
+    for weights in ("biomedical_cnn.pth", "biomedical_resnet18.pth"):
+        model = load_model(str(ROOT / weights))
+        layer = model.layer4[-1] if model.arch == "resnet18" else model.features[-2]
+        mine, target = grad_cam(model, img)
+        x = input_transform(model.arch, from_upload=True)(to_8bit(img, "RGB")).unsqueeze(0)
+        with GradCAM(model=model, target_layers=[layer]) as cam:
+            ref = cam(input_tensor=x, targets=[ClassifierOutputTarget(target)])[0]
+        assert np.corrcoef(mine.ravel(), ref.ravel())[0, 1] > 0.999, weights
+
+
+def test_grad_cam_leaves_the_shared_model_untouched():
+    torch = pytest.importorskip("torch")
+    from src.explain import grad_cam
+    from src.medical_cnn import load_model
+    model = load_model(str(ROOT / "biomedical_cnn.pth"))
+    before = {k: v.clone() for k, v in model.state_dict().items()}
+    heatmap, _ = grad_cam(model, Image.open(ROOT / "public" / "blood_samples" / "0_basophil.png"))
+    assert heatmap.shape == (28, 28) and 0 <= heatmap.min() and heatmap.max() <= 1
+    assert all(torch.equal(before[k], v) for k, v in model.state_dict().items())
+    assert all(p.grad is None for p in model.parameters()) and not model.training

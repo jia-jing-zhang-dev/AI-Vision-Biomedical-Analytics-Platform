@@ -60,6 +60,22 @@ streamlit run app.py
   binary masks are bool or uint8. `is_label_image` defines this and both
   `label_objects` and `evaluate` use it. Segmenters take 2-D uint8 only.
 - App pages resolve files from `Path(__file__)`, never the working directory.
+- BBBC039 lives in `data/bbbc039/` (gitignored; CC0, ~80 MB from
+  bbbc.broadinstitute.org/BBBC039). Use the official split: train the U-Net
+  on training, select on validation, evaluate test once
+  (`benchmark_bbbc039.py`). Report Dice, F1@0.5 and average F1 (IoU
+  0.50–0.90, the paper's metric).
+- U-Net classes follow Caicedo et al.: the boundary band includes one pixel
+  outside each nucleus, so `classes_to_labels` erodes the foreground by one
+  pixel (without it every nucleus is 1 px too large; test AF1 0.62 vs 0.85).
+- `load_model` applies `<weights>_calibration.json` (temperature from
+  `calibrate_medical.py`); predictions are unchanged, confidences calibrated.
+  `fit_temperature` needs the strong-Wolfe line search (it stopped early before).
+- Grad-CAM (`src/explain.py`) is hook-free on purpose (models are shared across
+  Streamlit sessions); a test compares it with pytorch-grad-cam (CI installs
+  that with `--no-deps`, because it wants GUI OpenCV).
+- Long paths also bite scripts: keep helper script names short or run them
+  from a short temp path.
 
 ## Review checklist — use ALL of it on every check
 
@@ -115,5 +131,14 @@ improves; CLI silently ignoring `--optuna`/`--epochs`; duplicated
 | 9 | Documentation ↔ code consistency | 14 verified: README said plain `python train_medical.py` produces the shipped model (it trains the 96.0% default and overwrites the shipped 96.7% files); "CPU wheel index" wording stale after the `--find-links` switch; torch versions repeated in README; notebook described as covering every module, with stale method lists and summary table; Project Structure missing 8 files; `src/__init__` missing `image_io`; requirements-ml understated sklearn need; CLAUDE.md CI description and `\?\` pointer inaccurate; pytest marker text wrong; ResNet gain 1.2 → 1.3 points; mlp default epochs wrong in `parse_args`; "optional torch" docstrings; stale comments/captions; scripts without `--help` text | All 14 | 124 → 124 |
 | 10 | Full fresh sweep, regressions from rounds 1–9 | 8 verified: negative label ids gave F1 = 3.0 and counted the background (regression from round 7's id compaction); round 7 memory fix had no test; `train_medical` checked the weights folder but not the figure folder; mismatched checkpoints (RuntimeError/KeyError/AttributeError) took down page 3; 5000×1 uploads crashed every page's preview; two unmarked tests ran Cellpose; `tomllib` test failed on Python 3.10; nits (color docstring, unfiltered GT panel, README `--out` example and page-3 wording, duplicated results-path logic) | All 8; compaction test with a tracemalloc bound (3 mutants re-run, all caught) | 124 → 129 |
 | 11 | Fresh-clone README walkthrough, Windows→Linux, multi-user state | 3 verified (no high): benchmark script overwrote the shipped figure by default, as a 4-panel image without Cellpose; README setup lacked clone step, Linux/macOS/cmd activation, a test install line for Python 3.13+ and the notebook dependency; two test files only passed from the repo root. Clean: case-sensitive paths, LF endings, file modes, shared cached models under 8 concurrent threads | All 3 | 129 → 130 |
+
+### Upgrades after the loop (2026-10-13)
+
+Real-data benchmark (BBBC039), U-Net, Grad-CAM, calibration. Found and fixed
+while building them: weighted 2-D cross-entropy has no deterministic CUDA
+kernel (hand-written equivalent, verified equal); `fit_temperature` did not
+converge (2.43 vs optimum 2.97); U-Net decoding one pixel too large (found on
+the first test evaluation, fix chosen on validation, disclosed in the README).
+Grad-CAM verified against pytorch-grad-cam (correlation 1.0000). Tests 130 → 144.
 
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

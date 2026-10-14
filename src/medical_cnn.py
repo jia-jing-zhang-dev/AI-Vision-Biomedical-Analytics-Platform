@@ -171,6 +171,12 @@ def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Modu
         raise ValueError(f"{Path(path).name} does not match the expected model "
                          f"({err.__class__.__name__}: {str(err)[:200]})") from err
     model.arch = arch
+    # Temperature from calibrate_medical.py (1.0 = uncalibrated softmax)
+    calibration = Path(str(Path(path).with_suffix("")) + "_calibration.json")
+    model.temperature = 1.0
+    if calibration.exists():
+        import json
+        model.temperature = float(json.loads(calibration.read_text())["temperature"])
     return model.to(device).eval()
 
 
@@ -192,7 +198,8 @@ def predict_proba(model, image, device=None):
     tfm = input_transform(getattr(model, "arch", "cnn"), from_upload=True)
     x = tfm(to_8bit(image, "RGB")).unsqueeze(0).to(device)
     with torch.no_grad():
-        return torch.softmax(model(x), dim=1).squeeze(0).cpu().numpy()
+        logits = model(x) / getattr(model, "temperature", 1.0)   # calibrated confidences
+        return torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()
 
 
 def get_bloodmnist_loaders(batch_size: int = 128, data_dir: str = "./data",

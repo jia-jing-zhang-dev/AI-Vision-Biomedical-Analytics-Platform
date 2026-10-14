@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
+from src.explain import grad_cam, overlay
 from src.image_io import UploadError, load_upload
 from src.medical_cnn import CLASS_NAMES, load_model, predict_proba
 
@@ -89,6 +90,11 @@ else:
 
 if image is not None:
     st.image(image, caption="Input image", width=200)
+    show_cam = st.checkbox(
+        "Show Grad-CAM: where each model looked",
+        help="Grad-CAM highlights the image regions that pushed the model towards its "
+             "prediction (red = most important).",
+    )
 
     for col, (name, model) in zip(st.columns(len(models)), models.items()):
         with col:
@@ -101,6 +107,10 @@ if image is not None:
                 horizontal=True,
                 height=260,
             )
+            if show_cam:
+                heatmap, _ = grad_cam(model, image, target=top)
+                st.image(overlay(image, heatmap), caption=f"Grad-CAM for '{CLASS_NAMES[top]}'",
+                         width="stretch")
 
 with st.expander("Model details and comparison with published results"):
     st.markdown(

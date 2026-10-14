@@ -15,6 +15,7 @@ from streamlit.testing.v1 import AppTest
 
 ROOT = Path(__file__).resolve().parent.parent
 N_METHODS_WITH_CELLPOSE = 6 + int(importlib.util.find_spec("cellpose") is not None)
+N_METHODS_WITH_CELLPOSE += int((ROOT / "unet_bbbc039.pth").exists())   # + U-Net
 
 
 @pytest.fixture(autouse=True)
@@ -92,8 +93,9 @@ def test_segmentation_realistic_benchmark_reports_instance_f1():
     assert len(table) == N_METHODS_WITH_CELLPOSE
     order = list(table["Method"])                         # sorted by instance F1
     assert order.index("Watershed") < order.index("Otsu")
-    if "Cellpose" in order:
-        assert order[0] == "Cellpose"
+    deep = [m for m in ("Cellpose", "U-Net") if m in order]
+    if deep:                                              # deep-learning methods rank above the classical ones
+        assert order[0] in deep
     assert any("Ground Truth (" in s.value for s in at.subheader)
 
 
