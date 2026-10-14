@@ -41,6 +41,20 @@ def metrics(logits, labels, temperature=1.0):
             "ece": expected_calibration_error(probs, labels)}
 
 
+def bootstrap_ece_change(logits, labels, temperature, n=1000, seed=0):
+    """Paired bootstrap over test images of ECE(after) - ECE(before):
+    (mean, 2.5th percentile, 97.5th percentile)."""
+    rng = np.random.default_rng(seed)
+    p0, p1 = torch.softmax(logits, 1), torch.softmax(logits / temperature, 1)
+    diffs = []
+    for _ in range(n):
+        idx = torch.from_numpy(rng.integers(0, len(labels), len(labels)))
+        diffs.append(expected_calibration_error(p1[idx], labels[idx])
+                     - expected_calibration_error(p0[idx], labels[idx]))
+    diffs = np.array(diffs)
+    return float(diffs.mean()), float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5))
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Temperature-scale the BloodMNIST classifiers.")
     parser.add_argument("--data-dir", default="./data")
@@ -63,13 +77,15 @@ def main(argv=None):
         test_logits, test_y = logits_and_labels(model, test_loader, device)
         t = fit_temperature(val_logits, val_y)
         before, after = metrics(test_logits, test_y), metrics(test_logits, test_y, t)
-        print(f"{name}: T = {t:.3f}")
+        change = bootstrap_ece_change(test_logits, test_y, t)
+        print(f"{name}: T = {t:.3f}; ECE change {change[0]:+.4f} (95% CI {change[1]:+.4f} to {change[2]:+.4f})")
         for key in ("accuracy", "nll", "ece"):
             print(f"  test {key:<8} {before[key]:.4f} -> {after[key]:.4f}")
         out = str(Path(weights).with_suffix("")) + "_calibration.json"
         with open(out, "w") as f:
             json.dump({"temperature": t, "fitted_on": "validation", "test_before": before,
-                       "test_after": after}, f, indent=2)
+                       "test_after": after, "ece_change_bootstrap": {"mean": change[0],
+                       "ci95": [change[1], change[2]], "resamples": 1000}}, f, indent=2)
         curves[name] = [(label, reliability_curve(torch.softmax(test_logits / temp, 1).numpy(), test_y.numpy()))
                         for label, temp in (("before", 1.0), (f"after (T={t:.2f})", t))]
 

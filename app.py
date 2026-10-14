@@ -75,8 +75,8 @@ with col3:
         "hyperparameters tuned with Optuna on the validation split."
     )
     st.write(
-        "- Grad-CAM heatmaps show where each model looked; confidences are calibrated "
-        "with temperature scaling."
+        "- Grad-CAM heatmaps show where each model looked; confidence calibration was "
+        "checked (calibration error under 1%)."
     )
     st.write(
         "- Compared with an ImageNet-pretrained ResNet-18 (97.9%, 20× larger) and the "

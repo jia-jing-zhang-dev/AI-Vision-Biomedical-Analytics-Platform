@@ -121,7 +121,11 @@ def test_segmentation_simple_shapes_benchmark():
 def test_segmentation_ten_image_benchmark():
     at = click(run_page(SEG), "Run 10-Image Benchmark")
     table = at.dataframe[0].value
-    assert len(table) == 6 and table["Method"].iloc[0] == "Watershed"
+    n_unet = int((ROOT / "unet_bbbc039.pth").exists())
+    assert len(table) == 6 + n_unet
+    order = list(table["Method"])
+    assert order[0] == ("U-Net" if n_unet else "Watershed")   # U-Net 0.86 vs watershed 0.81 on these images
+    assert order.index("Watershed") < order.index("Otsu")
     assert all("±" in v for v in table["Instance F1"])
 
 
@@ -210,3 +214,11 @@ def test_ground_truth_count_matches_table():
     click(at, "Run Biomedical Image Segmentation Pipeline")
     n = at.dataframe[0].value["Cells (true)"].iloc[0]
     assert any(s.value == f"Ground Truth ({n} cells)" for s in at.subheader)
+
+
+def test_blood_page_grad_cam_checkbox_adds_one_heatmap_per_model():
+    at = run_page(BLOOD)
+    before = len(at.image)
+    at.checkbox[0].check().run()
+    assert not at.exception
+    assert len(at.image) == before + 2

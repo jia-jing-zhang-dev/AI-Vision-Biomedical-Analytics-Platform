@@ -13,8 +13,8 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 | BloodMNIST, ImageNet-pretrained ResNet-18 reference | 97.9% test accuracy, with a 20× larger model |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
 | FashionMNIST clothing classification (MLP, 10 classes) | 86.9% test accuracy |
-| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.949** at IoU 0.5 (best of all methods), average F1 0.845; Cellpose 0.902; best classical 0.830 |
-| Confidence calibration (temperature scaling) | ECE 0.89% → 0.65% (CNN), 0.50% → 0.36% (ResNet-18) |
+| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5 (best of all methods), average F1 0.863; Cellpose 0.902; best classical 0.830 |
+| Confidence calibration | Both blood-cell models already well calibrated (test ECE 0.9% and 0.5%); temperature scaling makes no significant difference |
 
 ## Features
 
@@ -234,7 +234,7 @@ Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metri
 
 | Method (BBBC039 test set, 50 images) | Dice | Instance F1 @ IoU 0.5 | Average F1, IoU 0.50–0.90 |
 |---|---|---|---|
-| **U-Net (trained here)** | 0.949 ± 0.009 | 0.949 ± 0.077 | 0.845 ± 0.099 |
+| **U-Net (trained here)** | 0.951 ± 0.009 | 0.951 ± 0.077 | 0.863 ± 0.100 |
 | Cellpose 3 (pretrained) | 0.948 ± 0.124 | 0.938 ± 0.148 | 0.902 ± 0.156 |
 | Adaptive threshold | 0.957 ± 0.009 | 0.898 ± 0.087 | 0.830 ± 0.101 |
 | Top-hat + watershed | 0.947 ± 0.014 | 0.900 ± 0.090 | 0.805 ± 0.103 |
@@ -246,12 +246,12 @@ Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metri
 ![BBBC039 example](public/bbbc039-segmentation.png)
 
 **What this shows:**
-- The U-Net trained here finds the most nuclei (best F1 at IoU 0.5) and beats the paper's CellProfiler baseline on average F1, but its outlines are less precise than Cellpose's or the paper's own U-Net (0.845 vs. ~0.90). It is a small model (1.9 M parameters, 60 short epochs) without the paper's training budget.
+- The U-Net trained here finds the most nuclei (best F1 at IoU 0.5) and beats the paper's CellProfiler baseline on average F1, but its outlines are less precise than Cellpose's or the paper's own U-Net (0.863 vs. ~0.90). It is a small model (1.9 M parameters, 60 short epochs) without the paper's training budget.
 - Real data reorders the classical methods: the adaptive threshold, weak on the synthetic benchmark, is the best classical method on real nuclei, while Canny edges fail on the soft nucleus borders.
 - The classical methods use the parameters developed on the synthetic benchmark, without tuning on BBBC039.
-- The large standard deviations come from a few test images that contain almost no nuclei.
+- The large standard deviations come mostly from one hard test image (`IXMtest_A12_s7`) on which every method struggles (F1: U-Net 0.45, adaptive 0.35, watershed 0.32); without it the U-Net's F1 standard deviation is 0.028 instead of 0.077.
 
-**Protocol note.** The U-Net checkpoint was selected on the validation split. Its first test-set evaluation exposed a decoding error: the boundary class extends one pixel outside each nucleus (as in the paper), but decoding grew nuclei over that pixel, so every nucleus came out one pixel too large (test average F1 0.622). The fix (erode the predicted foreground by one pixel) follows from the label definition; it was compared with the old decoding on the **validation** split only (average F1 0.635 → 0.854), and the test set was then evaluated once more. A unit test now checks that encoding and decoding reproduce nucleus outlines.
+**Protocol note.** The U-Net checkpoint was selected on the validation split. Its first test-set evaluation exposed a decoding error: the boundary class extends one pixel outside each nucleus (as in the paper), but decoding grew nuclei over that pixel, so every nucleus came out one pixel too large (test average F1 0.622). The fix (erode the predicted foreground by one pixel) follows from the label definition; it was compared with the old decoding on the **validation** split only (average F1 0.635 → 0.854), and the test set was then evaluated once more. A unit test now checks that encoding and decoding reproduce nucleus outlines. A later code review found that the same erosion also trimmed nuclei cut by the image border; fixing it raised validation average F1 from 0.854 to 0.873, and the test set was evaluated a third time with that fix (0.845 → 0.863). Large uploads are processed in 384-pixel tiles, which keeps memory bounded without changing results on BBBC039-sized images.
 
 ## Explainability and Calibration (blood-cell models)
 
@@ -264,7 +264,7 @@ Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metri
 | Custom CNN | 0.89 | 0.89% → 0.65% | 96.67% (unchanged) |
 | ResNet-18 | 1.09 | 0.50% → 0.36% | 97.92% (unchanged) |
 
-Both models were already well calibrated; temperature scaling reduces the remaining error by about a quarter (T < 1: the CNN was slightly under-confident). The app shows the calibrated confidences.
+Both models were already well calibrated (ECE below 1%). Temperature scaling changes very little, and the change is not statistically significant: a paired bootstrap over the test images (1,000 resamples) gives a 95% interval for the ECE change of -0.60 to +0.38 points for the CNN and -0.30 to +0.22 points for ResNet-18, both including zero. The fitted temperatures are applied in the app, but they are close to 1, so the confidences barely change.
 
 ![Reliability diagrams](public/bloodmnist-calibration.png)
 

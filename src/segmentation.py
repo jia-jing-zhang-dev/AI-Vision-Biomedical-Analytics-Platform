@@ -468,7 +468,7 @@ def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]
 
 
 def benchmark(n_images: int = 10, start_seed: int = 0, include_cellpose: bool = False,
-              **image_kwargs) -> "list[dict]":
+              include_unet: bool = False, **image_kwargs) -> "list[dict]":
     """Average every method's scores over ``n_images`` realistic cell images
     (seeds start_seed..start_seed+n_images-1). Returns rows sorted by
     instance F1, each with the mean and standard deviation of every metric.
@@ -476,7 +476,8 @@ def benchmark(n_images: int = 10, start_seed: int = 0, include_cellpose: bool = 
     per_method: Dict[str, list] = {}
     for seed in range(start_seed, start_seed + n_images):
         img, labels = make_cell_image(seed=seed, **image_kwargs)
-        for row in evaluate(labels, run_all(img, include_cellpose=include_cellpose)):
+        results = run_all(img, include_cellpose=include_cellpose, include_unet=include_unet)
+        for row in evaluate(labels, results):
             per_method.setdefault(row["method"], []).append(row)
 
     summary = []

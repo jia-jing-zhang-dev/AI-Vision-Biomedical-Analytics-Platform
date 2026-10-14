@@ -9,5 +9,12 @@
     "seed": 0
   },
   "best_epoch": 60,
-  "val_instance_f1": 0.9528479310596168
+  "val_instance_f1": 0.9528479310596168,
+  "note": "val_instance_f1 was measured during training with the original decoding; final decoding results below",
+  "validation_final_decoding": {
+    "dice": 0.95,
+    "instance_f1": 0.961,
+    "average_f1": 0.873,
+    "measured_with": "benchmark_bbbc039.py --split validation"
+  }
 }

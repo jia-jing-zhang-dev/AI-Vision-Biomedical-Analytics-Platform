@@ -21,6 +21,12 @@ st.write(
     "pixel-level **Dice / IoU** and with **instance F1**, which checks whether each cell "
     "was segmented as its own object (a match needs IoU > 0.5 with a true cell)."
 )
+if USE_UNET:
+    st.caption(
+        "**U-Net**: a deep-learning model trained in this project on BBBC039, real fluorescence "
+        "images of stained cell nuclei (U2OS cells). It works best on similar nuclei images; "
+        "on other kinds of images (e.g. X-ray, pathology) treat its output with caution."
+    )
 
 
 def show_image(img, title, small=False):
@@ -96,7 +102,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
 
     if realistic and st.button("Run 10-Image Benchmark (mean ± std)"):
         with st.spinner("Segmenting 10 images with every method..."):
-            summary = benchmark(10)
+            summary = benchmark(10, include_unet=USE_UNET)
         st.dataframe(pd.DataFrame([{
             "Method": r["method"],
             "Dice": f"{r['dice']:.3f} ± {r['dice_std']:.3f}",
@@ -107,7 +113,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
             "Thresholding methods find the foreground well (similar Dice) but merge touching "
             "cells into one object, so their instance F1 is much lower. The watershed splits "
             "them using peaks of the distance transform as seeds. Cellpose is left out here to "
-            "keep this fast; the README reports it on 50 images."
+            "keep this fast; the README reports it, and every method on real BBBC039 images."
         )
 
 else:

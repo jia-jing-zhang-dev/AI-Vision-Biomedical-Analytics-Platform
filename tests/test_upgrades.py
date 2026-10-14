@@ -136,3 +136,87 @@ def test_unet_classes_round_trip_reproduces_nucleus_outlines():
     for k in (1, 2):
         best = max(iou(labels == k, decoded == j) for j in (1, 2))
         assert best > 0.97, (k, best)
+
+
+# ------------------------------------------------- review follow-ups
+def test_unet_padding_crops_back_the_right_region():
+    from src.unet import UNet, _predict_once
+    model = UNet(base=4).eval()
+    img = (np.random.default_rng(0).random((48, 64)) * 255).astype(np.uint8)   # no padding needed
+    whole = _predict_once(model, img)
+    part = _predict_once(model, img[:37, :53])                                   # needs padding
+    # far from the padded edge the context is identical, so predictions agree
+    assert np.allclose(part[:, :20, :30], whole[:, :20, :30], atol=1e-4)
+
+
+def test_large_images_are_tiled_and_match_a_single_pass(monkeypatch):
+    from src import unet
+    model = unet.UNet(base=4).eval()
+    img = (np.random.default_rng(1).random((300, 260)) * 255).astype(np.uint8)
+    single = unet._predict_once(model, img)
+    seen = []
+    real = unet._predict_once
+    monkeypatch.setattr(unet, "_predict_once", lambda m, x: seen.append(x.shape) or real(m, x))
+    monkeypatch.setattr(unet, "SINGLE_PASS_PIXELS", 10_000)
+    monkeypatch.setattr(unet, "TILE", 128)
+    tiled = unet.predict_probs(model, img)
+    assert len(seen) > 1 and max(h * w for h, w in seen) <= 128 * 128
+    assert (tiled.argmax(0) == single.argmax(0)).mean() > 0.99
+
+
+def test_unet_round_trip_keeps_nuclei_cut_by_the_image_border():
+    from src.unet import classes_to_labels, labels_to_classes
+    labels = np.zeros((30, 30), np.int32)
+    labels[0:10, 8:18] = 1                                     # touches the top edge
+    cls = labels_to_classes(labels)
+    decoded = classes_to_labels(np.stack([(cls == k).astype(np.float32) for k in range(3)]))
+    assert np.array_equal(decoded > 0, labels > 0)
+
+
+def test_unet_drops_tiny_interior_seeds():
+    from src.unet import classes_to_labels
+    probs = np.zeros((3, 20, 20), np.float32); probs[0] = 1
+    probs[:, 2:4, 2:4] = [[[0]], [[1]], [[0]]]                  # 4-pixel interior speck
+    assert classes_to_labels(probs, min_seed=10).max() == 0
+
+
+def test_decode_mask_uses_4_connectivity():
+    from src.bbbc039 import decode_mask
+    colours = np.zeros((6, 6, 4), np.uint8)
+    colours[0:3, 0:3, 0] = 1
+    colours[3:6, 3:6, 0] = 1                   # same colour, touching only at a corner
+    assert decode_mask(colours).max() == 2
+
+
+def test_weighted_cross_entropy_equals_torch():
+    from train_unet import weighted_cross_entropy
+    torch.manual_seed(0)
+    logits, target = torch.randn(2, 3, 9, 7), torch.randint(0, 3, (2, 9, 7))
+    w = torch.tensor([1.0, 1.0, 10.0])
+    assert torch.allclose(weighted_cross_entropy(logits, target, w),
+                          torch.nn.CrossEntropyLoss(weight=w)(logits, target))
+
+
+def test_training_crops_transform_image_and_labels_together():
+    from train_unet import random_batches
+    rng = np.random.default_rng(0)
+    img = (np.arange(64 * 64) % 251).reshape(64, 64).astype(np.uint8)
+    cls = img.astype(np.int64)                                  # labels = image values
+    for _ in range(20):
+        x, y = random_batches([img], [cls], 1, 32, rng)
+        # brightness jitter is affine, so ranking of pixel values must follow the labels
+        flat_x, flat_y = x[0, 0].numpy().ravel(), y[0].numpy().ravel()
+        order = np.argsort(flat_y, kind="stable")
+        assert np.all(np.diff(flat_x[order]) >= -1e-6)
+
+
+def test_temperature_divides_the_logits():
+    from PIL import Image
+    from src.medical_cnn import load_model, predict_proba
+    model = load_model(str(ROOT / "biomedical_cnn.pth"))
+    img = Image.open(ROOT / "public" / "blood_samples" / "4_lymphocyte.png")
+    model.temperature = 0.5
+    sharp = predict_proba(model, img)
+    model.temperature = 2.0
+    soft = predict_proba(model, img)
+    assert sharp.max() > soft.max()                             # T < 1 sharpens, T > 1 softens

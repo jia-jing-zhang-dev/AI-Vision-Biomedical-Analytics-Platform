@@ -67,7 +67,9 @@ streamlit run app.py
   0.50–0.90, the paper's metric).
 - U-Net classes follow Caicedo et al.: the boundary band includes one pixel
   outside each nucleus, so `classes_to_labels` erodes the foreground by one
-  pixel (without it every nucleus is 1 px too large; test AF1 0.62 vs 0.85).
+  pixel with `border_value=1` (without erosion every nucleus is 1 px too large;
+  without border_value=1 nuclei at the image edge lose a row). Images over
+  400k pixels run in 384-px tiles (single pass on 1024x1024 cost ~750 MB).
 - `load_model` applies `<weights>_calibration.json` (temperature from
   `calibrate_medical.py`); predictions are unchanged, confidences calibrated.
   `fit_temperature` needs the strong-Wolfe line search (it stopped early before).
@@ -139,6 +141,8 @@ while building them: weighted 2-D cross-entropy has no deterministic CUDA
 kernel (hand-written equivalent, verified equal); `fit_temperature` did not
 converge (2.43 vs optimum 2.97); U-Net decoding one pixel too large (found on
 the first test evaluation, fix chosen on validation, disclosed in the README).
-Grad-CAM verified against pytorch-grad-cam (correlation 1.0000). Tests 130 → 144.
+Grad-CAM verified against pytorch-grad-cam (correlation 1.0000). Follow-up review: U-Net
+memory (tiling), border erosion (third test evaluation, disclosed), calibration claim
+reworded with a bootstrap CI (not significant), 9 more tests. Tests 130 → 153.
 
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

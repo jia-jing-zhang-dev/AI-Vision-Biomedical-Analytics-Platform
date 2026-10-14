@@ -85,7 +85,9 @@ def classes_to_labels(probs: np.ndarray, min_seed: int = 10) -> np.ndarray:
     from skimage.segmentation import watershed
 
     pred = probs.argmax(0)
-    foreground = binary_erosion(pred != BACKGROUND, structure=np.ones((3, 3), bool))
+    # border_value=1: the image edge is not background, so nuclei cut by the
+    # border keep their edge row (labels_to_classes puts no band there either).
+    foreground = binary_erosion(pred != BACKGROUND, structure=np.ones((3, 3), bool), border_value=1)
     _, seeds = cv2.connectedComponents((pred == INTERIOR).astype(np.uint8), connectivity=4)
     sizes = np.bincount(seeds.ravel())
     small = sizes < min_seed
@@ -102,11 +104,37 @@ def load_unet(path: str, device: str = "cpu") -> UNet:
     return model.to(device).eval()
 
 
+SINGLE_PASS_PIXELS = 400_000    # larger images are processed in tiles (memory ~700 B/pixel)
+TILE, TILE_OVERLAP = 384, 32
+
+
 def predict_probs(model: UNet, img: np.ndarray) -> np.ndarray:
     """uint8 grayscale image (any size) -> (3, H, W) class probabilities.
-    The image is reflect-padded to a multiple of 2**DEPTH and cropped back."""
+
+    Images up to SINGLE_PASS_PIXELS (e.g. BBBC039's 520x696) run in one
+    pass. Larger ones run in TILE-pixel tiles; each tile sees TILE_OVERLAP
+    extra pixels of context on every side and only its centre is kept, so
+    memory stays bounded (a single pass over 1024x1024 needed ~750 MB).
+    """
     if img.ndim != 2 or img.dtype != np.uint8:
         raise ValueError(f"expected a 2-D uint8 image, got {img.shape} {img.dtype}")
+    h, w = img.shape
+    if h * w <= SINGLE_PASS_PIXELS:
+        return _predict_once(model, img)
+    step = TILE - 2 * TILE_OVERLAP
+    out = np.zeros((3, h, w), np.float32)
+    for y0 in range(0, h, step):
+        for x0 in range(0, w, step):
+            y1, x1 = min(y0 + step, h), min(x0 + step, w)
+            ty0, tx0 = max(0, y0 - TILE_OVERLAP), max(0, x0 - TILE_OVERLAP)
+            ty1, tx1 = min(h, y1 + TILE_OVERLAP), min(w, x1 + TILE_OVERLAP)
+            tile = _predict_once(model, img[ty0:ty1, tx0:tx1])
+            out[:, y0:y1, x0:x1] = tile[:, y0 - ty0:y1 - ty0, x0 - tx0:x1 - tx0]
+    return out
+
+
+def _predict_once(model: UNet, img: np.ndarray) -> np.ndarray:
+    """One forward pass; reflect-pads to a multiple of 2**DEPTH and crops back."""
     h, w = img.shape
     m = 2 ** DEPTH
     ph, pw = (-h) % m, (-w) % m
