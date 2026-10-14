@@ -24,6 +24,9 @@ from src.segmentation import (
 )
 
 
+DEFAULT_FIGURE = "public/cell-segmentation-benchmark.png"
+
+
 def save_example(path: str, seed: int = 0, include_cellpose: bool = True):
     img, gt = make_cell_image(seed=seed)
     panels = [
@@ -51,13 +54,15 @@ def main(argv=None):
     parser.add_argument("--images", type=int, default=10, help="number of images to average over")
     parser.add_argument("--start-seed", type=int, default=0, help="seed of the first image (100+ = never used for tuning)")
     parser.add_argument("--no-cellpose", action="store_true", help="skip Cellpose even if it is installed")
-    parser.add_argument("--figure", default="public/cell-segmentation-benchmark.png", help="where to save the example figure")
+    parser.add_argument("--figure", default=None,
+                        help=f"where to save the example figure (default {DEFAULT_FIGURE}, which the "
+                             "README and app show; only replaced when Cellpose is included)")
     args = parser.parse_args(argv)
     if args.images < 1:
         parser.error("--images must be at least 1")
     if args.start_seed < 0:
         parser.error("--start-seed must be non-negative")
-    if not Path(args.figure).resolve().parent.is_dir():   # fail before the benchmark, not after
+    if args.figure is not None and not Path(args.figure).resolve().parent.is_dir():   # fail before the run
         parser.error(f"folder for --figure {args.figure} does not exist (run from the repository root?)")
     use_cellpose = cellpose_available() and not args.no_cellpose
     if not use_cellpose and not args.no_cellpose:
@@ -69,7 +74,16 @@ def main(argv=None):
               f"{r['dice']:>10.3f} ± {r['dice_std']:.3f}"
               f"{r['iou']:>10.3f} ± {r['iou_std']:.3f}"
               f"{r['instance_f1']:>12.3f} ± {r['instance_f1_std']:.3f}")
-    save_example(args.figure, include_cellpose=use_cellpose)
+    figure = args.figure
+    if figure is None:
+        # The shipped figure has a Cellpose panel; never replace it with a 4-panel version.
+        if not use_cellpose:
+            print(f"Not updating {DEFAULT_FIGURE} without Cellpose; pass --figure to save elsewhere.")
+            return
+        if not Path(DEFAULT_FIGURE).resolve().parent.is_dir():
+            parser.error(f"{DEFAULT_FIGURE}: run from the repository root or pass --figure")
+        figure = DEFAULT_FIGURE
+    save_example(figure, include_cellpose=use_cellpose)
 
 
 if __name__ == "__main__":

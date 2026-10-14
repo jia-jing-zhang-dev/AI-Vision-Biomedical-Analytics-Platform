@@ -65,17 +65,21 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 ## Requirements
 
-- Python 3.10 or later
+- Python 3.10 or later for the app (3.10–3.12 if you also want the Cellpose benchmark)
 - A virtual environment is recommended
 
 ```bash
+git clone https://github.com/jia-jing-zhang-dev/AI-Vision-Biomedical-Analytics-Platform.git
+cd AI-Vision-Biomedical-Analytics-Platform
 python -m venv .venv
 ```
 
-Activate it in Windows PowerShell:
+Activate it:
 
-```powershell
-.\.venv\Scripts\Activate.ps1
+```bash
+source .venv/bin/activate        # Linux / macOS
+.venv\Scripts\activate.bat       # Windows cmd
+.\.venv\Scripts\Activate.ps1     # Windows PowerShell (may need: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned)
 ```
 
 The dependencies are split into three files:
@@ -87,8 +91,10 @@ The dependencies are split into three files:
 | `requirements-dev.txt` | `requirements-ml.txt` + Cellpose, MedMNIST, pytest | Training, benchmarks, tests |
 
 ```bash
-pip install -r requirements.txt                          # run the app
-pip install -r requirements.txt -r requirements-dev.txt  # everything
+pip install -r requirements.txt                                 # run the app
+pip install -r requirements.txt -r requirements-ml.txt pytest   # app + tests (any Python version, no Cellpose)
+pip install -r requirements.txt -r requirements-dev.txt         # everything (Python 3.10-3.12)
+pip install notebook                                            # optional: to open the notebook
 ```
 
 > Cellpose 3 requires `numpy<2.1`, which has no prebuilt wheels for Python 3.14, so use Python 3.10–3.12 for the extras. The deployed app does not install Cellpose and hides it automatically; its benchmark results are reported below.
@@ -170,8 +176,10 @@ The hardest classes are monocytes (91.5% recall, most often mistaken for immatur
 ## Segmentation Benchmark
 
 ```bash
-python benchmark_segmentation.py --images 50
+python benchmark_segmentation.py --images 50   # also refreshes public/cell-segmentation-benchmark.png when Cellpose is installed
 ```
+
+Without Cellpose the shipped figure is left untouched (it has a Cellpose panel); use `--figure path.png` to save an example elsewhere.
 
 Results on 50 synthetic cell images (~45 nuclei each, mean ± std):
 
@@ -199,9 +207,13 @@ The original three-shape image is still available as an "easy" sanity check, whe
 
 ## Run Tests
 
+From the repository root, after installing at least `requirements.txt`, `requirements-ml.txt` and pytest:
+
 ```bash
 pytest tests/
 ```
+
+Tests that need Cellpose or MedMNIST are skipped when those packages are absent.
 
 The tests cover classification, clustering, segmentation metrics, 2D convolution (checked against SciPy), and the BloodMNIST CNN. `tests/test_app.py` drives every page of the Streamlit app headlessly with Streamlit's `AppTest`: each button, selector and seed input, plus uploads of brightfield, fluorescence, oversized and blood-cell images.
 

@@ -19,6 +19,12 @@ from src.image_io import load_upload, to_8bit
 ROOT = Path(__file__).resolve().parent.parent
 
 
+@pytest.fixture(autouse=True)
+def _run_from_repo_root(monkeypatch):
+    # CLI checks resolve output folders (public/, ...) from the working directory
+    monkeypatch.chdir(ROOT)
+
+
 # ------------------------------------------------- silent wrong results
 @pytest.mark.parametrize("dtype", [np.int32, np.int64, np.uint16])
 def test_label_images_of_any_wide_integer_dtype_keep_their_cells(dtype):

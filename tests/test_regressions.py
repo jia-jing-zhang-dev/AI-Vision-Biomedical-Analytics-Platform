@@ -22,6 +22,12 @@ from src.segmentation import (
 ROOT = Path(__file__).resolve().parent.parent
 
 
+@pytest.fixture(autouse=True)
+def _run_from_repo_root(monkeypatch):
+    # CLI checks resolve output folders (public/, ...) from the working directory
+    monkeypatch.chdir(ROOT)
+
+
 # ------------------------------------------------------------------ metrics
 def test_dice_and_iou_on_a_hand_computed_partial_overlap():
     a = np.zeros(10, bool); a[0:4] = True                 # 4 pixels
@@ -348,3 +354,12 @@ def test_train_medical_checks_the_figure_folder_too(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as exc:
         train_medical.parse_args([])
     assert exc.value.code == 2
+
+
+def test_benchmark_never_replaces_the_shipped_figure_without_cellpose(capsys):
+    import benchmark_segmentation
+    shipped = ROOT / "public" / "cell-segmentation-benchmark.png"
+    before = shipped.read_bytes()
+    benchmark_segmentation.main(["--images", "1", "--no-cellpose"])
+    assert shipped.read_bytes() == before
+    assert "Not updating" in capsys.readouterr().out
