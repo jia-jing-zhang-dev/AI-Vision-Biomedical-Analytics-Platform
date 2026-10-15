@@ -52,6 +52,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 │   ├── explain.py                   # Grad-CAM for the blood-cell models
 │   ├── calibration.py               # Temperature scaling, ECE, reliability curves
 │   ├── runtime.py                   # App resource settings: heavy-work lock, torch threads
+│   ├── blood_cells.py               # Finds and crops stained cells in blood-smear uploads
 │   └── visualization.py             # EDA visualization helpers
 ├── notebooks/demo_end_to_end.ipynb  # Walkthrough of the classical-ML, clustering, segmentation and convolution modules
 ├── public/                          # Figures, BloodMNIST and FashionMNIST sample images
@@ -130,7 +131,7 @@ Open the local URL displayed in the terminal, then use the sidebar to switch bet
 
 1. **Deep Learning** — upload a JPG, JPEG, or PNG clothing image and run FashionMNIST classification.
 2. **Biomedical Segmentation** — either generate a synthetic benchmark image (realistic cells or simple shapes) to compare masks, Dice / IoU and instance F1, run a 10-image benchmark, or upload a grayscale or color medical image to view segmentation results from every algorithm.
-3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see both models' predictions (custom CNN and ResNet-18) and class probabilities.
+3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see both models' predictions (custom CNN and ResNet-18) and class probabilities. An uploaded smear with several stained cells is split into one crop per cell, and each crop is classified.
 
 Uploads (JPG/PNG, including 16-bit and transparent PNGs and rotated phone photos) are accepted up to 25 megapixels and downscaled to at most 1024 px before processing, which keeps the app within Streamlit Cloud's memory limit.
 
@@ -253,6 +254,19 @@ Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metri
 - The large standard deviations come mostly from one hard test image (`IXMtest_A12_s7`) on which every method struggles (F1: U-Net 0.45, adaptive 0.35, watershed 0.32); without it the U-Net's F1 standard deviation is 0.028 instead of 0.077. Cellpose's large standard deviation comes from `IXMtest_F12_s8` (above).
 
 **Protocol note.** The U-Net checkpoint was selected on the validation split. Its first test-set evaluation exposed a decoding error: the boundary class extends one pixel outside each nucleus (as in the paper), but decoding grew nuclei over that pixel, so every nucleus came out one pixel too large (test average F1 0.622). The fix (erode the predicted foreground by one pixel) follows from the label definition; it was compared with the old decoding on the **validation** split only (average F1 0.635 → 0.854), and the test set was then evaluated once more. A unit test now checks that encoding and decoding reproduce nucleus outlines. A later code review found that the same erosion also trimmed nuclei cut by the image border; fixing it raised validation average F1 from 0.854 to 0.873, and the test set was evaluated a third time with that fix (0.845 → 0.863). That second fix was validated on the validation split, but the search for it was not blind to the earlier test results. The weights never changed; only the decoding did. Large uploads are processed in 384-pixel tiles, which keeps memory bounded without changing results on BBBC039-sized images.
+
+### Blood-smear uploads
+
+The models were trained on BloodMNIST crops showing one centred cell, so a whole smear gives a meaningless answer (an early upload with several neutrophils came out as "immature granulocyte"). `src/blood_cells.py` finds the purple-stained cells (blue minus green; red cells and background are not stained), merges the lobes of each nucleus, and crops every cell the way BloodMNIST frames them. The stained region spans a median 0.60 of a BloodMNIST crop (measured on the validation split; lymphocytes 0.50, monocytes 0.75); because size helps tell the classes apart, one crop size is used for all cells of an image, derived from their median size.
+
+Checked on smear-like mosaics of 3×3 BloodMNIST test cells (100 mosaics, 900 cells, scaled 2–5×; settings fixed on validation mosaics first):
+
+| | Custom CNN | ResNet-18 |
+|---|---|---|
+| Original single-cell crops (reference) | 95.7% | 97.3% |
+| Cells found, cropped and classified by the pipeline | 86.4% | 89.7% |
+
+99.0% of leukocytes and erythroblasts were found (777/785); platelets mostly were not (12/115), because small stained objects next to larger cells are skipped. Test-time augmentation (flips/rotations, three crop sizes) did not help on validation. The mosaics have hard seams between tiles, so real smears may behave differently; uploads with only one stained cell are classified as a whole image, as before (6 of 500 single-cell test crops were mistaken for smears).
 
 ## Explainability and Calibration (blood-cell models)
 

@@ -14,6 +14,7 @@ Modules:
     explain        - Grad-CAM for the blood-cell classifiers
     calibration    - temperature scaling, ECE and reliability curves
     runtime        - app resource settings (heavy-work lock, torch thread limit)
+    blood_cells    - finds and crops stained cells in blood-smear uploads
 """
 
 __version__ = "1.2.0"

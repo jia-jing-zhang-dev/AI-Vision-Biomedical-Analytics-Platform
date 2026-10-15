@@ -1,10 +1,12 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 from PIL import Image
 
+from src.blood_cells import crop_cells, crop_side, find_cells, is_smear
 from src.explain import grad_cam, overlay
 from src.image_io import UploadError, load_upload
 from src.medical_cnn import CLASS_NAMES, load_model, predict_proba
@@ -53,6 +55,61 @@ if not models:
     st.stop()
 
 
+def probability_chart(probs, height: int = 240):
+    """Horizontal bars on a fixed 0-1 axis (st.bar_chart auto-scaled it, e.g. to -2..1)."""
+    import altair as alt
+    data = pd.DataFrame({"class": CLASS_NAMES, "probability": [float(p) for p in probs]})
+    return alt.Chart(data, height=height).mark_bar().encode(
+        x=alt.X("probability:Q", scale=alt.Scale(domain=[0, 1]), axis=alt.Axis(format="%")),
+        y=alt.Y("class:N", sort=None, title=None),
+        tooltip=["class", alt.Tooltip("probability:Q", format=".1%")],
+    )
+
+
+MAX_SMEAR_CELLS = 12
+
+
+def show_smear(image, cells, n_found: int):
+    """A smear: number the stained cells, crop each like a BloodMNIST image
+    and classify the crops (largest cells first)."""
+    from PIL import ImageDraw
+
+    with heavy_work():
+        side = crop_side(cells)
+        crops = crop_cells(image, cells, side)
+        preds = [{name: predict_proba(model, crop) for name, model in models.items()} for crop in crops]
+
+    overview = image.convert("RGB").copy()
+    draw = ImageDraw.Draw(overview)
+    width = max(2, side // 40)
+    for k, (cx, cy, _) in enumerate(cells, 1):
+        draw.rectangle([cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2],
+                       outline=(255, 215, 0), width=width)
+        at = (cx - side // 2 + 2 * width, cy - side // 2 + width)
+        try:
+            draw.text(at, str(k), fill=(255, 215, 0), font_size=max(16, side // 2))
+        except TypeError:                      # Pillow < 10.1: default font only
+            draw.text(at, str(k), fill=(255, 215, 0))
+    more = f" (showing the {len(cells)} largest)" if n_found > len(cells) else ""
+    st.info(f"This looks like a blood smear: **{n_found} stained cells** found{more}. "
+            "Each one is cropped and classified on its own.")
+    st.image(overview, caption="Stained cells found (numbered)", width="stretch")
+    for row in range(0, len(crops), 4):
+        for col, k in zip(st.columns(4), range(row, min(row + 4, len(crops)))):
+            col.image(crops[k], caption=f"Cell {k + 1}", width=120)
+            for name, probs in preds[k].items():
+                short = "CNN" if name.startswith("Custom") else "ResNet"
+                col.caption(f"{short}: **{CLASS_NAMES[int(probs.argmax())]}** "
+                            f"({probs.max():.0%})")
+    st.caption(
+        "Cells are found by their purple stain (blue minus green), so platelets next to "
+        "larger cells and unstained red cells are skipped. On smear-like test mosaics built "
+        "from BloodMNIST, 99% of leukocytes/erythroblasts were found and the crops were "
+        "classified with 86% (CNN) / 90% (ResNet-18) accuracy, below the 96–97% on the "
+        "original single-cell crops. Grad-CAM is shown for single-cell images only."
+    )
+
+
 def test_accuracy(weights: str):
     path = Path(str(Path(weights).with_suffix("")) + "_results.json")   # as train_medical.output_paths
     return json.loads(path.read_text())["test_accuracy"] if path.exists() else None
@@ -95,9 +152,15 @@ else:
         except UploadError as err:
             st.error(str(err))
     st.caption(
-        "The models expect a single, centered blood cell. Images are reduced to 28×28 RGB, "
-        "so photos from a different microscope or stain may be classified poorly."
+        "The models expect a single, centered blood cell. A smear with several stained "
+        "cells is split into one crop per cell. Images are reduced to 28×28 RGB, so photos "
+        "from a different microscope or stain may be classified poorly."
     )
+    if image is not None:
+        cells = find_cells(np.asarray(image))
+        if is_smear(cells):
+            show_smear(image, cells[:MAX_SMEAR_CELLS], len(cells))
+            image = None                       # handled; skip the single-cell view
 
 if image is not None:
     st.image(image, caption="Input image", width=200)
@@ -115,11 +178,7 @@ if image is not None:
         with col:
             st.markdown(f"**{name}**")
             st.success(f"**Prediction:** {CLASS_NAMES[top]} ({probs[top]:.1%} confidence)")
-            st.bar_chart(
-                pd.DataFrame({"probability": probs}, index=CLASS_NAMES),
-                horizontal=True,
-                height=260,
-            )
+            st.altair_chart(probability_chart(probs), width="stretch")
             if cam is not None:
                 st.image(cam, caption=f"Grad-CAM for '{CLASS_NAMES[top]}'", width="stretch")
 

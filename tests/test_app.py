@@ -235,3 +235,20 @@ def test_grad_cam_choice_survives_switching_the_image_source():
     with_cam = len(at.image)
     at.checkbox[0].uncheck().run()
     assert len(at.image) == with_cam - 2                     # one heatmap per model was shown
+
+
+def test_blood_page_splits_a_smear_into_cells():
+    """Live-demo feedback: a smear with several neutrophils was classified as
+    one image ("immature granulocyte"). Each stained cell is now cropped and
+    classified separately; a 2x2 mosaic of bundled samples stands in for a smear."""
+    at = run_page("pages/3_Blood_Cell_Classifier.py")
+    at.radio[0].set_value("Upload your own image").run()
+    names = ["0_basophil", "1_eosinophil", "4_lymphocyte", "6_neutrophil"]
+    tiles = [np.asarray(Image.open(ROOT / "public" / "blood_samples" / f"{n}.png").convert("RGB")) for n in names]
+    smear = np.vstack([np.hstack(tiles[:2]), np.hstack(tiles[2:])])
+    at.get("file_uploader")[0].upload("smear.png", png_bytes(Image.fromarray(smear)), "image/png").run()
+    assert not at.exception
+    assert "4 stained cells" in at.info[0].value
+    captions = " ".join(c.value for c in at.caption)
+    assert captions.count("CNN:") == 4 and captions.count("ResNet:") == 4
+    assert not at.success                     # the single-cell view is skipped

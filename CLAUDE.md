@@ -160,4 +160,19 @@ reworded with a bootstrap CI (not significant), 9 more tests. Tests 130 → 153.
 | B: full code review (lock, cross-module interactions) | No high: lock is never nested and released on Streamlit stop/rerun; tiling vs erosion verified on 1040×1392 mosaics. Found: stale calibration JSON applied after retraining; malformed/zero/negative temperature crashed page 3 or flipped predictions; `train_unet --crop/--boundary-weight` unvalidated; README structure and `src/__init__` missing new modules; ambiguous README summary row | All: `read_temperature` validation, `train_medical` removes the stale calibration file, CLI checks, docs | 155 → 159 |
 | C: scientific rigor (re-ran every BBBC039 method incl. Cellpose, paper's evaluation code, McNemar on BloodMNIST, citations) | "U-Net best / finds the most nuclei" unsupported (its lead is one image, IXMtest_F12_s8, where Cellpose scores 0; Cellpose better on 35/50, sign test p=0.001); ground truth filtered at 20 px unlike the paper (156 of 5,720 nuclei; all scores −0.011 to −0.014); Optuna significance used the wrong test; "evaluates test once" contradicted the protocol note; adaptive "best classical" only by average F1/Dice; Grad-CAM "exactly", calibration "calibrated" and CNN-gain attribution overclaimed; U-Net, Acevedo (BloodMNIST source), FashionMNIST venue, Cellpose3 uncited | All: `evaluate(gt_min_size=)`, benchmark reports the paper protocol and per-image scores (old numbers reproduce exactly), README/app wording, McNemar numbers (p=0.013, p=2.4e-6) re-measured, credits. Open: possible overlap of Cellpose's training data with BBBC039 (unconfirmed) | 159 → 160 |
 
+### Live-demo feedback (2026-10-15, owner's own uploads)
+
+| Upload | What happened | Diagnosis | Status |
+|---|---|---|---|
+| FashionMNIST: product photo of a low ankle boot | Predicted "Sandal" | Whole photo squeezed to 28x28: item small, distorted, on grey; FashionMNIST items are cropped, centred and fill 28 px | Fixed: `prepare_upload` crops/centres/fills; product-photo-like test uploads 12% → 86%; page shows the 28x28 input and top-3 |
+| Segmentation: SEM image of a neuron | U-Net splits the neuron into many pieces | Out of domain (trained on fluorescent nuclei); the page caption already warns | No change |
+| Blood cells: probability chart | ResNet-18 chart x-axis ran from −2 to 1 | Streamlit bar chart auto-scales its axis | Fixed: Altair chart with a fixed 0–1 axis |
+| Blood cells: smear with many cells | Several neutrophils → "immature granulocyte" | Models expect one centred cell per image (BloodMNIST crops) | Fixed: `src/blood_cells.py` finds stained cells (B−G), one crop size per image (median stained size / 0.60, from validation), page shows numbered overview + per-cell predictions. Test mosaics (900 cells): 99.0% of leukocytes/erythroblasts found, crops classified 86.4% CNN / 89.7% ResNet vs 95.7/97.3% on original crops; platelets mostly skipped; TTA did not help (validation). Smear mode only for ≥2 stained cells (a size rule flagged 18% of single crops) |
+
+Lessons from this feedback: preprocessing for uploads must reproduce how the
+training images were made (FashionMNIST: crop, centre, fill; BloodMNIST: one
+centred cell). Check every page with a realistic upload of the kind a visitor
+would try (product photo, whole smear), not only with dataset samples. Tests
+166 (161 → 166: smear unit tests, smear page test).
+
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.
