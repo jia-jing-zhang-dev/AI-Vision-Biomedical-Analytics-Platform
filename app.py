@@ -52,7 +52,7 @@ with col2:
     )
     st.write(
         "- On **real microscopy images** (BBBC039, expert annotations) a U-Net trained here "
-        "finds the most nuclei: F1 0.95 at IoU 0.5, vs. 0.90 for the watershed."
+        "reaches F1 0.95 at IoU 0.5 (watershed 0.90), on par with the pretrained Cellpose model (0.94)."
     )
 
     st.image(

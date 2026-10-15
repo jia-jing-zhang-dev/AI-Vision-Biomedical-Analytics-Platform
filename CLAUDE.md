@@ -66,8 +66,9 @@ streamlit run app.py
   process) and call `limit_torch_threads()` on pages that run torch.
 - BBBC039 lives in `data/bbbc039/` (gitignored; CC0, ~80 MB from
   bbbc.broadinstitute.org/BBBC039). Use the official split: train the U-Net
-  on training, select on validation, evaluate test once
-  (`benchmark_bbbc039.py`). Report Dice, F1@0.5 and average F1 (IoU
+  on training, select on validation, evaluate test as rarely as possible
+  (`benchmark_bbbc039.py`; it has been evaluated three times, disclosed in
+  the README protocol note). Report Dice, F1@0.5 and average F1 (IoU
   0.50–0.90, the paper's metric).
 - U-Net classes follow Caicedo et al.: the boundary band includes one pixel
   outside each nucleus, so `classes_to_labels` erodes the foreground by one
@@ -157,5 +158,6 @@ reworded with a bootstrap CI (not significant), 9 more tests. Tests 130 → 153.
 |---|---|---|---|
 | A: deployment rehearsal (clean Python 3.14 venv, uv install of requirements.txt, real server on Windows and Linux/2 CPUs) | App works from a clean clone, no runtime downloads; one visitor peaks ~934 MB and two concurrent 25 MP uploads ~1.16 GB; Grad-CAM checkbox reset when switching image source | `heavy_work()` lock around uploads/segmentation/inference, torch limited to 2 threads, lazy pyplot import, checkbox always drawn | 153 → 155 |
 | B: full code review (lock, cross-module interactions) | No high: lock is never nested and released on Streamlit stop/rerun; tiling vs erosion verified on 1040×1392 mosaics. Found: stale calibration JSON applied after retraining; malformed/zero/negative temperature crashed page 3 or flipped predictions; `train_unet --crop/--boundary-weight` unvalidated; README structure and `src/__init__` missing new modules; ambiguous README summary row | All: `read_temperature` validation, `train_medical` removes the stale calibration file, CLI checks, docs | 155 → 159 |
+| C: scientific rigor (re-ran every BBBC039 method incl. Cellpose, paper's evaluation code, McNemar on BloodMNIST, citations) | "U-Net best / finds the most nuclei" unsupported (its lead is one image, IXMtest_F12_s8, where Cellpose scores 0; Cellpose better on 35/50, sign test p=0.001); ground truth filtered at 20 px unlike the paper (156 of 5,720 nuclei; all scores −0.011 to −0.014); Optuna significance used the wrong test; "evaluates test once" contradicted the protocol note; adaptive "best classical" only by average F1/Dice; Grad-CAM "exactly", calibration "calibrated" and CNN-gain attribution overclaimed; U-Net, Acevedo (BloodMNIST source), FashionMNIST venue, Cellpose3 uncited | All: `evaluate(gt_min_size=)`, benchmark reports the paper protocol and per-image scores (old numbers reproduce exactly), README/app wording, McNemar numbers (p=0.013, p=2.4e-6) re-measured, credits. Open: possible overlap of Cellpose's training data with BBBC039 (unconfirmed) | 159 → 160 |
 
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

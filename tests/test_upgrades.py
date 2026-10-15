@@ -264,3 +264,17 @@ def test_train_unet_rejects_invalid_arguments(argv, tmp_path):
     with pytest.raises(SystemExit) as exc:
         train_unet.main(argv + ["--data-dir", str(tmp_path)])
     assert exc.value.code == 2
+
+
+def test_evaluate_paper_protocol_keeps_small_ground_truth():
+    """Pre-reboot check C: with gt_min_size=0 a tiny annotated nucleus counts
+    as a miss (Caicedo et al. keep every annotation); by default it is ignored."""
+    from src.segmentation import evaluate
+    gt = np.zeros((64, 64), np.int32)
+    gt[5:15, 5:15] = 1          # 100-px nucleus, found
+    gt[40:43, 40:43] = 2        # 9-px fragment, never predicted
+    pred = (gt == 1).astype(np.int32)
+    assert evaluate(gt, {"p": pred})[0]["instance_f1"] == 1.0
+    paper = evaluate(gt, {"p": pred}, gt_min_size=0)[0]
+    assert paper["instance_f1"] == pytest.approx(2 / 3)    # 1 TP, 1 FN
+    assert paper["cells_true"] == 2

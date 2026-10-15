@@ -6,7 +6,8 @@ Train the nucleus-segmentation U-Net on BBBC039 and save unet_bbbc039.pth.
 Uses the official split: training images for training, validation images
 for model selection (instance F1 every few epochs, best checkpoint kept).
 The test split is never touched here; benchmark_bbbc039.py --unet
-unet_bbbc039.pth evaluates it once. Deterministic for a given --seed on the
+unet_bbbc039.pth evaluates it (see the README protocol note: the test set
+was evaluated three times while decoding bugs were fixed). Deterministic for a given --seed on the
 same hardware.
 """
 

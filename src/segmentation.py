@@ -440,7 +440,8 @@ def run_all(img: np.ndarray, auto_polarity: bool = True, include_cellpose: bool 
     return results
 
 
-def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]":
+def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray],
+             gt_min_size: int = 20) -> "list[dict]":
     """Score every method's mask against the ground truth. Returns a list
     of dicts (ready for ``pd.DataFrame``), sorted by Dice descending.
 
@@ -448,11 +449,14 @@ def evaluate(gt_mask: np.ndarray, results: Dict[str, np.ndarray]) -> "list[dict]
     instance label image (any other integer dtype), the same convention as
     ``label_objects``; with instance labels, instance F1 and the object
     counts are added.
+
+    By default ground-truth cells get the same 20-pixel filter as
+    predictions, so a cell too small to ever be predicted does not count as
+    a miss; ``gt_min_size=0`` keeps every annotated object, as Caicedo et al.
+    (2019) do for BBBC039.
     """
     gt_bin = (gt_mask > 0)
-    # Ground-truth cells get the same min_size filter as predictions, so a
-    # cell too small to ever be predicted does not count as a miss.
-    gt_labels = label_objects(gt_mask) if is_label_image(gt_mask) else None
+    gt_labels = label_objects(gt_mask, gt_min_size) if is_label_image(gt_mask) else None
     rows = []
     for name, mask in results.items():
         pred_bin = (mask > 0)

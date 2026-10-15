@@ -8,6 +8,10 @@ test images of BBBC039 (U2OS nuclei, expert annotations, official split).
 The classical methods run with the parameters developed on the synthetic
 benchmark, without tuning on BBBC039. Prints mean ± std per method, writes
 the numbers to bbbc039_results.json and an example figure to public/.
+
+Two protocols are reported: the default ignores objects under 20 pixels on
+both sides; "paper" keeps every annotated nucleus (as Caicedo et al. 2019 do)
+and only filters predictions. Per-image scores are saved for paired tests.
 """
 
 import argparse
@@ -79,29 +83,42 @@ def main(argv=None):
         unet = load_unet(args.unet)
 
     items = load_split(args.data_dir, args.split)
-    per_method, example = {}, None
+    per_method, paper, per_image, example = {}, {}, [], None
     for i, (name, img, labels) in enumerate(items):
         results = run_all(img, auto_polarity=False, include_cellpose=use_cellpose)
         if unet is not None:
             from src.unet import segment_unet
             results["U-Net"] = segment_unet(unet, img)
+        image_scores = {"image": name}
         for row in evaluate(labels, results):
             per_method.setdefault(row["method"], []).append(row)
+            image_scores[row["method"]] = {"instance_f1": row["instance_f1"],
+                                           "average_f1": row["average_f1"]}
+        for row in evaluate(labels, results, gt_min_size=0):
+            paper.setdefault(row["method"], []).append(row)
+            image_scores[row["method"]].update(paper_instance_f1=row["instance_f1"],
+                                               paper_average_f1=row["average_f1"])
+        per_image.append(image_scores)
         if example is None and labels.max() > 50:
             example = (name, img, labels, results)
         print(f"  {i + 1}/{len(items)} {name[:30]}", end="\r")
     print()
 
     summary = summarize(per_method)
+    for r in summary:
+        for key in ("instance_f1", "average_f1"):
+            r["paper_" + key] = float(np.mean([s[key] for s in paper[r["method"]]]))
     print(f"BBBC039 {args.split} split, {len(items)} images (mean ± std over images)")
     print(f"{'Method':<14}{'Dice':>16}{'Instance F1@0.5':>20}{'Average F1 .50-.90':>22}")
     for r in summary:
         print(f"{r['method']:<14}{r['dice']:>10.3f} ± {r['dice_std']:.3f}"
               f"{r['instance_f1']:>14.3f} ± {r['instance_f1_std']:.3f}"
-              f"{r['average_f1']:>16.3f} ± {r['average_f1_std']:.3f}")
+              f"{r['average_f1']:>16.3f} ± {r['average_f1_std']:.3f}"
+              f"   paper protocol: {r['paper_instance_f1']:.3f} / {r['paper_average_f1']:.3f}")
     if not args.no_save:
         with open(RESULTS, "w") as f:
-            json.dump({"split": args.split, "images": len(items), "results": summary}, f, indent=2)
+            json.dump({"split": args.split, "images": len(items), "results": summary,
+                       "per_image": per_image}, f, indent=2)
         save_figure(FIGURE, *example)
 
 

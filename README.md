@@ -13,7 +13,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 | BloodMNIST, ImageNet-pretrained ResNet-18 reference | 97.9% test accuracy, with a 20× larger model |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
 | FashionMNIST clothing classification (MLP, 10 classes) | 86.9% test accuracy |
-| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5 (best of all methods; Cellpose 0.938). Average F1 over IoU 0.50–0.90: U-Net 0.863, Cellpose 0.902, best classical 0.830 |
+| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5, on par with pretrained Cellpose (0.938; not a significant difference). Average F1 over IoU 0.50–0.90: U-Net 0.863, Cellpose 0.902, best classical 0.830 |
 | Confidence calibration | Both blood-cell models already well calibrated (test ECE 0.9% and 0.5%); temperature scaling makes no significant difference |
 
 ## Features
@@ -21,8 +21,8 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 - **Blood-cell classification** — a PyTorch CNN that classifies 8 blood-cell types from BloodMNIST at **96.7% test accuracy** (vs. 72.9% for a fully connected baseline), with hyperparameters tuned by Optuna on the validation split. Compared against torchvision's ImageNet-pretrained **ResNet-18** and the published MedMNIST v2 benchmarks.
 - **Real-data segmentation benchmark** — every method evaluated on BBBC039, 200 fluorescence images of U2OS nuclei with expert annotations and an official train/validation/test split, using the metrics of the dataset's reference paper.
 - **U-Net for nucleus segmentation** — a 1.9 M-parameter U-Net trained here on BBBC039 with the three-class (background / interior / boundary) formulation of Caicedo et al. (2019); available in the app's segmentation page.
-- **Explainability (Grad-CAM)** — heatmaps of where each blood-cell model looked, verified to match the `pytorch-grad-cam` library exactly.
-- **Confidence calibration** — temperature scaling fitted on the validation split, so the confidences shown in the app are calibrated; reliability diagrams and ECE on the test split.
+- **Explainability (Grad-CAM)** — heatmaps of where each blood-cell model looked, verified against the `pytorch-grad-cam` library (correlation > 0.999).
+- **Confidence calibration** — temperature scaling fitted on the validation split, with reliability diagrams and ECE on the test split; both models were already well calibrated (test ECE < 1%), so scaling changes their confidences only marginally.
 - **FashionMNIST clothing classification** — a PyTorch three-layer fully connected network that predicts one of ten clothing classes from an uploaded image (86.9% test accuracy).
 - **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells — benchmarked against **Cellpose**, the standard deep-learning tool for cell segmentation. Brightfield images (dark cells on a light background, such as stained blood smears) are detected and inverted automatically.
 - **Segmentation benchmark** — generates realistic synthetic microscopy images (touching nuclei, uneven illumination, blur, noise) with per-cell ground truth, and scores every method with pixel-level Dice / IoU and object-level instance F1.
@@ -178,7 +178,7 @@ python train_medical.py --model resnet18   # fine-tune ImageNet-pretrained ResNe
 | ResNet-18, ImageNet-pretrained, fine-tuned at 224×224 (torchvision) | 97.9% |
 | *Published (MedMNIST v2, Table 3):* ResNet-18 (28) / ResNet-18 (224) / Google AutoML Vision | *95.8% / 96.3% / 96.6%* |
 
-Most of the gain comes from switching to a convolutional architecture with augmentation (random flips and 90° rotations). Optuna tuning adds 0.3–0.7 points over the three default runs; with 3,421 test images the 95% confidence interval of an accuracy near 96.5% is about ±0.6 points, so this gain is small and only borderline significant.
+The jump from 72.9% comes with switching to a CNN trained longer (15 instead of 5 epochs, AdamW with a cosine schedule) with augmentation (random flips and 90° rotations); no ablation separates architecture, augmentation and training length. Optuna tuning adds 0.3–0.7 points over the three default runs. On the same test images the tuned model beats the seed-0 default (paired McNemar test, 47 vs. 25 images only one model gets right, p = 0.01), but the tuned configuration was trained with a single seed and the default varies by 0.4 points between seeds, so the tuning gain is small and not firmly established. The 1.3-point gain of ResNet-18 over the custom CNN is significant (McNemar, 63 vs. 20, p < 0.001).
 
 Training is deterministic (`set_deterministic` fixes every seed and forces deterministic GPU kernels), so each command reproduces its number exactly on the same hardware; other GPUs or library versions can differ by a few tenths of a point.
 
@@ -231,28 +231,28 @@ python train_unet.py --data-dir data/bbbc039                                    
 python benchmark_bbbc039.py --data-dir data/bbbc039 --unet unet_bbbc039.pth       # evaluates the 50 test images
 ```
 
-Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metrics follow the dataset's reference paper (Caicedo et al., *Cytometry A* 2019): instance F1 at IoU > 0.5, and **average F1** over IoU thresholds 0.50–0.90, which also rewards accurate outlines. Objects under 20 pixels (mostly tiny annotated fragments) are ignored on both sides.
+Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metrics follow the dataset's reference paper (Caicedo et al., *Cytometry A* 2019): per-image instance F1 at IoU > 0.5 and **average F1** over IoU thresholds 0.50–0.90 (step 0.05), which also rewards accurate outlines, averaged over the 50 test images. One difference: the main columns ignore objects under 20 pixels on both sides (156 of the 5,720 annotated test nuclei, mostly micronuclei and fragments), whereas the paper keeps every annotated nucleus. The last column uses the paper's protocol (all annotations kept, predictions still filtered); compare the paper's row with that column.
 
-| Method (BBBC039 test set, 50 images) | Dice | Instance F1 @ IoU 0.5 | Average F1, IoU 0.50–0.90 |
-|---|---|---|---|
-| **U-Net (trained here)** | 0.951 ± 0.009 | 0.951 ± 0.077 | 0.863 ± 0.100 |
-| Cellpose 3 (pretrained) | 0.948 ± 0.124 | 0.938 ± 0.148 | 0.902 ± 0.156 |
-| Adaptive threshold | 0.957 ± 0.009 | 0.898 ± 0.087 | 0.830 ± 0.101 |
-| Top-hat + watershed | 0.947 ± 0.014 | 0.900 ± 0.090 | 0.805 ± 0.103 |
-| Otsu | 0.950 ± 0.013 | 0.829 ± 0.107 | 0.744 ± 0.107 |
-| Top-hat + Otsu | 0.946 ± 0.014 | 0.826 ± 0.108 | 0.734 ± 0.107 |
-| Canny + hole filling | 0.868 ± 0.017 | 0.663 ± 0.130 | 0.431 ± 0.099 |
-| *Reference paper: U-Net / DeepCell / CellProfiler (advanced)* | | | *0.898 / 0.858 / 0.811* |
+| Method (BBBC039 test set, 50 images) | Dice | Instance F1 @ IoU 0.5 | Average F1, IoU 0.50–0.90 | Average F1, paper protocol |
+|---|---|---|---|---|
+| **U-Net (trained here)** | 0.951 ± 0.009 | 0.951 ± 0.077 | 0.863 ± 0.100 | 0.850 |
+| Cellpose 3 (pretrained) | 0.948 ± 0.124 | 0.938 ± 0.148 | 0.902 ± 0.156 | 0.889 |
+| Adaptive threshold | 0.957 ± 0.009 | 0.898 ± 0.087 | 0.830 ± 0.101 | 0.819 |
+| Top-hat + watershed | 0.947 ± 0.014 | 0.900 ± 0.090 | 0.805 ± 0.103 | 0.794 |
+| Otsu | 0.950 ± 0.013 | 0.829 ± 0.107 | 0.744 ± 0.107 | 0.733 |
+| Top-hat + Otsu | 0.946 ± 0.014 | 0.826 ± 0.108 | 0.734 ± 0.107 | 0.723 |
+| Canny + hole filling | 0.868 ± 0.017 | 0.663 ± 0.130 | 0.431 ± 0.099 | 0.425 |
+| *Reference paper: U-Net / DeepCell / CellProfiler (advanced)* | | | | *0.898 / 0.858 / 0.811* |
 
 ![BBBC039 example](public/bbbc039-segmentation.png)
 
 **What this shows:**
-- The U-Net trained here finds the most nuclei (best F1 at IoU 0.5) and beats the paper's CellProfiler baseline on average F1, but its outlines are less precise than Cellpose's or the paper's own U-Net (0.863 vs. ~0.90). It is a small model (1.9 M parameters, 60 short epochs) without the paper's training budget.
-- Real data reorders the classical methods: the adaptive threshold, weak on the synthetic benchmark, is the best classical method on real nuclei, while Canny edges fail on the soft nucleus borders.
+- The U-Net trained here is on par with Cellpose at IoU 0.5 (0.951 vs. 0.938 on average). Cellpose scores higher on 35 of the 50 images (U-Net higher on 12, 3 ties); the U-Net's higher mean comes from one sparse image, `IXMtest_F12_s8`, where Cellpose returns a single object for 7 nuclei (F1 0.0). Without that image Cellpose leads by 0.008 at IoU 0.5 and by 0.058 in average F1. Under the paper's protocol the U-Net (0.850) beats the paper's CellProfiler baseline (0.811) on average F1, but its outlines are less precise than Cellpose's or the paper's own U-Net (0.889 and 0.898). It is a small model (1.9 M parameters, 60 short epochs) without the paper's training budget.
+- Real data reorders the classical methods: the adaptive threshold, weak on the synthetic benchmark, is the best classical method on real nuclei by average F1 and Dice (0.830 / 0.957) and ties with the watershed at IoU 0.5 (0.898 vs. 0.900), while Canny edges fail on the soft nucleus borders. These classical scores depend on the 20-pixel filter on predictions: without it the adaptive threshold's average F1 falls to about 0.66.
 - The classical methods use the parameters developed on the synthetic benchmark, without tuning on BBBC039.
-- The large standard deviations come mostly from one hard test image (`IXMtest_A12_s7`) on which every method struggles (F1: U-Net 0.45, adaptive 0.35, watershed 0.32); without it the U-Net's F1 standard deviation is 0.028 instead of 0.077.
+- The large standard deviations come mostly from one hard test image (`IXMtest_A12_s7`) on which every method struggles (F1: U-Net 0.45, adaptive 0.35, watershed 0.32); without it the U-Net's F1 standard deviation is 0.028 instead of 0.077. Cellpose's large standard deviation comes from `IXMtest_F12_s8` (above).
 
-**Protocol note.** The U-Net checkpoint was selected on the validation split. Its first test-set evaluation exposed a decoding error: the boundary class extends one pixel outside each nucleus (as in the paper), but decoding grew nuclei over that pixel, so every nucleus came out one pixel too large (test average F1 0.622). The fix (erode the predicted foreground by one pixel) follows from the label definition; it was compared with the old decoding on the **validation** split only (average F1 0.635 → 0.854), and the test set was then evaluated once more. A unit test now checks that encoding and decoding reproduce nucleus outlines. A later code review found that the same erosion also trimmed nuclei cut by the image border; fixing it raised validation average F1 from 0.854 to 0.873, and the test set was evaluated a third time with that fix (0.845 → 0.863). Large uploads are processed in 384-pixel tiles, which keeps memory bounded without changing results on BBBC039-sized images.
+**Protocol note.** The U-Net checkpoint was selected on the validation split. Its first test-set evaluation exposed a decoding error: the boundary class extends one pixel outside each nucleus (as in the paper), but decoding grew nuclei over that pixel, so every nucleus came out one pixel too large (test average F1 0.622). The fix (erode the predicted foreground by one pixel) follows from the label definition; it was compared with the old decoding on the **validation** split only (average F1 0.635 → 0.854), and the test set was then evaluated once more. A unit test now checks that encoding and decoding reproduce nucleus outlines. A later code review found that the same erosion also trimmed nuclei cut by the image border; fixing it raised validation average F1 from 0.854 to 0.873, and the test set was evaluated a third time with that fix (0.845 → 0.863). That second fix was validated on the validation split, but the search for it was not blind to the earlier test results. The weights never changed; only the decoding did. Large uploads are processed in 384-pixel tiles, which keeps memory bounded without changing results on BBBC039-sized images.
 
 ## Explainability and Calibration (blood-cell models)
 
@@ -297,9 +297,10 @@ The model is trained on 28×28 grayscale FashionMNIST images. For better results
 
 ## Data and Credits
 
-- **BloodMNIST** — Yang et al., *MedMNIST v2*, Scientific Data 2023, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). `public/blood_samples/` holds one test image per class, upscaled from 28×28 to 112×112 (nearest neighbour) for display.
-- **FashionMNIST** — Xiao, Rasul & Vollgraf (Zalando Research), MIT License. `public/fashion_samples/` holds one unmodified 28×28 test image per class.
+- **BloodMNIST** — Yang et al., *MedMNIST v2*, Scientific Data 2023, built from Acevedo et al., *A dataset of microscopic peripheral blood cell images for development of automatic recognition systems*, Data in Brief 2020; [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). `public/blood_samples/` holds one test image per class, upscaled from 28×28 to 112×112 (nearest neighbour) for display.
+- **FashionMNIST** — Xiao, Rasul & Vollgraf (Zalando Research), arXiv:1708.07747, 2017, MIT License. `public/fashion_samples/` holds one unmodified 28×28 test image per class.
 - **ResNet-18** — initialized from torchvision's ImageNet-pretrained weights before fine-tuning.
-- **Cellpose** — Stringer et al., *Cellpose: a generalist algorithm for cellular segmentation*, Nature Methods 2021.
+- **Cellpose** — Stringer et al., *Cellpose: a generalist algorithm for cellular segmentation*, Nature Methods 2021 (the `nuclei` model); the installed version is Cellpose 3 (Stringer & Pachitariu, Nature Methods 2025).
+- **U-Net** — Ronneberger, Fischer & Brox, *U-Net: Convolutional Networks for Biomedical Image Segmentation*, MICCAI 2015.
 - **BBBC039** — Caicedo et al., *Evaluation of Deep Learning Strategies for Nucleus Segmentation in Fluorescence Images*, Cytometry A 2019; available from the Broad Bioimage Benchmark Collection (Ljosa et al., Nature Methods 2012), CC0. The three-class U-Net formulation and the average-F1 metric follow this paper.
 - **Grad-CAM** — Selvaraju et al., ICCV 2017. **Temperature scaling** — Guo et al., *On Calibration of Modern Neural Networks*, ICML 2017 (fitting procedure after github.com/gpleiss/temperature_scaling).

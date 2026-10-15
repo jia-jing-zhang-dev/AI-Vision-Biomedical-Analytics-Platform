@@ -12,7 +12,9 @@
       "instance_f1": 0.9505550705716217,
       "instance_f1_std": 0.07718536695295798,
       "average_f1": 0.8626143886304901,
-      "average_f1_std": 0.10042836068931928
+      "average_f1_std": 0.10042836068931928,
+      "paper_instance_f1": 0.9371151490699675,
+      "paper_average_f1": 0.8504565260068725
     },
     {
       "method": "Cellpose",
@@ -24,7 +26,9 @@
       "instance_f1": 0.9382923183443141,
       "instance_f1_std": 0.1482827600840801,
       "average_f1": 0.9017569523830758,
-      "average_f1_std": 0.15552736029841394
+      "average_f1_std": 0.15552736029841394,
+      "paper_instance_f1": 0.924651836278829,
+      "paper_average_f1": 0.8886413137096703
     },
     {
       "method": "Watershed",
@@ -36,7 +40,9 @@
       "instance_f1": 0.8996554420221148,
       "instance_f1_std": 0.08966953448876998,
       "average_f1": 0.8052856383866263,
-      "average_f1_std": 0.10286815491763211
+      "average_f1_std": 0.10286815491763211,
+      "paper_instance_f1": 0.887069966274224,
+      "paper_average_f1": 0.7939634579804242
     },
     {
       "method": "Adaptive",
@@ -48,7 +54,9 @@
       "instance_f1": 0.8981826303612529,
       "instance_f1_std": 0.08682729185996914,
       "average_f1": 0.8300924479541879,
-      "average_f1_std": 0.10072043073779678
+      "average_f1_std": 0.10072043073779678,
+      "paper_instance_f1": 0.8869515145801317,
+      "paper_average_f1": 0.8188617382264799
     },
     {
       "method": "Otsu",
@@ -60,7 +68,9 @@
       "instance_f1": 0.8294905153154594,
       "instance_f1_std": 0.10679751138763804,
       "average_f1": 0.7444593759627451,
-      "average_f1_std": 0.10673413044045109
+      "average_f1_std": 0.10673413044045109,
+      "paper_instance_f1": 0.817219233725696,
+      "paper_average_f1": 0.7334114264743187
     },
     {
       "method": "KMeans-2",
@@ -72,7 +82,9 @@
       "instance_f1": 0.8294905153154594,
       "instance_f1_std": 0.10679751138763804,
       "average_f1": 0.7444593759627451,
-      "average_f1_std": 0.10673413044045109
+      "average_f1_std": 0.10673413044045109,
+      "paper_instance_f1": 0.817219233725696,
+      "paper_average_f1": 0.7334114264743187
     },
     {
       "method": "TopHat+Otsu",
@@ -84,7 +96,9 @@
       "instance_f1": 0.8258178589407226,
       "instance_f1_std": 0.10759006121823617,
       "average_f1": 0.7342931816151893,
-      "average_f1_std": 0.10653854750335354
+      "average_f1_std": 0.10653854750335354,
+      "paper_instance_f1": 0.8135342121774828,
+      "paper_average_f1": 0.7233457538143182
     },
     {
       "method": "Canny+Fill",
@@ -96,7 +110,2561 @@
       "instance_f1": 0.662653448390818,
       "instance_f1_std": 0.129789307284244,
       "average_f1": 0.4309957668915269,
-      "average_f1_std": 0.09883802432186217
+      "average_f1_std": 0.09883802432186217,
+      "paper_instance_f1": 0.654228715735531,
+      "paper_average_f1": 0.42498925232571744
+    }
+  ],
+  "per_image": [
+    {
+      "image": "IXMtest_A09_s1_w1CE70AD49-290D-4312-82E6-CDC717F32637",
+      "Cellpose": {
+        "instance_f1": 0.9805194805194806,
+        "average_f1": 0.9191919191919192,
+        "paper_instance_f1": 0.9773462783171522,
+        "paper_average_f1": 0.9162171880618484
+      },
+      "U-Net": {
+        "instance_f1": 0.9836065573770492,
+        "average_f1": 0.9209471766848816,
+        "paper_instance_f1": 0.9803921568627451,
+        "paper_average_f1": 0.9179375453885257
+      },
+      "Adaptive": {
+        "instance_f1": 0.9470198675496688,
+        "average_f1": 0.8469462840323767,
+        "paper_instance_f1": 0.9438943894389439,
+        "paper_average_f1": 0.8441510817748442
+      },
+      "Otsu": {
+        "instance_f1": 0.8384879725085911,
+        "average_f1": 0.7285223367697594,
+        "paper_instance_f1": 0.8356164383561644,
+        "paper_average_f1": 0.726027397260274
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8384879725085911,
+        "average_f1": 0.7285223367697594,
+        "paper_instance_f1": 0.8356164383561644,
+        "paper_average_f1": 0.726027397260274
+      },
+      "Watershed": {
+        "instance_f1": 0.9354838709677419,
+        "average_f1": 0.8093189964157707,
+        "paper_instance_f1": 0.932475884244373,
+        "paper_average_f1": 0.8067166845301893
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8356164383561644,
+        "average_f1": 0.7222222222222221,
+        "paper_instance_f1": 0.8327645051194539,
+        "paper_average_f1": 0.7197572999620782
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6884057971014492,
+        "average_f1": 0.46135265700483097,
+        "paper_instance_f1": 0.6859205776173285,
+        "paper_average_f1": 0.45968712394705175
+      }
+    },
+    {
+      "image": "IXMtest_A12_s7_w1EAEEA614-51ED-43B3-A4FF-088730911E4C",
+      "Otsu": {
+        "instance_f1": 0.21686746987951808,
+        "average_f1": 0.16331994645247658,
+        "paper_instance_f1": 0.20689655172413793,
+        "paper_average_f1": 0.15581098339719027
+      },
+      "KMeans-2": {
+        "instance_f1": 0.21686746987951808,
+        "average_f1": 0.16331994645247658,
+        "paper_instance_f1": 0.20689655172413793,
+        "paper_average_f1": 0.15581098339719027
+      },
+      "U-Net": {
+        "instance_f1": 0.44660194174757284,
+        "average_f1": 0.25674217907227614,
+        "paper_instance_f1": 0.42990654205607476,
+        "paper_average_f1": 0.24714434060228452
+      },
+      "Watershed": {
+        "instance_f1": 0.3218390804597701,
+        "average_f1": 0.1966794380587484,
+        "paper_instance_f1": 0.3076923076923077,
+        "paper_average_f1": 0.18803418803418803
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.21951219512195122,
+        "average_f1": 0.1626016260162602,
+        "paper_instance_f1": 0.20930232558139536,
+        "paper_average_f1": 0.15503875968992248
+      },
+      "Adaptive": {
+        "instance_f1": 0.3488372093023256,
+        "average_f1": 0.24289405684754525,
+        "paper_instance_f1": 0.3333333333333333,
+        "paper_average_f1": 0.23209876543209879
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.14457831325301204,
+        "average_f1": 0.08567603748326641,
+        "paper_instance_f1": 0.13793103448275862,
+        "paper_average_f1": 0.08173690932311622
+      },
+      "Cellpose": {
+        "instance_f1": 0.6428571428571429,
+        "average_f1": 0.4642857142857143,
+        "paper_instance_f1": 0.6206896551724138,
+        "paper_average_f1": 0.4482758620689655
+      }
+    },
+    {
+      "image": "IXMtest_A16_s2_w15AF20A10-82AE-48FA-AC50-7AE8AC3AA544",
+      "Cellpose": {
+        "instance_f1": 0.9723756906077348,
+        "average_f1": 0.9539594843462247,
+        "paper_instance_f1": 0.967032967032967,
+        "paper_average_f1": 0.9487179487179487
+      },
+      "Adaptive": {
+        "instance_f1": 0.9392265193370166,
+        "average_f1": 0.9134438305709024,
+        "paper_instance_f1": 0.9340659340659341,
+        "paper_average_f1": 0.9084249084249085
+      },
+      "U-Net": {
+        "instance_f1": 0.9777777777777777,
+        "average_f1": 0.9432098765432099,
+        "paper_instance_f1": 0.9723756906077348,
+        "paper_average_f1": 0.937998772252916
+      },
+      "Otsu": {
+        "instance_f1": 0.9152542372881356,
+        "average_f1": 0.8499686126804771,
+        "paper_instance_f1": 0.9101123595505618,
+        "paper_average_f1": 0.8451935081148565
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9152542372881356,
+        "average_f1": 0.8499686126804771,
+        "paper_instance_f1": 0.9101123595505618,
+        "paper_average_f1": 0.8451935081148565
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9204545454545454,
+        "average_f1": 0.8446969696969696,
+        "paper_instance_f1": 0.9152542372881356,
+        "paper_average_f1": 0.8399246704331449
+      },
+      "Watershed": {
+        "instance_f1": 0.9438202247191011,
+        "average_f1": 0.8739076154806492,
+        "paper_instance_f1": 0.9385474860335196,
+        "paper_average_f1": 0.8690254500310366
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.8715083798882681,
+        "average_f1": 0.5971446306641837,
+        "paper_instance_f1": 0.8666666666666667,
+        "paper_average_f1": 0.5938271604938271
+      }
+    },
+    {
+      "image": "IXMtest_A22_s8_w1E2AFE190-831D-4D9C-961E-3AA2ECB3599D",
+      "Cellpose": {
+        "instance_f1": 0.9782608695652174,
+        "average_f1": 0.927536231884058,
+        "paper_instance_f1": 0.9625668449197861,
+        "paper_average_f1": 0.912655971479501
+      },
+      "Adaptive": {
+        "instance_f1": 0.9513513513513514,
+        "average_f1": 0.8996996996996997,
+        "paper_instance_f1": 0.9361702127659575,
+        "paper_average_f1": 0.8853427895981087
+      },
+      "U-Net": {
+        "instance_f1": 0.9613259668508287,
+        "average_f1": 0.8704726826273788,
+        "paper_instance_f1": 0.9456521739130435,
+        "paper_average_f1": 0.856280193236715
+      },
+      "Otsu": {
+        "instance_f1": 0.903954802259887,
+        "average_f1": 0.8311362209667295,
+        "paper_instance_f1": 0.8888888888888888,
+        "paper_average_f1": 0.8172839506172839
+      },
+      "KMeans-2": {
+        "instance_f1": 0.903954802259887,
+        "average_f1": 0.8311362209667295,
+        "paper_instance_f1": 0.8888888888888888,
+        "paper_average_f1": 0.8172839506172839
+      },
+      "Watershed": {
+        "instance_f1": 0.9289617486338798,
+        "average_f1": 0.8318154219793564,
+        "paper_instance_f1": 0.9139784946236559,
+        "paper_average_f1": 0.8183990442054958
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.903954802259887,
+        "average_f1": 0.8236032642812304,
+        "paper_instance_f1": 0.8888888888888888,
+        "paper_average_f1": 0.8098765432098766
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7802197802197802,
+        "average_f1": 0.4908424908424909,
+        "paper_instance_f1": 0.7675675675675676,
+        "paper_average_f1": 0.4828828828828829
+      }
+    },
+    {
+      "image": "IXMtest_B02_s9_w124B5080D-EBE1-47D2-B147-C0F342039EDF",
+      "Cellpose": {
+        "instance_f1": 0.984375,
+        "average_f1": 0.9704861111111112,
+        "paper_instance_f1": 0.9767441860465116,
+        "paper_average_f1": 0.9629629629629629
+      },
+      "Otsu": {
+        "instance_f1": 0.9291338582677166,
+        "average_f1": 0.9063867016622922,
+        "paper_instance_f1": 0.921875,
+        "paper_average_f1": 0.8993055555555556
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9291338582677166,
+        "average_f1": 0.9063867016622922,
+        "paper_instance_f1": 0.921875,
+        "paper_average_f1": 0.8993055555555556
+      },
+      "Watershed": {
+        "instance_f1": 0.9612403100775194,
+        "average_f1": 0.9388458225667529,
+        "paper_instance_f1": 0.9538461538461539,
+        "paper_average_f1": 0.9316239316239316
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9291338582677166,
+        "average_f1": 0.8958880139982502,
+        "paper_instance_f1": 0.921875,
+        "paper_average_f1": 0.8888888888888888
+      },
+      "Adaptive": {
+        "instance_f1": 0.9242424242424242,
+        "average_f1": 0.9057239057239058,
+        "paper_instance_f1": 0.9172932330827067,
+        "paper_average_f1": 0.8989139515455304
+      },
+      "U-Net": {
+        "instance_f1": 0.9682539682539683,
+        "average_f1": 0.91005291005291,
+        "paper_instance_f1": 0.9606299212598425,
+        "paper_average_f1": 0.9028871391076115
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.8837209302325582,
+        "average_f1": 0.549526270456503,
+        "paper_instance_f1": 0.8769230769230769,
+        "paper_average_f1": 0.5452991452991454
+      }
+    },
+    {
+      "image": "IXMtest_B04_s2_w17C6C7F8D-98F7-422B-92CD-EA61EE813325",
+      "Cellpose": {
+        "instance_f1": 0.9694323144104804,
+        "average_f1": 0.933527413876759,
+        "paper_instance_f1": 0.9527896995708155,
+        "paper_average_f1": 0.9175011921793037
+      },
+      "U-Net": {
+        "instance_f1": 0.9606986899563319,
+        "average_f1": 0.8966521106259098,
+        "paper_instance_f1": 0.944206008583691,
+        "paper_average_f1": 0.8812589413447783
+      },
+      "Adaptive": {
+        "instance_f1": 0.925764192139738,
+        "average_f1": 0.8820960698689957,
+        "paper_instance_f1": 0.9098712446351931,
+        "paper_average_f1": 0.8669527896995707
+      },
+      "Otsu": {
+        "instance_f1": 0.8818181818181818,
+        "average_f1": 0.7585858585858586,
+        "paper_instance_f1": 0.8660714285714286,
+        "paper_average_f1": 0.7450396825396826
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8818181818181818,
+        "average_f1": 0.7585858585858586,
+        "paper_instance_f1": 0.8660714285714286,
+        "paper_average_f1": 0.7450396825396826
+      },
+      "Watershed": {
+        "instance_f1": 0.9217391304347826,
+        "average_f1": 0.7922705314009663,
+        "paper_instance_f1": 0.905982905982906,
+        "paper_average_f1": 0.7787274453941121
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.867579908675799,
+        "average_f1": 0.7376966007102994,
+        "paper_instance_f1": 0.852017937219731,
+        "paper_average_f1": 0.7244643746885899
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.672645739910314,
+        "average_f1": 0.4843049327354259,
+        "paper_instance_f1": 0.6607929515418502,
+        "paper_average_f1": 0.4757709251101321
+      }
+    },
+    {
+      "image": "IXMtest_B05_s5_w10296BEF4-0F48-4EC8-BC24-6C604871398B",
+      "Cellpose": {
+        "instance_f1": 0.990909090909091,
+        "average_f1": 0.9717171717171718,
+        "paper_instance_f1": 0.9732142857142857,
+        "paper_average_f1": 0.9543650793650793
+      },
+      "Adaptive": {
+        "instance_f1": 0.9493087557603687,
+        "average_f1": 0.912442396313364,
+        "paper_instance_f1": 0.9321266968325792,
+        "paper_average_f1": 0.8959276018099547
+      },
+      "Otsu": {
+        "instance_f1": 0.8909952606635071,
+        "average_f1": 0.8299104791995787,
+        "paper_instance_f1": 0.8744186046511628,
+        "paper_average_f1": 0.8144702842377263
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8909952606635071,
+        "average_f1": 0.8299104791995787,
+        "paper_instance_f1": 0.8744186046511628,
+        "paper_average_f1": 0.8144702842377263
+      },
+      "Watershed": {
+        "instance_f1": 0.9230769230769231,
+        "average_f1": 0.8707893413775767,
+        "paper_instance_f1": 0.9066666666666666,
+        "paper_average_f1": 0.8553086419753086
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9004739336492891,
+        "average_f1": 0.8288572933122696,
+        "paper_instance_f1": 0.8837209302325582,
+        "paper_average_f1": 0.81343669250646
+      },
+      "U-Net": {
+        "instance_f1": 0.9863013698630136,
+        "average_f1": 0.9041095890410958,
+        "paper_instance_f1": 0.968609865470852,
+        "paper_average_f1": 0.8878923766816142
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7596153846153846,
+        "average_f1": 0.4658119658119657,
+        "paper_instance_f1": 0.7452830188679245,
+        "paper_average_f1": 0.4570230607966457
+      }
+    },
+    {
+      "image": "IXMtest_C07_s5_w12C9F2926-A017-4962-8660-72C9C20C86E4",
+      "Cellpose": {
+        "instance_f1": 0.9694915254237289,
+        "average_f1": 0.9220338983050849,
+        "paper_instance_f1": 0.9501661129568106,
+        "paper_average_f1": 0.9036544850498339
+      },
+      "U-Net": {
+        "instance_f1": 0.9798657718120806,
+        "average_f1": 0.923937360178971,
+        "paper_instance_f1": 0.9605263157894737,
+        "paper_average_f1": 0.905701754385965
+      },
+      "Adaptive": {
+        "instance_f1": 0.9041095890410958,
+        "average_f1": 0.7952815829528158,
+        "paper_instance_f1": 0.8859060402684564,
+        "paper_average_f1": 0.7792692020879941
+      },
+      "Otsu": {
+        "instance_f1": 0.8148148148148148,
+        "average_f1": 0.6872427983539094,
+        "paper_instance_f1": 0.7971014492753623,
+        "paper_average_f1": 0.6723027375201289
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8148148148148148,
+        "average_f1": 0.6872427983539094,
+        "paper_instance_f1": 0.7971014492753623,
+        "paper_average_f1": 0.6723027375201289
+      },
+      "Watershed": {
+        "instance_f1": 0.9096989966555183,
+        "average_f1": 0.8019323671497585,
+        "paper_instance_f1": 0.8918032786885246,
+        "paper_average_f1": 0.7861566484517304
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7940074906367042,
+        "average_f1": 0.6650020807324178,
+        "paper_instance_f1": 0.7765567765567766,
+        "paper_average_f1": 0.6503866503866503
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5931558935361216,
+        "average_f1": 0.4224757076468103,
+        "paper_instance_f1": 0.5799256505576208,
+        "paper_average_f1": 0.41305245766212306
+      }
+    },
+    {
+      "image": "IXMtest_C14_s8_w1612E3D43-FA7E-4FFB-BE53-F34A3A0CAFCD",
+      "Cellpose": {
+        "instance_f1": 0.9694656488549618,
+        "average_f1": 0.9541984732824429,
+        "paper_instance_f1": 0.9548872180451128,
+        "paper_average_f1": 0.9398496240601505
+      },
+      "Adaptive": {
+        "instance_f1": 0.9272030651340997,
+        "average_f1": 0.8659003831417624,
+        "paper_instance_f1": 0.9207547169811321,
+        "paper_average_f1": 0.8545073375262054
+      },
+      "Otsu": {
+        "instance_f1": 0.8467741935483871,
+        "average_f1": 0.7634408602150538,
+        "paper_instance_f1": 0.8333333333333334,
+        "paper_average_f1": 0.7513227513227512
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8467741935483871,
+        "average_f1": 0.7634408602150538,
+        "paper_instance_f1": 0.8333333333333334,
+        "paper_average_f1": 0.7513227513227512
+      },
+      "U-Net": {
+        "instance_f1": 0.9425287356321839,
+        "average_f1": 0.8624946785866325,
+        "paper_instance_f1": 0.9283018867924528,
+        "paper_average_f1": 0.849475890985325
+      },
+      "Watershed": {
+        "instance_f1": 0.8939393939393939,
+        "average_f1": 0.82996632996633,
+        "paper_instance_f1": 0.8805970149253731,
+        "paper_average_f1": 0.8175787728026535
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8514056224899599,
+        "average_f1": 0.747880410531013,
+        "paper_instance_f1": 0.8379446640316206,
+        "paper_average_f1": 0.736056214317084
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6477732793522267,
+        "average_f1": 0.41565452091767885,
+        "paper_instance_f1": 0.6374501992031872,
+        "paper_average_f1": 0.40903054448871184
+      }
+    },
+    {
+      "image": "IXMtest_C23_s2_w10533E965-3DC3-4556-9C26-EA8DD4F8DE61",
+      "Cellpose": {
+        "instance_f1": 0.968609865470852,
+        "average_f1": 0.9357249626307923,
+        "paper_instance_f1": 0.9473684210526315,
+        "paper_average_f1": 0.915204678362573
+      },
+      "Adaptive": {
+        "instance_f1": 0.9459459459459459,
+        "average_f1": 0.8968968968968968,
+        "paper_instance_f1": 0.933920704845815,
+        "paper_average_f1": 0.8820362212432697
+      },
+      "Otsu": {
+        "instance_f1": 0.8679245283018868,
+        "average_f1": 0.7914046121593291,
+        "paper_instance_f1": 0.847926267281106,
+        "paper_average_f1": 0.7731694828469022
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8679245283018868,
+        "average_f1": 0.7914046121593291,
+        "paper_instance_f1": 0.847926267281106,
+        "paper_average_f1": 0.7731694828469022
+      },
+      "Watershed": {
+        "instance_f1": 0.9596412556053812,
+        "average_f1": 0.8998505231689088,
+        "paper_instance_f1": 0.9385964912280702,
+        "paper_average_f1": 0.8801169590643275
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8625592417061612,
+        "average_f1": 0.7825171142706687,
+        "paper_instance_f1": 0.8425925925925926,
+        "paper_average_f1": 0.76440329218107
+      },
+      "U-Net": {
+        "instance_f1": 0.9511111111111111,
+        "average_f1": 0.8651851851851852,
+        "paper_instance_f1": 0.9304347826086956,
+        "paper_average_f1": 0.8463768115942029
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7534883720930232,
+        "average_f1": 0.46614987080103354,
+        "paper_instance_f1": 0.7545454545454545,
+        "paper_average_f1": 0.4575757575757576
+      }
+    },
+    {
+      "image": "IXMtest_D01_s1_w181AE787C-B5EE-4150-A90E-2FE43165C32E",
+      "U-Net": {
+        "instance_f1": 0.9895833333333334,
+        "average_f1": 0.9386574074074073,
+        "paper_instance_f1": 0.9743589743589743,
+        "paper_average_f1": 0.9242165242165241
+      },
+      "Cellpose": {
+        "instance_f1": 0.9842931937172775,
+        "average_f1": 0.9109947643979059,
+        "paper_instance_f1": 0.9690721649484536,
+        "paper_average_f1": 0.8969072164948453
+      },
+      "Adaptive": {
+        "instance_f1": 0.96875,
+        "average_f1": 0.8912037037037036,
+        "paper_instance_f1": 0.9538461538461539,
+        "paper_average_f1": 0.8774928774928775
+      },
+      "Otsu": {
+        "instance_f1": 0.8924731182795699,
+        "average_f1": 0.7526881720430108,
+        "paper_instance_f1": 0.8783068783068783,
+        "paper_average_f1": 0.7407407407407408
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8924731182795699,
+        "average_f1": 0.7526881720430108,
+        "paper_instance_f1": 0.8783068783068783,
+        "paper_average_f1": 0.7407407407407408
+      },
+      "Watershed": {
+        "instance_f1": 0.90625,
+        "average_f1": 0.7569444444444445,
+        "paper_instance_f1": 0.8923076923076924,
+        "paper_average_f1": 0.7452991452991454
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8864864864864865,
+        "average_f1": 0.7399399399399399,
+        "paper_instance_f1": 0.8723404255319149,
+        "paper_average_f1": 0.7281323877068558
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.8387096774193549,
+        "average_f1": 0.6678614097968937,
+        "paper_instance_f1": 0.8253968253968254,
+        "paper_average_f1": 0.6572604350382129
+      }
+    },
+    {
+      "image": "IXMtest_D06_s8_w1BE84C8EF-4CD0-4B56-8267-4E662F57AC25",
+      "Cellpose": {
+        "instance_f1": 0.9751552795031055,
+        "average_f1": 0.927536231884058,
+        "paper_instance_f1": 0.9691358024691358,
+        "paper_average_f1": 0.9218106995884775
+      },
+      "Adaptive": {
+        "instance_f1": 0.8571428571428571,
+        "average_f1": 0.7929453262786595,
+        "paper_instance_f1": 0.8517350157728707,
+        "paper_average_f1": 0.7879425166491413
+      },
+      "Otsu": {
+        "instance_f1": 0.785234899328859,
+        "average_f1": 0.6979865771812082,
+        "paper_instance_f1": 0.78,
+        "paper_average_f1": 0.6933333333333334
+      },
+      "KMeans-2": {
+        "instance_f1": 0.785234899328859,
+        "average_f1": 0.6979865771812082,
+        "paper_instance_f1": 0.78,
+        "paper_average_f1": 0.6933333333333334
+      },
+      "U-Net": {
+        "instance_f1": 0.96,
+        "average_f1": 0.8471794871794871,
+        "paper_instance_f1": 0.9541284403669725,
+        "paper_average_f1": 0.8419979612640164
+      },
+      "Watershed": {
+        "instance_f1": 0.9230769230769231,
+        "average_f1": 0.8088888888888888,
+        "paper_instance_f1": 0.9174311926605505,
+        "paper_average_f1": 0.8039415562351342
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7744107744107744,
+        "average_f1": 0.6823793490460157,
+        "paper_instance_f1": 0.7692307692307693,
+        "paper_average_f1": 0.6778149386845039
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6413793103448275,
+        "average_f1": 0.40076628352490423,
+        "paper_instance_f1": 0.6438356164383562,
+        "paper_average_f1": 0.4003044140030441
+      }
+    },
+    {
+      "image": "IXMtest_D08_s7_w1F476A544-A07C-4E9B-A6CB-BAEF4CD6F64E",
+      "Cellpose": {
+        "instance_f1": 0.9090909090909091,
+        "average_f1": 0.8535353535353535,
+        "paper_instance_f1": 0.898876404494382,
+        "paper_average_f1": 0.8439450686641697
+      },
+      "Adaptive": {
+        "instance_f1": 0.7764705882352941,
+        "average_f1": 0.6483660130718955,
+        "paper_instance_f1": 0.7674418604651163,
+        "paper_average_f1": 0.6408268733850129
+      },
+      "Otsu": {
+        "instance_f1": 0.7407407407407407,
+        "average_f1": 0.6474622770919066,
+        "paper_instance_f1": 0.7317073170731707,
+        "paper_average_f1": 0.6395663956639567
+      },
+      "KMeans-2": {
+        "instance_f1": 0.7407407407407407,
+        "average_f1": 0.6474622770919066,
+        "paper_instance_f1": 0.7317073170731707,
+        "paper_average_f1": 0.6395663956639567
+      },
+      "U-Net": {
+        "instance_f1": 0.813953488372093,
+        "average_f1": 0.6821705426356588,
+        "paper_instance_f1": 0.8045977011494253,
+        "paper_average_f1": 0.6743295019157087
+      },
+      "Watershed": {
+        "instance_f1": 0.7816091954022989,
+        "average_f1": 0.6615581098339719,
+        "paper_instance_f1": 0.7727272727272727,
+        "paper_average_f1": 0.6540404040404041
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7407407407407407,
+        "average_f1": 0.644718792866941,
+        "paper_instance_f1": 0.7317073170731707,
+        "paper_average_f1": 0.6368563685636857
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5925925925925926,
+        "average_f1": 0.3676268861454046,
+        "paper_instance_f1": 0.5853658536585366,
+        "paper_average_f1": 0.3631436314363144
+      }
+    },
+    {
+      "image": "IXMtest_D10_s2_w1BB72A093-72AB-476C-9513-2FF43BFB2134",
+      "Cellpose": {
+        "instance_f1": 0.9819494584837545,
+        "average_f1": 0.9618933012434818,
+        "paper_instance_f1": 0.9819494584837545,
+        "paper_average_f1": 0.9618933012434818
+      },
+      "Otsu": {
+        "instance_f1": 0.8,
+        "average_f1": 0.7302832244008716,
+        "paper_instance_f1": 0.8,
+        "paper_average_f1": 0.7302832244008716
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8,
+        "average_f1": 0.7302832244008716,
+        "paper_instance_f1": 0.8,
+        "paper_average_f1": 0.7302832244008716
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7905138339920948,
+        "average_f1": 0.7053140096618358,
+        "paper_instance_f1": 0.7905138339920948,
+        "paper_average_f1": 0.7053140096618358
+      },
+      "Watershed": {
+        "instance_f1": 0.9051094890510949,
+        "average_f1": 0.8240064882400647,
+        "paper_instance_f1": 0.9051094890510949,
+        "paper_average_f1": 0.8240064882400647
+      },
+      "Adaptive": {
+        "instance_f1": 0.9070631970260223,
+        "average_f1": 0.8434531185460554,
+        "paper_instance_f1": 0.9070631970260223,
+        "paper_average_f1": 0.8434531185460554
+      },
+      "U-Net": {
+        "instance_f1": 0.9819494584837545,
+        "average_f1": 0.8945046129161651,
+        "paper_instance_f1": 0.9819494584837545,
+        "paper_average_f1": 0.8945046129161651
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.582995951417004,
+        "average_f1": 0.38236617183985605,
+        "paper_instance_f1": 0.582995951417004,
+        "paper_average_f1": 0.38236617183985605
+      }
+    },
+    {
+      "image": "IXMtest_D20_s3_w19D371AF3-0189-48A3-AF3B-D108DE6A017F",
+      "Cellpose": {
+        "instance_f1": 0.9877300613496932,
+        "average_f1": 0.9413769597818676,
+        "paper_instance_f1": 0.9698795180722891,
+        "paper_average_f1": 0.9243641231593038
+      },
+      "Adaptive": {
+        "instance_f1": 0.9028213166144201,
+        "average_f1": 0.8157436433298502,
+        "paper_instance_f1": 0.8923076923076924,
+        "paper_average_f1": 0.8047863247863247
+      },
+      "U-Net": {
+        "instance_f1": 0.9846153846153847,
+        "average_f1": 0.8683760683760684,
+        "paper_instance_f1": 0.9667673716012085,
+        "paper_average_f1": 0.8526351124538436
+      },
+      "Otsu": {
+        "instance_f1": 0.6920415224913494,
+        "average_f1": 0.6382160707420222,
+        "paper_instance_f1": 0.6779661016949152,
+        "paper_average_f1": 0.6252354048964218
+      },
+      "KMeans-2": {
+        "instance_f1": 0.6920415224913494,
+        "average_f1": 0.6382160707420222,
+        "paper_instance_f1": 0.6779661016949152,
+        "paper_average_f1": 0.6252354048964218
+      },
+      "Watershed": {
+        "instance_f1": 0.8605341246290801,
+        "average_f1": 0.7609627431585888,
+        "paper_instance_f1": 0.8454810495626822,
+        "paper_average_f1": 0.7476514415289925
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.6736111111111112,
+        "average_f1": 0.6087962962962963,
+        "paper_instance_f1": 0.6598639455782312,
+        "paper_average_f1": 0.5963718820861678
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.41353383458646614,
+        "average_f1": 0.2656641604010025,
+        "paper_instance_f1": 0.40441176470588236,
+        "paper_average_f1": 0.2598039215686274
+      }
+    },
+    {
+      "image": "IXMtest_E07_s1_w1641C6847-142B-463F-8B08-5B3296615572",
+      "Cellpose": {
+        "instance_f1": 0.9717868338557993,
+        "average_f1": 0.9411354928596308,
+        "paper_instance_f1": 0.9538461538461539,
+        "paper_average_f1": 0.9237606837606838
+      },
+      "Otsu": {
+        "instance_f1": 0.7903780068728522,
+        "average_f1": 0.7155402825505918,
+        "paper_instance_f1": 0.7744107744107744,
+        "paper_average_f1": 0.7010849233071456
+      },
+      "KMeans-2": {
+        "instance_f1": 0.7903780068728522,
+        "average_f1": 0.7155402825505918,
+        "paper_instance_f1": 0.7744107744107744,
+        "paper_average_f1": 0.7010849233071456
+      },
+      "Watershed": {
+        "instance_f1": 0.946031746031746,
+        "average_f1": 0.8783068783068784,
+        "paper_instance_f1": 0.9283489096573209,
+        "paper_average_f1": 0.8618899273104881
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7903780068728522,
+        "average_f1": 0.7163039327987781,
+        "paper_instance_f1": 0.7744107744107744,
+        "paper_average_f1": 0.7018331462775907
+      },
+      "Adaptive": {
+        "instance_f1": 0.8802588996763754,
+        "average_f1": 0.811938151743977,
+        "paper_instance_f1": 0.8634920634920635,
+        "paper_average_f1": 0.7964726631393299
+      },
+      "U-Net": {
+        "instance_f1": 0.9556962025316456,
+        "average_f1": 0.848804500703235,
+        "paper_instance_f1": 0.937888198757764,
+        "paper_average_f1": 0.8329882677708764
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5683453237410072,
+        "average_f1": 0.36211031175059955,
+        "paper_instance_f1": 0.5563380281690141,
+        "paper_average_f1": 0.35446009389671357
+      }
+    },
+    {
+      "image": "IXMtest_F03_s5_w1FE22EC7D-720A-4848-888A-6AFE1E1C85B0",
+      "Cellpose": {
+        "instance_f1": 0.9527272727272728,
+        "average_f1": 0.9406060606060606,
+        "paper_instance_f1": 0.9225352112676056,
+        "paper_average_f1": 0.9107981220657275
+      },
+      "Otsu": {
+        "instance_f1": 0.8571428571428571,
+        "average_f1": 0.773058773058773,
+        "paper_instance_f1": 0.8283582089552238,
+        "paper_average_f1": 0.7470978441127695
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8571428571428571,
+        "average_f1": 0.773058773058773,
+        "paper_instance_f1": 0.8283582089552238,
+        "paper_average_f1": 0.7470978441127695
+      },
+      "Adaptive": {
+        "instance_f1": 0.8970588235294118,
+        "average_f1": 0.8357843137254902,
+        "paper_instance_f1": 0.8754448398576512,
+        "paper_average_f1": 0.8129695531830764
+      },
+      "Watershed": {
+        "instance_f1": 0.9148936170212766,
+        "average_f1": 0.8479117415287629,
+        "paper_instance_f1": 0.8865979381443299,
+        "paper_average_f1": 0.8216876670484918
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8527131782945736,
+        "average_f1": 0.7691645133505598,
+        "paper_instance_f1": 0.8239700374531835,
+        "paper_average_f1": 0.743237619642114
+      },
+      "U-Net": {
+        "instance_f1": 0.9420289855072463,
+        "average_f1": 0.8663446054750402,
+        "paper_instance_f1": 0.9122807017543859,
+        "paper_average_f1": 0.8389863547758284
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6403162055335968,
+        "average_f1": 0.41458058849363194,
+        "paper_instance_f1": 0.6335877862595419,
+        "paper_average_f1": 0.40627650551314676
+      }
+    },
+    {
+      "image": "IXMtest_F04_s5_w1D94DA1A2-873C-44B3-80EB-36DC2A97E9A3",
+      "Cellpose": {
+        "instance_f1": 0.9636363636363636,
+        "average_f1": 0.9414141414141414,
+        "paper_instance_f1": 0.954954954954955,
+        "paper_average_f1": 0.9329329329329331
+      },
+      "Adaptive": {
+        "instance_f1": 0.9369369369369369,
+        "average_f1": 0.8868868868868869,
+        "paper_instance_f1": 0.9285714285714286,
+        "paper_average_f1": 0.878968253968254
+      },
+      "Otsu": {
+        "instance_f1": 0.9107981220657277,
+        "average_f1": 0.8335941575378195,
+        "paper_instance_f1": 0.9023255813953488,
+        "paper_average_f1": 0.8258397932816537
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9107981220657277,
+        "average_f1": 0.8335941575378195,
+        "paper_instance_f1": 0.9023255813953488,
+        "paper_average_f1": 0.8258397932816537
+      },
+      "Watershed": {
+        "instance_f1": 0.9099099099099099,
+        "average_f1": 0.8598598598598599,
+        "paper_instance_f1": 0.9017857142857143,
+        "paper_average_f1": 0.8521825396825398
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9056603773584906,
+        "average_f1": 0.8312368972746331,
+        "paper_instance_f1": 0.897196261682243,
+        "paper_average_f1": 0.8234683281412254
+      },
+      "U-Net": {
+        "instance_f1": 0.958904109589041,
+        "average_f1": 0.8736681887366817,
+        "paper_instance_f1": 0.9502262443438914,
+        "paper_average_f1": 0.8657616892911011
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7238095238095238,
+        "average_f1": 0.473015873015873,
+        "paper_instance_f1": 0.7169811320754716,
+        "paper_average_f1": 0.4685534591194968
+      }
+    },
+    {
+      "image": "IXMtest_F08_s7_w117D78658-1BA7-495D-9EAA-E4FA155861AC",
+      "Cellpose": {
+        "instance_f1": 1.0,
+        "average_f1": 0.9908925318761383,
+        "paper_instance_f1": 0.9682539682539683,
+        "paper_average_f1": 0.9594356261022927
+      },
+      "Otsu": {
+        "instance_f1": 0.8547008547008547,
+        "average_f1": 0.8034188034188035,
+        "paper_instance_f1": 0.8264462809917356,
+        "paper_average_f1": 0.7768595041322315
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8547008547008547,
+        "average_f1": 0.8034188034188035,
+        "paper_instance_f1": 0.8264462809917356,
+        "paper_average_f1": 0.7768595041322315
+      },
+      "Watershed": {
+        "instance_f1": 0.9508196721311475,
+        "average_f1": 0.8870673952641166,
+        "paper_instance_f1": 0.9206349206349206,
+        "paper_average_f1": 0.8589065255731921
+      },
+      "Adaptive": {
+        "instance_f1": 0.907563025210084,
+        "average_f1": 0.8571428571428572,
+        "paper_instance_f1": 0.8943089430894309,
+        "paper_average_f1": 0.8310749774164408
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8376068376068376,
+        "average_f1": 0.7939221272554605,
+        "paper_instance_f1": 0.8099173553719008,
+        "paper_average_f1": 0.7676767676767677
+      },
+      "U-Net": {
+        "instance_f1": 1.0,
+        "average_f1": 0.9016393442622951,
+        "paper_instance_f1": 0.9682539682539683,
+        "paper_average_f1": 0.873015873015873
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6608695652173913,
+        "average_f1": 0.39033816425120776,
+        "paper_instance_f1": 0.6386554621848739,
+        "paper_average_f1": 0.37721755368814197
+      }
+    },
+    {
+      "image": "IXMtest_F12_s8_w1DBD80811-5297-4415-ACD1-EC9286BE76A4",
+      "Otsu": {
+        "instance_f1": 0.7692307692307693,
+        "average_f1": 0.717948717948718,
+        "paper_instance_f1": 0.7692307692307693,
+        "paper_average_f1": 0.717948717948718
+      },
+      "KMeans-2": {
+        "instance_f1": 0.7692307692307693,
+        "average_f1": 0.717948717948718,
+        "paper_instance_f1": 0.7692307692307693,
+        "paper_average_f1": 0.717948717948718
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7692307692307693,
+        "average_f1": 0.7350427350427351,
+        "paper_instance_f1": 0.7692307692307693,
+        "paper_average_f1": 0.7350427350427351
+      },
+      "Watershed": {
+        "instance_f1": 1.0,
+        "average_f1": 0.8888888888888888,
+        "paper_instance_f1": 1.0,
+        "paper_average_f1": 0.8888888888888888
+      },
+      "Adaptive": {
+        "instance_f1": 0.9230769230769231,
+        "average_f1": 0.7350427350427351,
+        "paper_instance_f1": 0.9230769230769231,
+        "paper_average_f1": 0.7350427350427351
+      },
+      "U-Net": {
+        "instance_f1": 1.0,
+        "average_f1": 0.873015873015873,
+        "paper_instance_f1": 1.0,
+        "paper_average_f1": 0.873015873015873
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6666666666666666,
+        "average_f1": 0.37037037037037035,
+        "paper_instance_f1": 0.6666666666666666,
+        "paper_average_f1": 0.37037037037037035
+      },
+      "Cellpose": {
+        "instance_f1": 0.0,
+        "average_f1": 0.0,
+        "paper_instance_f1": 0.0,
+        "paper_average_f1": 0.0
+      }
+    },
+    {
+      "image": "IXMtest_F14_s7_w1E67F2A8A-EEC1-4F01-A1E2-0ECFC639637F",
+      "Cellpose": {
+        "instance_f1": 0.9739130434782609,
+        "average_f1": 0.9362318840579709,
+        "paper_instance_f1": 0.9655172413793104,
+        "paper_average_f1": 0.92816091954023
+      },
+      "Adaptive": {
+        "instance_f1": 0.9251101321585903,
+        "average_f1": 0.8673519334312285,
+        "paper_instance_f1": 0.925764192139738,
+        "paper_average_f1": 0.8636584182435709
+      },
+      "Otsu": {
+        "instance_f1": 0.8411214953271028,
+        "average_f1": 0.7403946002076842,
+        "paper_instance_f1": 0.8333333333333334,
+        "paper_average_f1": 0.7335390946502058
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8411214953271028,
+        "average_f1": 0.7403946002076842,
+        "paper_instance_f1": 0.8333333333333334,
+        "paper_average_f1": 0.7335390946502058
+      },
+      "Watershed": {
+        "instance_f1": 0.9401709401709402,
+        "average_f1": 0.8347578347578347,
+        "paper_instance_f1": 0.9322033898305084,
+        "paper_average_f1": 0.8276836158192089
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8411214953271028,
+        "average_f1": 0.7331256490134994,
+        "paper_instance_f1": 0.8333333333333334,
+        "paper_average_f1": 0.7263374485596709
+      },
+      "U-Net": {
+        "instance_f1": 0.9523809523809523,
+        "average_f1": 0.8446368446368446,
+        "paper_instance_f1": 0.944206008583691,
+        "paper_average_f1": 0.8373867429661421
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6952380952380952,
+        "average_f1": 0.43597883597883597,
+        "paper_instance_f1": 0.6886792452830188,
+        "paper_average_f1": 0.43186582809224316
+      }
+    },
+    {
+      "image": "IXMtest_G01_s2_w1FBE52723-8BDF-4346-89BB-216A4A69ED1C",
+      "Cellpose": {
+        "instance_f1": 0.9425287356321839,
+        "average_f1": 0.9131545338441889,
+        "paper_instance_f1": 0.9318181818181818,
+        "paper_average_f1": 0.9027777777777778
+      },
+      "Adaptive": {
+        "instance_f1": 0.9028571428571428,
+        "average_f1": 0.8444444444444444,
+        "paper_instance_f1": 0.8926553672316384,
+        "paper_average_f1": 0.8349026993094789
+      },
+      "U-Net": {
+        "instance_f1": 0.9364161849710982,
+        "average_f1": 0.8696210661528581,
+        "paper_instance_f1": 0.9257142857142857,
+        "paper_average_f1": 0.8596825396825396
+      },
+      "Otsu": {
+        "instance_f1": 0.8862275449101796,
+        "average_f1": 0.7917498336660014,
+        "paper_instance_f1": 0.8757396449704142,
+        "paper_average_f1": 0.7823800131492439
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8862275449101796,
+        "average_f1": 0.7917498336660014,
+        "paper_instance_f1": 0.8757396449704142,
+        "paper_average_f1": 0.7823800131492439
+      },
+      "Watershed": {
+        "instance_f1": 0.8850574712643678,
+        "average_f1": 0.7918263090676885,
+        "paper_instance_f1": 0.875,
+        "paper_average_f1": 0.7828282828282828
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.891566265060241,
+        "average_f1": 0.7697456492637216,
+        "paper_instance_f1": 0.8809523809523809,
+        "paper_average_f1": 0.7605820105820106
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6946107784431138,
+        "average_f1": 0.46174318030605455,
+        "paper_instance_f1": 0.6863905325443787,
+        "paper_average_f1": 0.4562787639710717
+      }
+    },
+    {
+      "image": "IXMtest_G06_s7_w19444140C-EF22-42DE-863A-514D836BE850",
+      "Cellpose": {
+        "instance_f1": 0.970954356846473,
+        "average_f1": 0.9534347625633932,
+        "paper_instance_f1": 0.9629629629629629,
+        "paper_average_f1": 0.9455875628715135
+      },
+      "Otsu": {
+        "instance_f1": 0.8448275862068966,
+        "average_f1": 0.772030651340996,
+        "paper_instance_f1": 0.8376068376068376,
+        "paper_average_f1": 0.7654320987654322
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8448275862068966,
+        "average_f1": 0.772030651340996,
+        "paper_instance_f1": 0.8376068376068376,
+        "paper_average_f1": 0.7654320987654322
+      },
+      "Watershed": {
+        "instance_f1": 0.8943089430894309,
+        "average_f1": 0.8337850045167118,
+        "paper_instance_f1": 0.8870967741935484,
+        "paper_average_f1": 0.8270609318996416
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8384279475982532,
+        "average_f1": 0.7734109655507035,
+        "paper_instance_f1": 0.8311688311688312,
+        "paper_average_f1": 0.7667147667147667
+      },
+      "Adaptive": {
+        "instance_f1": 0.9135802469135802,
+        "average_f1": 0.8587105624142661,
+        "paper_instance_f1": 0.9061224489795918,
+        "paper_average_f1": 0.8517006802721089
+      },
+      "U-Net": {
+        "instance_f1": 0.9586776859504132,
+        "average_f1": 0.8953168044077137,
+        "paper_instance_f1": 0.9508196721311475,
+        "paper_average_f1": 0.8879781420765027
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6899563318777293,
+        "average_f1": 0.43765162542455127,
+        "paper_instance_f1": 0.683982683982684,
+        "paper_average_f1": 0.43386243386243384
+      }
+    },
+    {
+      "image": "IXMtest_I03_s4_w1C724E24D-7AD5-4166-A810-DC75A825495D",
+      "Cellpose": {
+        "instance_f1": 0.9921875,
+        "average_f1": 0.9539930555555556,
+        "paper_instance_f1": 0.9883268482490273,
+        "paper_average_f1": 0.9502810203199308
+      },
+      "Adaptive": {
+        "instance_f1": 0.9416342412451362,
+        "average_f1": 0.8681366191093818,
+        "paper_instance_f1": 0.9457364341085271,
+        "paper_average_f1": 0.8664944013781224
+      },
+      "U-Net": {
+        "instance_f1": 0.9647058823529412,
+        "average_f1": 0.8801742919389978,
+        "paper_instance_f1": 0.9609375,
+        "paper_average_f1": 0.8767361111111112
+      },
+      "Otsu": {
+        "instance_f1": 0.8284518828451883,
+        "average_f1": 0.7522082752208276,
+        "paper_instance_f1": 0.825,
+        "paper_average_f1": 0.7490740740740741
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8284518828451883,
+        "average_f1": 0.7522082752208276,
+        "paper_instance_f1": 0.825,
+        "paper_average_f1": 0.7490740740740741
+      },
+      "Watershed": {
+        "instance_f1": 0.9,
+        "average_f1": 0.8025641025641025,
+        "paper_instance_f1": 0.896551724137931,
+        "paper_average_f1": 0.7994891443167306
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8135593220338984,
+        "average_f1": 0.7325800376647834,
+        "paper_instance_f1": 0.810126582278481,
+        "paper_average_f1": 0.7294889826535396
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6329113924050633,
+        "average_f1": 0.4069385841537741,
+        "paper_instance_f1": 0.6302521008403361,
+        "paper_average_f1": 0.4052287581699347
+      }
+    },
+    {
+      "image": "IXMtest_I12_s1_w18A06F07F-CD8F-4056-B041-3967BE48AD78",
+      "Cellpose": {
+        "instance_f1": 0.9776674937965261,
+        "average_f1": 0.9330024813895782,
+        "paper_instance_f1": 0.9776674937965261,
+        "paper_average_f1": 0.9330024813895782
+      },
+      "Otsu": {
+        "instance_f1": 0.6607669616519174,
+        "average_f1": 0.5709603408718453,
+        "paper_instance_f1": 0.6607669616519174,
+        "paper_average_f1": 0.5709603408718453
+      },
+      "KMeans-2": {
+        "instance_f1": 0.6607669616519174,
+        "average_f1": 0.5709603408718453,
+        "paper_instance_f1": 0.6607669616519174,
+        "paper_average_f1": 0.5709603408718453
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.6548672566371682,
+        "average_f1": 0.569649295313012,
+        "paper_instance_f1": 0.6548672566371682,
+        "paper_average_f1": 0.569649295313012
+      },
+      "Watershed": {
+        "instance_f1": 0.8933002481389578,
+        "average_f1": 0.7929418251998899,
+        "paper_instance_f1": 0.8933002481389578,
+        "paper_average_f1": 0.7929418251998899
+      },
+      "Adaptive": {
+        "instance_f1": 0.8526315789473684,
+        "average_f1": 0.747953216374269,
+        "paper_instance_f1": 0.8526315789473684,
+        "paper_average_f1": 0.747953216374269
+      },
+      "U-Net": {
+        "instance_f1": 0.9682151589242054,
+        "average_f1": 0.7965226840532464,
+        "paper_instance_f1": 0.9682151589242054,
+        "paper_average_f1": 0.7965226840532464
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.3564356435643564,
+        "average_f1": 0.20975430876420972,
+        "paper_instance_f1": 0.3564356435643564,
+        "paper_average_f1": 0.20975430876420972
+      }
+    },
+    {
+      "image": "IXMtest_I17_s6_w1EB7CA00F-DF95-466C-BF8C-6304B6A4974E",
+      "Cellpose": {
+        "instance_f1": 0.9473684210526315,
+        "average_f1": 0.917738791423002,
+        "paper_instance_f1": 0.9246575342465754,
+        "paper_average_f1": 0.895738203957382
+      },
+      "Adaptive": {
+        "instance_f1": 0.9198606271777003,
+        "average_f1": 0.8493999225706543,
+        "paper_instance_f1": 0.8979591836734694,
+        "paper_average_f1": 0.8291761148904006
+      },
+      "Otsu": {
+        "instance_f1": 0.8235294117647058,
+        "average_f1": 0.7410130718954249,
+        "paper_instance_f1": 0.8028673835125448,
+        "paper_average_f1": 0.72242134607726
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8235294117647058,
+        "average_f1": 0.7410130718954249,
+        "paper_instance_f1": 0.8028673835125448,
+        "paper_average_f1": 0.72242134607726
+      },
+      "U-Net": {
+        "instance_f1": 0.9652777777777778,
+        "average_f1": 0.8726851851851852,
+        "paper_instance_f1": 0.9423728813559322,
+        "paper_average_f1": 0.8519774011299436
+      },
+      "Watershed": {
+        "instance_f1": 0.9278350515463918,
+        "average_f1": 0.8445971744940818,
+        "paper_instance_f1": 0.9060402684563759,
+        "paper_average_f1": 0.8247576435495898
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8088235294117647,
+        "average_f1": 0.7361111111111112,
+        "paper_instance_f1": 0.7885304659498208,
+        "paper_average_f1": 0.7176423735563521
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5254901960784314,
+        "average_f1": 0.34074074074074073,
+        "paper_instance_f1": 0.5190839694656488,
+        "paper_average_f1": 0.33248515691263786
+      }
+    },
+    {
+      "image": "IXMtest_I17_s7_w1BB3D534E-DF08-4F21-BAC6-6B105BB40AF9",
+      "Cellpose": {
+        "instance_f1": 0.984251968503937,
+        "average_f1": 0.9562554680664918,
+        "paper_instance_f1": 0.9689922480620154,
+        "paper_average_f1": 0.9414298018949181
+      },
+      "U-Net": {
+        "instance_f1": 0.96875,
+        "average_f1": 0.8871527777777778,
+        "paper_instance_f1": 0.9538461538461539,
+        "paper_average_f1": 0.8735042735042735
+      },
+      "Adaptive": {
+        "instance_f1": 0.860655737704918,
+        "average_f1": 0.7750455373406193,
+        "paper_instance_f1": 0.8467741935483871,
+        "paper_average_f1": 0.7625448028673835
+      },
+      "Otsu": {
+        "instance_f1": 0.7522123893805309,
+        "average_f1": 0.6489675516224189,
+        "paper_instance_f1": 0.7391304347826086,
+        "paper_average_f1": 0.6376811594202898
+      },
+      "KMeans-2": {
+        "instance_f1": 0.7522123893805309,
+        "average_f1": 0.6489675516224189,
+        "paper_instance_f1": 0.7391304347826086,
+        "paper_average_f1": 0.6376811594202898
+      },
+      "Watershed": {
+        "instance_f1": 0.859375,
+        "average_f1": 0.7369791666666666,
+        "paper_instance_f1": 0.8461538461538461,
+        "paper_average_f1": 0.7256410256410257
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7665198237885462,
+        "average_f1": 0.6421928536465982,
+        "paper_instance_f1": 0.7532467532467533,
+        "paper_average_f1": 0.631072631072631
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5938864628820961,
+        "average_f1": 0.4046579330422125,
+        "paper_instance_f1": 0.5836909871244635,
+        "paper_average_f1": 0.3977110157367668
+      }
+    },
+    {
+      "image": "IXMtest_I23_s5_w1E3053D6B-8CEF-48E3-A6A5-2F0D7C1AA177",
+      "Cellpose": {
+        "instance_f1": 1.0,
+        "average_f1": 0.9428571428571428,
+        "paper_instance_f1": 0.9859154929577465,
+        "paper_average_f1": 0.9295774647887325
+      },
+      "U-Net": {
+        "instance_f1": 0.9855072463768116,
+        "average_f1": 0.9533011272141708,
+        "paper_instance_f1": 0.9714285714285714,
+        "paper_average_f1": 0.9396825396825395
+      },
+      "Adaptive": {
+        "instance_f1": 0.8695652173913043,
+        "average_f1": 0.8148148148148149,
+        "paper_instance_f1": 0.8571428571428571,
+        "paper_average_f1": 0.8031746031746032
+      },
+      "Otsu": {
+        "instance_f1": 0.8,
+        "average_f1": 0.7418803418803418,
+        "paper_instance_f1": 0.7878787878787878,
+        "paper_average_f1": 0.7306397306397306
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8,
+        "average_f1": 0.7418803418803418,
+        "paper_instance_f1": 0.7878787878787878,
+        "paper_average_f1": 0.7306397306397306
+      },
+      "Watershed": {
+        "instance_f1": 0.9428571428571428,
+        "average_f1": 0.8285714285714286,
+        "paper_instance_f1": 0.9295774647887324,
+        "paper_average_f1": 0.8169014084507042
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8,
+        "average_f1": 0.7350427350427351,
+        "paper_instance_f1": 0.7878787878787878,
+        "paper_average_f1": 0.7239057239057239
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7536231884057971,
+        "average_f1": 0.5571658615136876,
+        "paper_instance_f1": 0.7428571428571429,
+        "paper_average_f1": 0.5492063492063493
+      }
+    },
+    {
+      "image": "IXMtest_J16_s8_w1AD7BC3EB-6A29-4A53-AA59-E39653839B0D",
+      "Cellpose": {
+        "instance_f1": 0.9858156028368794,
+        "average_f1": 0.9369582348305752,
+        "paper_instance_f1": 0.972027972027972,
+        "paper_average_f1": 0.9238539238539238
+      },
+      "Adaptive": {
+        "instance_f1": 0.8864468864468864,
+        "average_f1": 0.8335368335368336,
+        "paper_instance_f1": 0.8736462093862816,
+        "paper_average_f1": 0.8215002005615725
+      },
+      "Otsu": {
+        "instance_f1": 0.803088803088803,
+        "average_f1": 0.7232947232947233,
+        "paper_instance_f1": 0.7908745247148289,
+        "paper_average_f1": 0.712294043092522
+      },
+      "KMeans-2": {
+        "instance_f1": 0.803088803088803,
+        "average_f1": 0.7232947232947233,
+        "paper_instance_f1": 0.7908745247148289,
+        "paper_average_f1": 0.712294043092522
+      },
+      "U-Net": {
+        "instance_f1": 0.9679715302491103,
+        "average_f1": 0.8714907077896401,
+        "paper_instance_f1": 0.9543859649122807,
+        "paper_average_f1": 0.8592592592592593
+      },
+      "Watershed": {
+        "instance_f1": 0.9300699300699301,
+        "average_f1": 0.8243978243978245,
+        "paper_instance_f1": 0.9172413793103448,
+        "paper_average_f1": 0.8130268199233717
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7984496124031008,
+        "average_f1": 0.7166236003445305,
+        "paper_instance_f1": 0.7862595419847328,
+        "paper_average_f1": 0.7056827820186599
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6204081632653061,
+        "average_f1": 0.39546485260770975,
+        "paper_instance_f1": 0.6104417670682731,
+        "paper_average_f1": 0.38911200356983483
+      }
+    },
+    {
+      "image": "IXMtest_J17_s1_w19E7BCD2F-6D7E-4B39-9154-F93E4D539183",
+      "U-Net": {
+        "instance_f1": 0.95,
+        "average_f1": 0.8861111111111112,
+        "paper_instance_f1": 0.95,
+        "paper_average_f1": 0.8861111111111112
+      },
+      "Cellpose": {
+        "instance_f1": 0.968944099378882,
+        "average_f1": 0.8957902001380263,
+        "paper_instance_f1": 0.968944099378882,
+        "paper_average_f1": 0.8957902001380263
+      },
+      "Adaptive": {
+        "instance_f1": 0.85,
+        "average_f1": 0.75,
+        "paper_instance_f1": 0.85,
+        "paper_average_f1": 0.75
+      },
+      "Otsu": {
+        "instance_f1": 0.8961038961038961,
+        "average_f1": 0.7113997113997114,
+        "paper_instance_f1": 0.8961038961038961,
+        "paper_average_f1": 0.7113997113997114
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8961038961038961,
+        "average_f1": 0.7113997113997114,
+        "paper_instance_f1": 0.8961038961038961,
+        "paper_average_f1": 0.7113997113997114
+      },
+      "Watershed": {
+        "instance_f1": 0.8695652173913043,
+        "average_f1": 0.6680469289164942,
+        "paper_instance_f1": 0.8695652173913043,
+        "paper_average_f1": 0.6680469289164942
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8961038961038961,
+        "average_f1": 0.6998556998556998,
+        "paper_instance_f1": 0.8961038961038961,
+        "paper_average_f1": 0.6998556998556998
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7515923566878981,
+        "average_f1": 0.5534324133050247,
+        "paper_instance_f1": 0.7515923566878981,
+        "paper_average_f1": 0.5534324133050247
+      }
+    },
+    {
+      "image": "IXMtest_K01_s3_w1054711D8-52CF-4672-B3A0-EC9EC2E681C4",
+      "Cellpose": {
+        "instance_f1": 0.97,
+        "average_f1": 0.9333333333333333,
+        "paper_instance_f1": 0.97,
+        "paper_average_f1": 0.9333333333333333
+      },
+      "Otsu": {
+        "instance_f1": 0.90625,
+        "average_f1": 0.8171296296296297,
+        "paper_instance_f1": 0.90625,
+        "paper_average_f1": 0.8171296296296297
+      },
+      "KMeans-2": {
+        "instance_f1": 0.90625,
+        "average_f1": 0.8171296296296297,
+        "paper_instance_f1": 0.90625,
+        "paper_average_f1": 0.8171296296296297
+      },
+      "Watershed": {
+        "instance_f1": 0.945273631840796,
+        "average_f1": 0.8546158098396904,
+        "paper_instance_f1": 0.945273631840796,
+        "paper_average_f1": 0.8546158098396904
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9119170984455959,
+        "average_f1": 0.819804260218768,
+        "paper_instance_f1": 0.9119170984455959,
+        "paper_average_f1": 0.819804260218768
+      },
+      "Adaptive": {
+        "instance_f1": 0.914572864321608,
+        "average_f1": 0.859854829704076,
+        "paper_instance_f1": 0.914572864321608,
+        "paper_average_f1": 0.859854829704076
+      },
+      "U-Net": {
+        "instance_f1": 0.9405940594059405,
+        "average_f1": 0.8426842684268427,
+        "paper_instance_f1": 0.9405940594059405,
+        "paper_average_f1": 0.8426842684268427
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.743455497382199,
+        "average_f1": 0.5095986038394416,
+        "paper_instance_f1": 0.743455497382199,
+        "paper_average_f1": 0.5095986038394416
+      }
+    },
+    {
+      "image": "IXMtest_K01_s5_w1A3DE001A-72D6-4321-8B25-4300AB0207AC",
+      "Cellpose": {
+        "instance_f1": 0.9065420560747663,
+        "average_f1": 0.8546209761163032,
+        "paper_instance_f1": 0.8940092165898618,
+        "paper_average_f1": 0.8428059395801332
+      },
+      "Otsu": {
+        "instance_f1": 0.8309178743961353,
+        "average_f1": 0.7718733225979604,
+        "paper_instance_f1": 0.819047619047619,
+        "paper_average_f1": 0.7608465608465609
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8309178743961353,
+        "average_f1": 0.7718733225979604,
+        "paper_instance_f1": 0.819047619047619,
+        "paper_average_f1": 0.7608465608465609
+      },
+      "Adaptive": {
+        "instance_f1": 0.8679245283018868,
+        "average_f1": 0.79979035639413,
+        "paper_instance_f1": 0.8558139534883721,
+        "paper_average_f1": 0.7886304909560723
+      },
+      "Watershed": {
+        "instance_f1": 0.9090909090909091,
+        "average_f1": 0.806060606060606,
+        "paper_instance_f1": 0.8968609865470852,
+        "paper_average_f1": 0.7952167414050823
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8137254901960784,
+        "average_f1": 0.7440087145969498,
+        "paper_instance_f1": 0.8019323671497585,
+        "paper_average_f1": 0.7332259796027912
+      },
+      "U-Net": {
+        "instance_f1": 0.9230769230769231,
+        "average_f1": 0.783308195072901,
+        "paper_instance_f1": 0.9107142857142857,
+        "paper_average_f1": 0.7728174603174602
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.69,
+        "average_f1": 0.4322222222222222,
+        "paper_instance_f1": 0.6798029556650246,
+        "paper_average_f1": 0.4258347016967706
+      }
+    },
+    {
+      "image": "IXMtest_K03_s5_w1DC4CE558-042C-482E-8CAE-FCCB57AA9A55",
+      "Cellpose": {
+        "instance_f1": 0.9885057471264368,
+        "average_f1": 0.9808429118773946,
+        "paper_instance_f1": 0.9591078066914498,
+        "paper_average_f1": 0.9516728624535316
+      },
+      "Adaptive": {
+        "instance_f1": 0.9140625,
+        "average_f1": 0.84375,
+        "paper_instance_f1": 0.8863636363636364,
+        "paper_average_f1": 0.8181818181818182
+      },
+      "Otsu": {
+        "instance_f1": 0.8512396694214877,
+        "average_f1": 0.7594123048668503,
+        "paper_instance_f1": 0.824,
+        "paper_average_f1": 0.735111111111111
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8512396694214877,
+        "average_f1": 0.7594123048668503,
+        "paper_instance_f1": 0.824,
+        "paper_average_f1": 0.735111111111111
+      },
+      "U-Net": {
+        "instance_f1": 0.9846153846153847,
+        "average_f1": 0.9136752136752138,
+        "paper_instance_f1": 0.9552238805970149,
+        "paper_average_f1": 0.8864013266998341
+      },
+      "Watershed": {
+        "instance_f1": 0.9465648854961832,
+        "average_f1": 0.8710771840542832,
+        "paper_instance_f1": 0.9185185185185185,
+        "paper_average_f1": 0.8452674897119342
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8451882845188284,
+        "average_f1": 0.7410506741050674,
+        "paper_instance_f1": 0.8178137651821862,
+        "paper_average_f1": 0.7170490328385065
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6413502109704642,
+        "average_f1": 0.410689170182841,
+        "paper_instance_f1": 0.6204081632653061,
+        "paper_average_f1": 0.39727891156462586
+      }
+    },
+    {
+      "image": "IXMtest_K05_s9_w1647AEF60-D7B0-4D83-AFA5-2B05E968468F",
+      "Cellpose": {
+        "instance_f1": 0.9602888086642599,
+        "average_f1": 0.9314079422382672,
+        "paper_instance_f1": 0.9602888086642599,
+        "paper_average_f1": 0.9314079422382672
+      },
+      "Adaptive": {
+        "instance_f1": 0.9037037037037037,
+        "average_f1": 0.8419753086419752,
+        "paper_instance_f1": 0.9037037037037037,
+        "paper_average_f1": 0.8419753086419752
+      },
+      "U-Net": {
+        "instance_f1": 0.9530685920577617,
+        "average_f1": 0.8543922984356197,
+        "paper_instance_f1": 0.9530685920577617,
+        "paper_average_f1": 0.8543922984356197
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8174603174603174,
+        "average_f1": 0.6922398589065255,
+        "paper_instance_f1": 0.8174603174603174,
+        "paper_average_f1": 0.6922398589065255
+      },
+      "Watershed": {
+        "instance_f1": 0.9124087591240876,
+        "average_f1": 0.8240064882400648,
+        "paper_instance_f1": 0.9124087591240876,
+        "paper_average_f1": 0.8240064882400648
+      },
+      "Otsu": {
+        "instance_f1": 0.8221343873517787,
+        "average_f1": 0.6982872200263505,
+        "paper_instance_f1": 0.8221343873517787,
+        "paper_average_f1": 0.6982872200263505
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8221343873517787,
+        "average_f1": 0.6982872200263505,
+        "paper_instance_f1": 0.8221343873517787,
+        "paper_average_f1": 0.6982872200263505
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6533864541832669,
+        "average_f1": 0.4205400619743249,
+        "paper_instance_f1": 0.6533864541832669,
+        "paper_average_f1": 0.4205400619743249
+      }
+    },
+    {
+      "image": "IXMtest_K17_s5_w1BB3AD9D7-3A85-458C-AB1C-07A816C2C203",
+      "Cellpose": {
+        "instance_f1": 0.9788732394366197,
+        "average_f1": 0.9593114241001565,
+        "paper_instance_f1": 0.9619377162629758,
+        "paper_average_f1": 0.942714340638216
+      },
+      "Adaptive": {
+        "instance_f1": 0.9300699300699301,
+        "average_f1": 0.8733488733488733,
+        "paper_instance_f1": 0.9140893470790378,
+        "paper_average_f1": 0.8583428789614357
+      },
+      "U-Net": {
+        "instance_f1": 0.9965156794425087,
+        "average_f1": 0.9276035617499032,
+        "paper_instance_f1": 0.9794520547945206,
+        "paper_average_f1": 0.9117199391171993
+      },
+      "Otsu": {
+        "instance_f1": 0.8248175182481752,
+        "average_f1": 0.7291159772911597,
+        "paper_instance_f1": 0.8100358422939068,
+        "paper_average_f1": 0.7160493827160495
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8248175182481752,
+        "average_f1": 0.7291159772911597,
+        "paper_instance_f1": 0.8100358422939068,
+        "paper_average_f1": 0.7160493827160495
+      },
+      "Watershed": {
+        "instance_f1": 0.9078498293515358,
+        "average_f1": 0.7925673113386423,
+        "paper_instance_f1": 0.8926174496644296,
+        "paper_average_f1": 0.7792692020879941
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8351648351648352,
+        "average_f1": 0.7260887260887261,
+        "paper_instance_f1": 0.8201438848920863,
+        "paper_average_f1": 0.7130295763389288
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5928853754940712,
+        "average_f1": 0.3671497584541063,
+        "paper_instance_f1": 0.5813953488372093,
+        "paper_average_f1": 0.3600344530577089
+      }
+    },
+    {
+      "image": "IXMtest_L06_s5_w1610AE208-D6E8-4DC4-AC19-D26284AA8556",
+      "Cellpose": {
+        "instance_f1": 0.9736842105263158,
+        "average_f1": 0.922222222222222,
+        "paper_instance_f1": 0.9585492227979274,
+        "paper_average_f1": 0.9078871617731722
+      },
+      "Adaptive": {
+        "instance_f1": 0.8444444444444444,
+        "average_f1": 0.754320987654321,
+        "paper_instance_f1": 0.8306010928961749,
+        "paper_average_f1": 0.7419550698239223
+      },
+      "Otsu": {
+        "instance_f1": 0.7833827893175074,
+        "average_f1": 0.6745796241345202,
+        "paper_instance_f1": 0.7696793002915452,
+        "paper_average_f1": 0.662779397473275
+      },
+      "KMeans-2": {
+        "instance_f1": 0.7833827893175074,
+        "average_f1": 0.6745796241345202,
+        "paper_instance_f1": 0.7696793002915452,
+        "paper_average_f1": 0.662779397473275
+      },
+      "Watershed": {
+        "instance_f1": 0.8556149732620321,
+        "average_f1": 0.7629233511586454,
+        "paper_instance_f1": 0.8421052631578947,
+        "paper_average_f1": 0.7508771929824563
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7627627627627628,
+        "average_f1": 0.6479813146479813,
+        "paper_instance_f1": 0.7492625368731564,
+        "paper_average_f1": 0.6365126188135037
+      },
+      "U-Net": {
+        "instance_f1": 0.9417989417989417,
+        "average_f1": 0.8142269253380364,
+        "paper_instance_f1": 0.9270833333333334,
+        "paper_average_f1": 0.8015046296296297
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5126582278481012,
+        "average_f1": 0.29465541490857944,
+        "paper_instance_f1": 0.5031055900621118,
+        "paper_average_f1": 0.2891649413388544
+      }
+    },
+    {
+      "image": "IXMtest_M12_s7_w193E9BA0F-274A-4EE8-A0F0-6A58471A333A",
+      "Cellpose": {
+        "instance_f1": 0.9679144385026738,
+        "average_f1": 0.9328579916815212,
+        "paper_instance_f1": 0.9526315789473684,
+        "paper_average_f1": 0.9181286549707602
+      },
+      "Otsu": {
+        "instance_f1": 0.7774480712166172,
+        "average_f1": 0.6838114078470161,
+        "paper_instance_f1": 0.7638483965014577,
+        "paper_average_f1": 0.6718496922578554
+      },
+      "KMeans-2": {
+        "instance_f1": 0.7774480712166172,
+        "average_f1": 0.6838114078470161,
+        "paper_instance_f1": 0.7638483965014577,
+        "paper_average_f1": 0.6718496922578554
+      },
+      "Adaptive": {
+        "instance_f1": 0.8642659279778393,
+        "average_f1": 0.7867036011080333,
+        "paper_instance_f1": 0.8610354223433242,
+        "paper_average_f1": 0.7786860429912201
+      },
+      "Watershed": {
+        "instance_f1": 0.8720626631853786,
+        "average_f1": 0.7780678851174936,
+        "paper_instance_f1": 0.8586118251928021,
+        "paper_average_f1": 0.7660668380462724
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7774480712166172,
+        "average_f1": 0.6699637322782723,
+        "paper_instance_f1": 0.7638483965014577,
+        "paper_average_f1": 0.6582442500809847
+      },
+      "U-Net": {
+        "instance_f1": 0.9365079365079365,
+        "average_f1": 0.8077601410934743,
+        "paper_instance_f1": 0.921875,
+        "paper_average_f1": 0.7951388888888888
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.47435897435897434,
+        "average_f1": 0.29772079772079774,
+        "paper_instance_f1": 0.46540880503144655,
+        "paper_average_f1": 0.29210342417889584
+      }
+    },
+    {
+      "image": "IXMtest_N07_s5_w1D30ED7AB-503E-479D-B5BC-B66472568DE2",
+      "Cellpose": {
+        "instance_f1": 0.9797297297297297,
+        "average_f1": 0.9587087087087087,
+        "paper_instance_f1": 0.9698996655518395,
+        "paper_average_f1": 0.94908955778521
+      },
+      "Adaptive": {
+        "instance_f1": 0.8949152542372881,
+        "average_f1": 0.8406779661016949,
+        "paper_instance_f1": 0.8926174496644296,
+        "paper_average_f1": 0.837434750186428
+      },
+      "Otsu": {
+        "instance_f1": 0.8561151079136691,
+        "average_f1": 0.7881694644284573,
+        "paper_instance_f1": 0.8469750889679716,
+        "paper_average_f1": 0.7797548438117832
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8561151079136691,
+        "average_f1": 0.7881694644284573,
+        "paper_instance_f1": 0.8469750889679716,
+        "paper_average_f1": 0.7797548438117832
+      },
+      "Watershed": {
+        "instance_f1": 0.9556313993174061,
+        "average_f1": 0.8911642017444065,
+        "paper_instance_f1": 0.9459459459459459,
+        "paper_average_f1": 0.8821321321321322
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8405797101449275,
+        "average_f1": 0.7624798711755233,
+        "paper_instance_f1": 0.8315412186379928,
+        "paper_average_f1": 0.7542811628833135
+      },
+      "U-Net": {
+        "instance_f1": 0.9662162162162162,
+        "average_f1": 0.8888888888888888,
+        "paper_instance_f1": 0.9565217391304348,
+        "paper_average_f1": 0.8799702712746192
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6788321167883211,
+        "average_f1": 0.44849959448499593,
+        "paper_instance_f1": 0.6714801444043321,
+        "paper_average_f1": 0.4436421981548335
+      }
+    },
+    {
+      "image": "IXMtest_N08_s2_w159DEEDD5-2882-4F9E-9048-F5BD2B918651",
+      "Cellpose": {
+        "instance_f1": 0.9626556016597511,
+        "average_f1": 0.9442139234670355,
+        "paper_instance_f1": 0.9547325102880658,
+        "paper_average_f1": 0.9364426154549612
+      },
+      "Adaptive": {
+        "instance_f1": 0.9159663865546218,
+        "average_f1": 0.8674136321195145,
+        "paper_instance_f1": 0.9083333333333333,
+        "paper_average_f1": 0.8601851851851852
+      },
+      "U-Net": {
+        "instance_f1": 0.9543568464730291,
+        "average_f1": 0.8778238819732596,
+        "paper_instance_f1": 0.9465020576131687,
+        "paper_average_f1": 0.8705989940557841
+      },
+      "Otsu": {
+        "instance_f1": 0.8669527896995708,
+        "average_f1": 0.8116356700047687,
+        "paper_instance_f1": 0.8595744680851064,
+        "paper_average_f1": 0.8047281323877068
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8669527896995708,
+        "average_f1": 0.8116356700047687,
+        "paper_instance_f1": 0.8595744680851064,
+        "paper_average_f1": 0.8047281323877068
+      },
+      "Watershed": {
+        "instance_f1": 0.9008264462809917,
+        "average_f1": 0.8402203856749312,
+        "paper_instance_f1": 0.8934426229508197,
+        "paper_average_f1": 0.8333333333333334
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8484848484848485,
+        "average_f1": 0.7869167869167869,
+        "paper_instance_f1": 0.8412017167381974,
+        "paper_average_f1": 0.7801621363853123
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6905829596412556,
+        "average_f1": 0.44344793223716983,
+        "paper_instance_f1": 0.6844444444444444,
+        "paper_average_f1": 0.4395061728395062
+      }
+    },
+    {
+      "image": "IXMtest_N11_s4_w142A84EA3-47C3-4B49-B6CA-BBC6685BBE1E",
+      "Cellpose": {
+        "instance_f1": 0.9608938547486033,
+        "average_f1": 0.9236499068901303,
+        "paper_instance_f1": 0.9502762430939227,
+        "paper_average_f1": 0.9134438305709024
+      },
+      "U-Net": {
+        "instance_f1": 0.9608938547486033,
+        "average_f1": 0.8913718187461205,
+        "paper_instance_f1": 0.9502762430939227,
+        "paper_average_f1": 0.8815224063842848
+      },
+      "Otsu": {
+        "instance_f1": 0.8192771084337349,
+        "average_f1": 0.7215528781793842,
+        "paper_instance_f1": 0.8095238095238095,
+        "paper_average_f1": 0.7129629629629629
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8192771084337349,
+        "average_f1": 0.7215528781793842,
+        "paper_instance_f1": 0.8095238095238095,
+        "paper_average_f1": 0.7129629629629629
+      },
+      "Watershed": {
+        "instance_f1": 0.9101123595505618,
+        "average_f1": 0.801498127340824,
+        "paper_instance_f1": 0.9,
+        "paper_average_f1": 0.7925925925925925
+      },
+      "Adaptive": {
+        "instance_f1": 0.8901098901098901,
+        "average_f1": 0.8046398046398047,
+        "paper_instance_f1": 0.8804347826086957,
+        "paper_average_f1": 0.7958937198067633
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8121212121212121,
+        "average_f1": 0.7205387205387205,
+        "paper_instance_f1": 0.8023952095808383,
+        "paper_average_f1": 0.7119095143047239
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6987951807228916,
+        "average_f1": 0.4390896921017403,
+        "paper_instance_f1": 0.6904761904761905,
+        "paper_average_f1": 0.4338624338624339
+      }
+    },
+    {
+      "image": "IXMtest_N12_s9_w1C98EC3CC-2F8E-4761-A21A-EBF14469AD40",
+      "Cellpose": {
+        "instance_f1": 0.9621993127147767,
+        "average_f1": 0.9247804505536465,
+        "paper_instance_f1": 0.9427609427609428,
+        "paper_average_f1": 0.9060980172091282
+      },
+      "Adaptive": {
+        "instance_f1": 0.9090909090909091,
+        "average_f1": 0.8414918414918415,
+        "paper_instance_f1": 0.8904109589041096,
+        "paper_average_f1": 0.8242009132420091
+      },
+      "Otsu": {
+        "instance_f1": 0.8333333333333334,
+        "average_f1": 0.7729468599033815,
+        "paper_instance_f1": 0.8156028368794326,
+        "paper_average_f1": 0.7565011820330969
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8333333333333334,
+        "average_f1": 0.7729468599033815,
+        "paper_instance_f1": 0.8156028368794326,
+        "paper_average_f1": 0.7565011820330969
+      },
+      "Watershed": {
+        "instance_f1": 0.9016949152542373,
+        "average_f1": 0.839171374764595,
+        "paper_instance_f1": 0.8837209302325582,
+        "paper_average_f1": 0.8224437061646364
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8145454545454546,
+        "average_f1": 0.762020202020202,
+        "paper_instance_f1": 0.797153024911032,
+        "paper_average_f1": 0.7457493080268881
+      },
+      "U-Net": {
+        "instance_f1": 0.9586206896551724,
+        "average_f1": 0.8544061302681993,
+        "paper_instance_f1": 0.9391891891891891,
+        "paper_average_f1": 0.8370870870870871
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.6142322097378277,
+        "average_f1": 0.38202247191011235,
+        "paper_instance_f1": 0.6007326007326007,
+        "paper_average_f1": 0.3736263736263736
+      }
+    },
+    {
+      "image": "IXMtest_N21_s1_w14F264B20-62D6-47EC-9BCD-B9416AB302D9",
+      "Adaptive": {
+        "instance_f1": 0.9411764705882353,
+        "average_f1": 0.8366013071895425,
+        "paper_instance_f1": 0.9411764705882353,
+        "paper_average_f1": 0.8366013071895425
+      },
+      "Otsu": {
+        "instance_f1": 0.9411764705882353,
+        "average_f1": 0.7930283224400871,
+        "paper_instance_f1": 0.9411764705882353,
+        "paper_average_f1": 0.7930283224400871
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9411764705882353,
+        "average_f1": 0.7930283224400871,
+        "paper_instance_f1": 0.9411764705882353,
+        "paper_average_f1": 0.7930283224400871
+      },
+      "U-Net": {
+        "instance_f1": 0.9259259259259259,
+        "average_f1": 0.7530864197530864,
+        "paper_instance_f1": 0.9259259259259259,
+        "paper_average_f1": 0.7530864197530864
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9411764705882353,
+        "average_f1": 0.766884531590414,
+        "paper_instance_f1": 0.9411764705882353,
+        "paper_average_f1": 0.766884531590414
+      },
+      "Watershed": {
+        "instance_f1": 0.9090909090909091,
+        "average_f1": 0.703030303030303,
+        "paper_instance_f1": 0.9090909090909091,
+        "paper_average_f1": 0.703030303030303
+      },
+      "Cellpose": {
+        "instance_f1": 0.6808510638297872,
+        "average_f1": 0.5673758865248227,
+        "paper_instance_f1": 0.6808510638297872,
+        "paper_average_f1": 0.5673758865248227
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7083333333333334,
+        "average_f1": 0.38425925925925924,
+        "paper_instance_f1": 0.7083333333333334,
+        "paper_average_f1": 0.38425925925925924
+      }
+    },
+    {
+      "image": "IXMtest_O01_s6_w11A23978B-BAAD-4287-B1F6-FFBCF45C5E2F",
+      "Cellpose": {
+        "instance_f1": 0.9803921568627451,
+        "average_f1": 0.9426289034132169,
+        "paper_instance_f1": 0.9554140127388535,
+        "paper_average_f1": 0.9186128803963199
+      },
+      "U-Net": {
+        "instance_f1": 0.9673202614379085,
+        "average_f1": 0.9222948438634712,
+        "paper_instance_f1": 0.9426751592356688,
+        "paper_average_f1": 0.8987968860580325
+      },
+      "Adaptive": {
+        "instance_f1": 0.9411764705882353,
+        "average_f1": 0.8888888888888888,
+        "paper_instance_f1": 0.9171974522292994,
+        "paper_average_f1": 0.8662420382165605
+      },
+      "Otsu": {
+        "instance_f1": 0.8435374149659864,
+        "average_f1": 0.7543461829176115,
+        "paper_instance_f1": 0.8211920529801324,
+        "paper_average_f1": 0.7343635025754232
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8435374149659864,
+        "average_f1": 0.7543461829176115,
+        "paper_instance_f1": 0.8211920529801324,
+        "paper_average_f1": 0.7343635025754232
+      },
+      "Watershed": {
+        "instance_f1": 0.8974358974358975,
+        "average_f1": 0.7706552706552707,
+        "paper_instance_f1": 0.875,
+        "paper_average_f1": 0.7513888888888889
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8413793103448276,
+        "average_f1": 0.7325670498084292,
+        "paper_instance_f1": 0.8187919463087249,
+        "paper_average_f1": 0.7129008202833707
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7333333333333333,
+        "average_f1": 0.5259259259259259,
+        "paper_instance_f1": 0.7272727272727273,
+        "paper_average_f1": 0.5137085137085138
+      }
+    },
+    {
+      "image": "IXMtest_O02_s4_w1814603DA-DD56-44EF-98C5-AFF3B636F986",
+      "Cellpose": {
+        "instance_f1": 0.9793103448275862,
+        "average_f1": 0.950191570881226,
+        "paper_instance_f1": 0.9793103448275862,
+        "paper_average_f1": 0.950191570881226
+      },
+      "Adaptive": {
+        "instance_f1": 0.9027777777777778,
+        "average_f1": 0.8364197530864197,
+        "paper_instance_f1": 0.9027777777777778,
+        "paper_average_f1": 0.8364197530864197
+      },
+      "U-Net": {
+        "instance_f1": 0.9583333333333334,
+        "average_f1": 0.919753086419753,
+        "paper_instance_f1": 0.9583333333333334,
+        "paper_average_f1": 0.919753086419753
+      },
+      "Otsu": {
+        "instance_f1": 0.8776978417266187,
+        "average_f1": 0.8057553956834532,
+        "paper_instance_f1": 0.8776978417266187,
+        "paper_average_f1": 0.8057553956834532
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8776978417266187,
+        "average_f1": 0.8057553956834532,
+        "paper_instance_f1": 0.8776978417266187,
+        "paper_average_f1": 0.8057553956834532
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8776978417266187,
+        "average_f1": 0.8057553956834531,
+        "paper_instance_f1": 0.8776978417266187,
+        "paper_average_f1": 0.8057553956834531
+      },
+      "Watershed": {
+        "instance_f1": 0.9251700680272109,
+        "average_f1": 0.8450491307634165,
+        "paper_instance_f1": 0.9251700680272109,
+        "paper_average_f1": 0.8450491307634165
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7972027972027972,
+        "average_f1": 0.519036519036519,
+        "paper_instance_f1": 0.7972027972027972,
+        "paper_average_f1": 0.519036519036519
+      }
+    },
+    {
+      "image": "IXMtest_O04_s2_w19A18B0D8-8E8B-4572-A5C0-5C678F3AD54C",
+      "Cellpose": {
+        "instance_f1": 0.9886363636363636,
+        "average_f1": 0.9823232323232324,
+        "paper_instance_f1": 0.9830508474576272,
+        "paper_average_f1": 0.9767733835530445
+      },
+      "Adaptive": {
+        "instance_f1": 0.9545454545454546,
+        "average_f1": 0.928030303030303,
+        "paper_instance_f1": 0.9491525423728814,
+        "paper_average_f1": 0.9227871939736345
+      },
+      "Otsu": {
+        "instance_f1": 0.9418604651162791,
+        "average_f1": 0.8656330749354004,
+        "paper_instance_f1": 0.9364161849710982,
+        "paper_average_f1": 0.8606294155427103
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9418604651162791,
+        "average_f1": 0.8656330749354004,
+        "paper_instance_f1": 0.9364161849710982,
+        "paper_average_f1": 0.8606294155427103
+      },
+      "U-Net": {
+        "instance_f1": 0.9775280898876404,
+        "average_f1": 0.9213483146067415,
+        "paper_instance_f1": 0.9720670391061452,
+        "paper_average_f1": 0.9162011173184358
+      },
+      "Watershed": {
+        "instance_f1": 0.9281767955801105,
+        "average_f1": 0.8569674647022713,
+        "paper_instance_f1": 0.9230769230769231,
+        "paper_average_f1": 0.8522588522588523
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9418604651162791,
+        "average_f1": 0.8565891472868218,
+        "paper_instance_f1": 0.9364161849710982,
+        "paper_average_f1": 0.8516377649325625
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7349397590361446,
+        "average_f1": 0.4899598393574297,
+        "paper_instance_f1": 0.7305389221556886,
+        "paper_average_f1": 0.48702594810379235
+      }
+    },
+    {
+      "image": "IXMtest_P07_s8_w144364F25-950A-472C-A529-1A9AD0433B6C",
+      "Cellpose": {
+        "instance_f1": 0.9509803921568627,
+        "average_f1": 0.9204793028322441,
+        "paper_instance_f1": 0.9107981220657277,
+        "paper_average_f1": 0.881585811163276
+      },
+      "Watershed": {
+        "instance_f1": 0.8557213930348259,
+        "average_f1": 0.7993366500829188,
+        "paper_instance_f1": 0.819047619047619,
+        "paper_average_f1": 0.765079365079365
+      },
+      "Adaptive": {
+        "instance_f1": 0.8673469387755102,
+        "average_f1": 0.7732426303854876,
+        "paper_instance_f1": 0.8292682926829268,
+        "paper_average_f1": 0.7392953929539297
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.7741935483870968,
+        "average_f1": 0.6642771804062126,
+        "paper_instance_f1": 0.7384615384615385,
+        "paper_average_f1": 0.6336182336182337
+      },
+      "Otsu": {
+        "instance_f1": 0.7486631016042781,
+        "average_f1": 0.6571598336304219,
+        "paper_instance_f1": 0.7142857142857143,
+        "paper_average_f1": 0.626984126984127
+      },
+      "KMeans-2": {
+        "instance_f1": 0.7486631016042781,
+        "average_f1": 0.6571598336304219,
+        "paper_instance_f1": 0.7142857142857143,
+        "paper_average_f1": 0.626984126984127
+      },
+      "U-Net": {
+        "instance_f1": 0.9405940594059405,
+        "average_f1": 0.7876787678767877,
+        "paper_instance_f1": 0.9004739336492891,
+        "paper_average_f1": 0.7540810953133228
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.5638297872340425,
+        "average_f1": 0.3274231678486998,
+        "paper_instance_f1": 0.5482233502538071,
+        "paper_average_f1": 0.31923293852227863
+      }
+    },
+    {
+      "image": "IXMtest_P07_s8_w19D682C29-5685-4A33-8CAA-F0797DD7F021",
+      "Cellpose": {
+        "instance_f1": 0.945054945054945,
+        "average_f1": 0.9352869352869353,
+        "paper_instance_f1": 0.9148936170212766,
+        "paper_average_f1": 0.9054373522458629
+      },
+      "Adaptive": {
+        "instance_f1": 0.945054945054945,
+        "average_f1": 0.9059829059829059,
+        "paper_instance_f1": 0.9148936170212766,
+        "paper_average_f1": 0.8770685579196218
+      },
+      "U-Net": {
+        "instance_f1": 0.9555555555555556,
+        "average_f1": 0.9135802469135802,
+        "paper_instance_f1": 0.9247311827956989,
+        "paper_average_f1": 0.8841099163679809
+      },
+      "Otsu": {
+        "instance_f1": 0.9010989010989011,
+        "average_f1": 0.8034188034188033,
+        "paper_instance_f1": 0.8723404255319149,
+        "paper_average_f1": 0.7777777777777778
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9010989010989011,
+        "average_f1": 0.8034188034188033,
+        "paper_instance_f1": 0.8723404255319149,
+        "paper_average_f1": 0.7777777777777778
+      },
+      "Watershed": {
+        "instance_f1": 0.9010989010989011,
+        "average_f1": 0.8131868131868131,
+        "paper_instance_f1": 0.8723404255319149,
+        "paper_average_f1": 0.7872340425531915
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8666666666666667,
+        "average_f1": 0.782716049382716,
+        "paper_instance_f1": 0.8387096774193549,
+        "paper_average_f1": 0.7574671445639187
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.8444444444444444,
+        "average_f1": 0.5456790123456791,
+        "paper_instance_f1": 0.8172043010752689,
+        "paper_average_f1": 0.5280764635603344
+      }
+    },
+    {
+      "image": "IXMtest_P15_s8_w1D26A5BC7-CF59-4027-B785-85AD33773609",
+      "U-Net": {
+        "instance_f1": 0.9808917197452229,
+        "average_f1": 0.9327671620665251,
+        "paper_instance_f1": 0.9625,
+        "paper_average_f1": 0.9152777777777779
+      },
+      "Adaptive": {
+        "instance_f1": 0.9506172839506173,
+        "average_f1": 0.908093278463649,
+        "paper_instance_f1": 0.9333333333333333,
+        "paper_average_f1": 0.8915824915824917
+      },
+      "Cellpose": {
+        "instance_f1": 0.9261744966442953,
+        "average_f1": 0.9038031319910514,
+        "paper_instance_f1": 0.9078947368421053,
+        "paper_average_f1": 0.8859649122807017
+      },
+      "Otsu": {
+        "instance_f1": 0.8609271523178808,
+        "average_f1": 0.753495217071376,
+        "paper_instance_f1": 0.8441558441558441,
+        "paper_average_f1": 0.7388167388167388
+      },
+      "KMeans-2": {
+        "instance_f1": 0.8609271523178808,
+        "average_f1": 0.753495217071376,
+        "paper_instance_f1": 0.8441558441558441,
+        "paper_average_f1": 0.7388167388167388
+      },
+      "Watershed": {
+        "instance_f1": 0.8717948717948718,
+        "average_f1": 0.7535612535612537,
+        "paper_instance_f1": 0.8553459119496856,
+        "paper_average_f1": 0.7393431167016072
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.8552631578947368,
+        "average_f1": 0.7339181286549707,
+        "paper_instance_f1": 0.8387096774193549,
+        "paper_average_f1": 0.7197132616487455
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7450980392156863,
+        "average_f1": 0.5170660856935366,
+        "paper_instance_f1": 0.7307692307692307,
+        "paper_average_f1": 0.5071225071225071
+      }
+    },
+    {
+      "image": "IXMtest_P19_s6_w10EBAD15B-2822-48B9-B9C8-4DF5D80AB940",
+      "Cellpose": {
+        "instance_f1": 0.9826589595375722,
+        "average_f1": 0.9633911368015414,
+        "paper_instance_f1": 0.9770114942528736,
+        "paper_average_f1": 0.9578544061302683
+      },
+      "Adaptive": {
+        "instance_f1": 0.9590643274853801,
+        "average_f1": 0.9057829759584144,
+        "paper_instance_f1": 0.9534883720930233,
+        "paper_average_f1": 0.9005167958656332
+      },
+      "Otsu": {
+        "instance_f1": 0.9156626506024096,
+        "average_f1": 0.8406961178045516,
+        "paper_instance_f1": 0.9101796407185628,
+        "paper_average_f1": 0.8356620093147039
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9156626506024096,
+        "average_f1": 0.8406961178045516,
+        "paper_instance_f1": 0.9101796407185628,
+        "paper_average_f1": 0.8356620093147039
+      },
+      "Watershed": {
+        "instance_f1": 0.9,
+        "average_f1": 0.7999999999999999,
+        "paper_instance_f1": 0.8950276243093923,
+        "paper_average_f1": 0.7955801104972376
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9341317365269461,
+        "average_f1": 0.8436460412508316,
+        "paper_instance_f1": 0.9285714285714286,
+        "paper_average_f1": 0.8386243386243387
+      },
+      "U-Net": {
+        "instance_f1": 0.9885057471264368,
+        "average_f1": 0.925925925925926,
+        "paper_instance_f1": 0.9828571428571429,
+        "paper_average_f1": 0.9206349206349205
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.7764705882352941,
+        "average_f1": 0.5202614379084967,
+        "paper_instance_f1": 0.7719298245614035,
+        "paper_average_f1": 0.5172189733593242
+      }
+    },
+    {
+      "image": "IXMtest_P21_s4_w19B7DC88B-10BB-4B51-9A10-9E30285688C1",
+      "Cellpose": {
+        "instance_f1": 0.972972972972973,
+        "average_f1": 0.954954954954955,
+        "paper_instance_f1": 0.9310344827586207,
+        "paper_average_f1": 0.9137931034482758
+      },
+      "Otsu": {
+        "instance_f1": 0.9369369369369369,
+        "average_f1": 0.906906906906907,
+        "paper_instance_f1": 0.896551724137931,
+        "paper_average_f1": 0.867816091954023
+      },
+      "KMeans-2": {
+        "instance_f1": 0.9369369369369369,
+        "average_f1": 0.906906906906907,
+        "paper_instance_f1": 0.896551724137931,
+        "paper_average_f1": 0.867816091954023
+      },
+      "Adaptive": {
+        "instance_f1": 0.9557522123893806,
+        "average_f1": 0.9183874139626352,
+        "paper_instance_f1": 0.9152542372881356,
+        "paper_average_f1": 0.8794726930320151
+      },
+      "Watershed": {
+        "instance_f1": 0.9369369369369369,
+        "average_f1": 0.8828828828828829,
+        "paper_instance_f1": 0.896551724137931,
+        "paper_average_f1": 0.8448275862068965
+      },
+      "TopHat+Otsu": {
+        "instance_f1": 0.9636363636363636,
+        "average_f1": 0.9090909090909091,
+        "paper_instance_f1": 0.9217391304347826,
+        "paper_average_f1": 0.8695652173913043
+      },
+      "U-Net": {
+        "instance_f1": 0.9541284403669725,
+        "average_f1": 0.8929663608562692,
+        "paper_instance_f1": 0.9122807017543859,
+        "paper_average_f1": 0.8538011695906432
+      },
+      "Canny+Fill": {
+        "instance_f1": 0.8,
+        "average_f1": 0.5373737373737373,
+        "paper_instance_f1": 0.7652173913043478,
+        "paper_average_f1": 0.5140096618357488
+      }
     }
   ]
 }
