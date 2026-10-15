@@ -4,14 +4,14 @@ Publish the app to a Hugging Face Space (Docker SDK).
     python deploy_hf.py --space USER/SPACE-NAME --dry-run   # build the snapshot only
     python deploy_hf.py --space USER/SPACE-NAME             # build and push
 
-The Space gets a single-commit snapshot of the committed HEAD, not the git
-history: Hugging Face rejects binary files that are not stored with LFS/Xet,
-and older commits contain files the Space must not carry. In the snapshot,
+The Space gets a snapshot of the committed HEAD, not the git history (older
+commits contain files the Space must not carry). In the snapshot,
 deploy/huggingface/Dockerfile and README.md (the Space configuration)
-replace the repository's own, and weights and images are tracked with LFS.
+replace the repository's own. The upload goes through huggingface_hub,
+which stores weights and images the way the Hub requires (Xet), and
+mirrors the folder: files no longer in the snapshot are deleted from the Space.
 
-Pushing needs a Hugging Face write token stored as a git credential
-(`hf auth login --add-to-git-credential`) and an existing Docker Space.
+Needs huggingface_hub, a write token (`hf auth login`) and an existing Space.
 """
 
 import argparse
@@ -25,7 +25,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 OVERLAY = ROOT / "deploy" / "huggingface"
 DROP = ("deploy", ".github", "tests", "notebooks")        # not needed to run the app
-LFS_PATTERNS = ("*.pth", "*.png", "*.jpg", "*.jpeg", "*.npz", "*.npy")
 
 
 def git(*args, cwd=ROOT, capture=False):
@@ -47,19 +46,16 @@ def build_snapshot(dest: Path) -> str:
         shutil.rmtree(dest / name, ignore_errors=True)
     for f in OVERLAY.iterdir():
         shutil.copy(f, dest / f.name)
-    (dest / ".gitattributes").write_text(
-        "".join(f"{p} filter=lfs diff=lfs merge=lfs -text\n" for p in LFS_PATTERNS))
     return sha
 
 
 def push(dest: Path, space: str, sha: str):
-    git("init", "-q", "-b", "main", cwd=dest)
-    git("lfs", "install", "--local", cwd=dest)
-    git("add", "-A", cwd=dest)
-    git("-c", "user.name=deploy_hf.py", "-c", "user.email=deploy@localhost",
-        "commit", "-q", "-m", f"Deploy {sha} from GitHub", cwd=dest)
-    # --force: the Space holds only the latest snapshot, never history
-    git("push", "--force", f"https://huggingface.co/spaces/{space}", "main", cwd=dest)
+    from huggingface_hub import HfApi
+    HfApi().upload_folder(
+        folder_path=str(dest), repo_id=space, repo_type="space",
+        commit_message=f"Deploy {sha} from GitHub",
+        delete_patterns="*",            # mirror: drop files removed from the repository
+    )
 
 
 def main(argv=None):
