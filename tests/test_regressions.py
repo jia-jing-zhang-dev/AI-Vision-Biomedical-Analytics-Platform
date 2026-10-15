@@ -399,8 +399,8 @@ def test_grad_cam_leaves_the_shared_model_untouched():
 def test_fashion_product_photos_are_cropped_like_fashionmnist():
     """A user's product photo (dark item, small and off-centre on an off-white,
     non-square background) was squeezed whole to 28x28: an ankle boot came out
-    as "Sandal". Every bundled sample, turned into such a photo, must now be
-    classified as on its original 28x28 image."""
+    as "Sandal". Every bundled sample, turned into such a photo and also
+    mirrored, must now be classified correctly."""
     import numpy as np
     import torch
     from PIL import Image
@@ -416,7 +416,10 @@ def test_fashion_product_photos_are_cropped_like_fashionmnist():
         canvas = np.full((300, 420), 240.0) + rng.normal(0, 2, (300, 420))
         canvas[40:190, 230:380] = 240 - up * 220 / 255
         photo = Image.fromarray(np.clip(canvas, 0, 255).astype(np.uint8))
+        expected = int(path.stem.split("_", 1)[0])                      # true class
         with torch.no_grad():
-            expected = model(prepare_upload(item).to(device)).argmax(1).item()
             got = model(prepare_upload(photo).to(device)).argmax(1).item()
+            # the owner's boot faced the other way; mirrored shoes were never recognized
+            mirrored = model(prepare_upload(photo.transpose(Image.Transpose.FLIP_LEFT_RIGHT)).to(device)).argmax(1).item()
         assert got == expected, path.name
+        assert mirrored == expected, f"{path.name} (mirrored)"

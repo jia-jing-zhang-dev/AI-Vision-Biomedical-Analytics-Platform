@@ -144,5 +144,12 @@ def prepare_upload(image):
     square = np.zeros((side, side), np.float32)                          # centre, keep aspect
     top, left = (side - item.shape[0]) // 2, (side - item.shape[1]) // 2
     square[top:top + item.shape[0], left:left + item.shape[1]] = item
-    small = Image.fromarray(square.astype(np.uint8)).resize((28, 28), Image.Resampling.LANCZOS)
-    return torch.from_numpy(np.asarray(small, dtype=np.float32) / 255.0)[None, None]
+    small = np.asarray(Image.fromarray(square.astype(np.uint8)).resize((28, 28), Image.Resampling.LANCZOS),
+                       dtype=np.float32)
+    # Every FashionMNIST shoe faces the same way (heavier on the right half),
+    # and a mirrored ankle boot is never recognized (0% on the test set). Mirror
+    # left-heavy items; clothes and bags are near-symmetric, so this changes
+    # little for them (test set: 86.9% -> 86.5%, all images mirrored: 63.5% -> 86.5%).
+    if small[:, :14].sum() > small[:, 14:].sum():
+        small = np.ascontiguousarray(small[:, ::-1])
+    return torch.from_numpy(small / 255.0)[None, None]
