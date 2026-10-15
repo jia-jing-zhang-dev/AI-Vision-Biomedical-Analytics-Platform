@@ -4,6 +4,7 @@ import streamlit as st
 import torch
 
 from src.image_io import UploadError, load_upload
+from src.runtime import heavy_work, limit_torch_threads
 from src.vision_cnn import FASHION_MNIST_CLASSES, build_model, prepare_upload
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
@@ -12,6 +13,7 @@ st.title("FashionMNIST Image Classification System")
 st.write("An End-to-End Visual Analysis Framework Built with PyTorch")
 
 
+limit_torch_threads()
 WEIGHTS = Path(__file__).resolve().parent.parent / "fashion_model.pth"
 
 
@@ -44,7 +46,8 @@ st.caption(
 
 if uploaded_file is not None:
     try:
-        image, _ = load_upload(uploaded_file, mode="RGB")   # 8-bit, upright, at most 1024 px
+        with heavy_work():                                    # one decode at a time per process
+            image, _ = load_upload(uploaded_file, mode="RGB")   # 8-bit, upright, at most 1024 px
     except UploadError as err:
         st.error(str(err))
         st.stop()
@@ -55,7 +58,7 @@ if uploaded_file is not None:
             # Grayscale 28x28; inverted only if the background is light
             input_tensor = prepare_upload(image).to(device)
 
-            with torch.no_grad():
+            with heavy_work(), torch.no_grad():
                 output = model(input_tensor)
                 predicted_class_idx = output.argmax(1).item()
                 predicted_class_name = FASHION_MNIST_CLASSES[predicted_class_idx]

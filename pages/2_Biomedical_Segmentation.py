@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from src.image_io import UploadError, load_upload
+from src.runtime import heavy_work, limit_torch_threads
 from src.segmentation import (
     benchmark, color_labels, evaluate, has_bright_background, label_objects, make_cell_image,
     make_synthetic_image, run_all, cellpose_available, unet_available,
@@ -9,6 +10,7 @@ from src.segmentation import (
 
 USE_CELLPOSE = cellpose_available()
 USE_UNET = unet_available()      # U-Net trained on real BBBC039 nuclei
+limit_torch_threads()
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
 
@@ -74,7 +76,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
             img, gt = make_cell_image(seed=int(seed))
         else:
             img, gt = make_synthetic_image()
-        with st.spinner("Running every method" + (" (Cellpose takes a few seconds)" if USE_CELLPOSE else "") + "..."):
+        with st.spinner("Running every method" + (" (Cellpose takes a few seconds)" if USE_CELLPOSE else "") + "..."), heavy_work():
             results = run_all(img, include_cellpose=USE_CELLPOSE, include_unet=USE_UNET)
         scores = evaluate(gt, results)
 
@@ -101,7 +103,7 @@ if mode == "1. Generate Synthetic Biomedical Image (Benchmark Evaluation)":
         show_masks(results)
 
     if realistic and st.button("Run 10-Image Benchmark (mean ± std)"):
-        with st.spinner("Segmenting 10 images with every method..."):
+        with st.spinner("Segmenting 10 images with every method..."), heavy_work():
             summary = benchmark(10, include_unet=USE_UNET)
         st.dataframe(pd.DataFrame([{
             "Method": r["method"],
@@ -128,7 +130,8 @@ else:
         # 8-bit grayscale, upright, downscaled before any conversion so the
         # result images fit in Streamlit Cloud's memory.
         try:
-            pil_img, original_size = load_upload(uploaded_file, mode="L", max_side=MAX_UPLOAD_SIDE)
+            with heavy_work():
+                pil_img, original_size = load_upload(uploaded_file, mode="L", max_side=MAX_UPLOAD_SIDE)
         except UploadError as err:
             st.error(str(err))
             st.stop()
@@ -144,7 +147,8 @@ else:
         )
 
         if st.button("Run Multi-Algorithm Segmentation"):
-            with st.spinner("Running classical algorithms" + (" and Cellpose" if USE_CELLPOSE else "") + "..."):
+            with st.spinner("Running classical algorithms" + (" and Cellpose" if USE_CELLPOSE else "")
+                            + (" and the U-Net" if USE_UNET else "") + "..."), heavy_work():
                 results = run_all(img, include_cellpose=USE_CELLPOSE, include_unet=USE_UNET)
 
             if has_bright_background(img):

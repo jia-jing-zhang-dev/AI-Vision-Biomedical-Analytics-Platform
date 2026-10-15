@@ -220,3 +220,23 @@ def test_temperature_divides_the_logits():
     model.temperature = 2.0
     soft = predict_proba(model, img)
     assert sharp.max() > soft.max()                             # T < 1 sharpens, T > 1 softens
+
+
+def test_heavy_work_runs_one_request_at_a_time():
+    import threading
+    import time
+    from src.runtime import heavy_work
+    active, peak, lock = [0], [0], threading.Lock()
+
+    def job():
+        with heavy_work():
+            with lock:
+                active[0] += 1; peak[0] = max(peak[0], active[0])
+            time.sleep(0.02)
+            with lock:
+                active[0] -= 1
+
+    threads = [threading.Thread(target=job) for _ in range(6)]
+    for t in threads: t.start()
+    for t in threads: t.join()
+    assert peak[0] == 1

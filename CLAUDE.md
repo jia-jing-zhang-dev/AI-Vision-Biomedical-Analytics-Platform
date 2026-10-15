@@ -60,6 +60,10 @@ streamlit run app.py
   binary masks are bool or uint8. `is_label_image` defines this and both
   `label_objects` and `evaluate` use it. Segmenters take 2-D uint8 only.
 - App pages resolve files from `Path(__file__)`, never the working directory.
+- Streamlit Cloud docs (Feb 2024 figures) list 690 MB–2.7 GB memory and up to 2
+  CPU cores; the app idles at ~765 MB once every page was visited. Wrap
+  memory-heavy page work in `src.runtime.heavy_work()` (one at a time per
+  process) and call `limit_torch_threads()` on pages that run torch.
 - BBBC039 lives in `data/bbbc039/` (gitignored; CC0, ~80 MB from
   bbbc.broadinstitute.org/BBBC039). Use the official split: train the U-Net
   on training, select on validation, evaluate test once
@@ -144,5 +148,11 @@ the first test evaluation, fix chosen on validation, disclosed in the README).
 Grad-CAM verified against pytorch-grad-cam (correlation 1.0000). Follow-up review: U-Net
 memory (tiling), border erosion (third test evaluation, disclosed), calibration claim
 reworded with a bootstrap CI (not significant), 9 more tests. Tests 130 → 153.
+
+### Pre-reboot checks (2026-10-15)
+
+| Check | Verified findings | Fixed | Tests |
+|---|---|---|---|
+| A: deployment rehearsal (clean Python 3.14 venv, uv install of requirements.txt, real server on Windows and Linux/2 CPUs) | App works from a clean clone, no runtime downloads; one visitor peaks ~934 MB and two concurrent 25 MP uploads ~1.16 GB; Grad-CAM checkbox reset when switching image source | `heavy_work()` lock around uploads/segmentation/inference, torch limited to 2 threads, lazy pyplot import, checkbox always drawn | 153 → 155 |
 
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

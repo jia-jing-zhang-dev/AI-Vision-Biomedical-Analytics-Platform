@@ -33,7 +33,6 @@ from typing import Dict, Tuple
 
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 from scipy.ndimage import binary_fill_holes, distance_transform_edt, gaussian_filter
 from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
@@ -492,6 +491,8 @@ def benchmark(n_images: int = 10, start_seed: int = 0, include_cellpose: bool = 
 
 def plot_results(img: np.ndarray, gt_mask: np.ndarray, results: Dict[str, np.ndarray]):
     """Grid-plot the original image, ground truth, and every method's mask."""
+    import matplotlib.pyplot as plt     # only needed here; keeps the app's import light
+
     n = len(results) + 2
     cols = 3
     rows = int(np.ceil(n / cols))

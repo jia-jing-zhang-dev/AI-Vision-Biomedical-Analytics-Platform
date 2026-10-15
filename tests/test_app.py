@@ -222,3 +222,16 @@ def test_blood_page_grad_cam_checkbox_adds_one_heatmap_per_model():
     at.checkbox[0].check().run()
     assert not at.exception
     assert len(at.image) == before + 2
+
+
+def test_grad_cam_choice_survives_switching_the_image_source():
+    at = run_page(BLOOD)
+    at.checkbox[0].check().run()
+    at.radio[0].set_value(at.radio[0].options[1]).run()      # switch to "upload"
+    assert at.checkbox[0].value is True
+    sample = ROOT / "public" / "blood_samples" / "0_basophil.png"
+    at.get("file_uploader")[0].upload("cell.png", sample.read_bytes(), "image/png").run()
+    assert not at.exception and at.checkbox[0].value is True
+    with_cam = len(at.image)
+    at.checkbox[0].uncheck().run()
+    assert len(at.image) == with_cam - 2                     # one heatmap per model was shown

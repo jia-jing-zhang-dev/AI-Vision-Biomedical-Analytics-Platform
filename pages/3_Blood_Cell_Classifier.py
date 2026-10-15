@@ -8,6 +8,9 @@ from PIL import Image
 from src.explain import grad_cam, overlay
 from src.image_io import UploadError, load_upload
 from src.medical_cnn import CLASS_NAMES, load_model, predict_proba
+from src.runtime import heavy_work, limit_torch_threads
+
+limit_torch_threads()
 
 ROOT = Path(__file__).resolve().parent.parent   # works from any working directory
 SAMPLE_DIR = ROOT / "public" / "blood_samples"
@@ -65,6 +68,13 @@ cols[-1].metric("Fully connected baseline", "72.9%")
 
 source = st.radio("Image source", ["Pick a sample from the test set", "Upload your own image"],
                   horizontal=True)
+# Drawn on every run (not only when an image exists) so the choice survives
+# switching between samples and uploads.
+show_cam = st.checkbox(
+    "Show Grad-CAM: where each model looked",
+    help="Grad-CAM highlights the image regions that pushed the model towards its "
+         "prediction (red = most important).",
+)
 
 image = None
 if source == "Pick a sample from the test set":
@@ -80,7 +90,8 @@ else:
                                      type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
         try:
-            image, _ = load_upload(uploaded_file, mode="RGB")   # 8-bit, upright, at most 1024 px
+            with heavy_work():
+                image, _ = load_upload(uploaded_file, mode="RGB")   # 8-bit, upright, at most 1024 px
         except UploadError as err:
             st.error(str(err))
     st.caption(
@@ -90,27 +101,27 @@ else:
 
 if image is not None:
     st.image(image, caption="Input image", width=200)
-    show_cam = st.checkbox(
-        "Show Grad-CAM: where each model looked",
-        help="Grad-CAM highlights the image regions that pushed the model towards its "
-             "prediction (red = most important).",
-    )
 
-    for col, (name, model) in zip(st.columns(len(models)), models.items()):
-        with col:
-            st.markdown(f"**{name}**")
+    # Compute under the process-wide lock, render afterwards
+    outputs = {}
+    with heavy_work():
+        for name, model in models.items():
             probs = predict_proba(model, image)
             top = int(probs.argmax())
+            cam = overlay(image, grad_cam(model, image, target=top)[0]) if show_cam else None
+            outputs[name] = (probs, top, cam)
+
+    for col, (name, (probs, top, cam)) in zip(st.columns(len(outputs)), outputs.items()):
+        with col:
+            st.markdown(f"**{name}**")
             st.success(f"**Prediction:** {CLASS_NAMES[top]} ({probs[top]:.1%} confidence)")
             st.bar_chart(
                 pd.DataFrame({"probability": probs}, index=CLASS_NAMES),
                 horizontal=True,
                 height=260,
             )
-            if show_cam:
-                heatmap, _ = grad_cam(model, image, target=top)
-                st.image(overlay(image, heatmap), caption=f"Grad-CAM for '{CLASS_NAMES[top]}'",
-                         width="stretch")
+            if cam is not None:
+                st.image(cam, caption=f"Grad-CAM for '{CLASS_NAMES[top]}'", width="stretch")
 
 with st.expander("Model details and comparison with published results"):
     st.markdown(
