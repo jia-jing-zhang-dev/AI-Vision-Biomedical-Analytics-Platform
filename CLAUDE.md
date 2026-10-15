@@ -77,6 +77,8 @@ streamlit run app.py
 - `load_model` applies `<weights>_calibration.json` (temperature from
   `calibrate_medical.py`); predictions are unchanged, confidences calibrated.
   `fit_temperature` needs the strong-Wolfe line search (it stopped early before).
+  `train_medical.py` deletes the calibration JSON when it overwrites weights;
+  re-run `calibrate_medical.py` after retraining.
 - Grad-CAM (`src/explain.py`) is hook-free on purpose (models are shared across
   Streamlit sessions); a test compares it with pytorch-grad-cam (CI installs
   that with `--no-deps`, because it wants GUI OpenCV).
@@ -154,5 +156,6 @@ reworded with a bootstrap CI (not significant), 9 more tests. Tests 130 → 153.
 | Check | Verified findings | Fixed | Tests |
 |---|---|---|---|
 | A: deployment rehearsal (clean Python 3.14 venv, uv install of requirements.txt, real server on Windows and Linux/2 CPUs) | App works from a clean clone, no runtime downloads; one visitor peaks ~934 MB and two concurrent 25 MP uploads ~1.16 GB; Grad-CAM checkbox reset when switching image source | `heavy_work()` lock around uploads/segmentation/inference, torch limited to 2 threads, lazy pyplot import, checkbox always drawn | 153 → 155 |
+| B: full code review (lock, cross-module interactions) | No high: lock is never nested and released on Streamlit stop/rerun; tiling vs erosion verified on 1040×1392 mosaics. Found: stale calibration JSON applied after retraining; malformed/zero/negative temperature crashed page 3 or flipped predictions; `train_unet --crop/--boundary-weight` unvalidated; README structure and `src/__init__` missing new modules; ambiguous README summary row | All: `read_temperature` validation, `train_medical` removes the stale calibration file, CLI checks, docs | 155 → 159 |
 
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

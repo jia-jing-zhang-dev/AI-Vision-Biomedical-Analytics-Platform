@@ -172,12 +172,32 @@ def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Modu
                          f"({err.__class__.__name__}: {str(err)[:200]})") from err
     model.arch = arch
     # Temperature from calibrate_medical.py (1.0 = uncalibrated softmax)
-    calibration = Path(str(Path(path).with_suffix("")) + "_calibration.json")
-    model.temperature = 1.0
-    if calibration.exists():
-        import json
-        model.temperature = float(json.loads(calibration.read_text())["temperature"])
+    model.temperature = read_temperature(path)
     return model.to(device).eval()
+
+
+def calibration_path(weights: str) -> Path:
+    return Path(str(Path(weights).with_suffix("")) + "_calibration.json")
+
+
+def read_temperature(weights: str) -> float:
+    """Temperature from calibrate_medical.py for these weights, 1.0 if none.
+    Raises ValueError for a malformed file (a zero or negative temperature
+    would turn every prediction into NaN or flip it)."""
+    import json
+    import math
+
+    path = calibration_path(weights)
+    if not path.exists():
+        return 1.0
+    try:
+        t = float(json.loads(path.read_text())["temperature"])
+    except (ValueError, KeyError, TypeError) as err:
+        raise ValueError(f"{path.name} is not a valid calibration file ({err.__class__.__name__}); "
+                         "re-run calibrate_medical.py or delete it") from err
+    if not (math.isfinite(t) and t > 0):
+        raise ValueError(f"{path.name}: temperature must be a positive number, got {t}")
+    return t
 
 
 def predict_proba(model, image, device=None):

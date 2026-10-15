@@ -19,7 +19,7 @@ import torch
 from torch import nn
 
 from src.medical_cnn import (
-    CLASS_NAMES, BloodCNN, build_mlp_baseline, build_resnet18, evaluate, fit,
+    CLASS_NAMES, BloodCNN, build_mlp_baseline, build_resnet18, calibration_path, evaluate, fit,
     get_bloodmnist_loaders, get_device, set_deterministic, train_one_epoch,
 )
 
@@ -180,6 +180,10 @@ def main(argv=None):
                    "optuna_trials": args.optuna, "val_accuracy": val_acc,
                    "test_accuracy": test_acc}, f, indent=2)
     print(f"Saved weights to {paths['weights']}")
+    stale = calibration_path(paths["weights"])
+    if stale.exists():                     # it was fitted to the previous weights
+        stale.unlink()
+        print(f"Removed {stale.name}; run calibrate_medical.py to calibrate the new weights")
     title = "ResNet-18 (pretrained)" if args.model == "resnet18" else "Custom CNN"
     save_confusion_matrix(model, test_loader, device, paths["figure"], title)
 

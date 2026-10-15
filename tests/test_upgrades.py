@@ -240,3 +240,27 @@ def test_heavy_work_runs_one_request_at_a_time():
     for t in threads: t.start()
     for t in threads: t.join()
     assert peak[0] == 1
+
+
+def test_malformed_calibration_files_are_rejected_clearly(tmp_path):
+    import shutil
+    from src.medical_cnn import load_model, read_temperature
+    weights = tmp_path / "model.pth"
+    shutil.copy(ROOT / "biomedical_cnn.pth", weights)
+    assert read_temperature(str(weights)) == 1.0                    # no file: uncalibrated
+    for content in ('{"t": 1.0}', "not json", '{"temperature": 0}', '{"temperature": -1}',
+                    '{"temperature": "nan"}'):
+        (tmp_path / "model_calibration.json").write_text(content)
+        with pytest.raises(ValueError):
+            load_model(str(weights))
+    (tmp_path / "model_calibration.json").write_text('{"temperature": 1.5}')
+    assert load_model(str(weights)).temperature == 1.5
+
+
+@pytest.mark.parametrize("argv", [["--crop", "250"], ["--crop", "600"], ["--boundary-weight", "0"]])
+def test_train_unet_rejects_invalid_arguments(argv, tmp_path):
+    import train_unet
+    (tmp_path / "metadata").mkdir()
+    with pytest.raises(SystemExit) as exc:
+        train_unet.main(argv + ["--data-dir", str(tmp_path)])
+    assert exc.value.code == 2

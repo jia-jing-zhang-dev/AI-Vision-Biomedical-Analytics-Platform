@@ -30,6 +30,8 @@ def heavy_work():
 
 
 def limit_torch_threads(n: int = MAX_TORCH_THREADS) -> None:
+    """Call at the top of every page script: PyTorch's thread setting applies
+    to the calling thread, and Streamlit runs each script run in its own."""
     import torch
     if torch.get_num_threads() > n:
         torch.set_num_threads(n)

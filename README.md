@@ -13,7 +13,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 | BloodMNIST, ImageNet-pretrained ResNet-18 reference | 97.9% test accuracy, with a 20× larger model |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
 | FashionMNIST clothing classification (MLP, 10 classes) | 86.9% test accuracy |
-| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5 (best of all methods), average F1 0.863; Cellpose 0.902; best classical 0.830 |
+| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5 (best of all methods; Cellpose 0.938). Average F1 over IoU 0.50–0.90: U-Net 0.863, Cellpose 0.902, best classical 0.830 |
 | Confidence calibration | Both blood-cell models already well calibrated (test ECE 0.9% and 0.5%); temperature scaling makes no significant difference |
 
 ## Features
@@ -51,6 +51,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 │   ├── unet.py                      # U-Net, 3-class encoding/decoding for touching nuclei
 │   ├── explain.py                   # Grad-CAM for the blood-cell models
 │   ├── calibration.py               # Temperature scaling, ECE, reliability curves
+│   ├── runtime.py                   # App resource settings: heavy-work lock, torch threads
 │   └── visualization.py             # EDA visualization helpers
 ├── notebooks/demo_end_to_end.ipynb  # Walkthrough of the classical-ML, clustering, segmentation and convolution modules
 ├── public/                          # Figures, BloodMNIST and FashionMNIST sample images
@@ -160,7 +161,7 @@ python train_medical.py --optuna 20   # reproduces the shipped model (96.7%)
 
 The script downloads BloodMNIST from MedMNIST, runs a 20-trial Optuna search on the validation split, trains the chosen CNN for 15 epochs, keeps the epoch with the best **validation** accuracy, evaluates the held-out **test** split once, and writes `biomedical_cnn.pth`, `biomedical_cnn_results.json` and `public/bloodmnist-confusion.png`. The Blood Cell Classifier page loads these files.
 
-> Without `--optuna`, the default hyperparameters are used (96.0%) and the shipped weights, results and figure are **overwritten**. Pass `--out runs/model.pth` (create `runs/` first) to write an experiment elsewhere; its results and figure then go next to it.
+> Without `--optuna`, the default hyperparameters are used (96.0%) and the shipped weights, results and figure are **overwritten**; the old calibration file is removed (re-run `calibrate_medical.py`). Pass `--out runs/model.pth` (create `runs/` first) to write an experiment elsewhere; its results and figure then go next to it.
 
 ```bash
 python train_medical.py --model mlp   # reproduce the original fully connected baseline

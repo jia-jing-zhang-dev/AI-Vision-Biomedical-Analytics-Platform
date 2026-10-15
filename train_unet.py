@@ -78,6 +78,10 @@ def main(argv=None):
     for name in ("epochs", "steps_per_epoch", "batch_size", "eval_every", "base"):
         if getattr(args, name) < 1:
             parser.error(f"--{name.replace('_', '-')} must be at least 1")
+    if args.crop % 16 or not 16 <= args.crop <= 512:      # U-Net halves 4 times; images are 520x696
+        parser.error("--crop must be a multiple of 16 between 16 and 512")
+    if args.boundary_weight <= 0:
+        parser.error("--boundary-weight must be positive")
     if not os.path.isdir(os.path.join(args.data_dir, "metadata")):
         parser.error(f"{args.data_dir} does not contain BBBC039 (images/, masks/, metadata/)")
     if not Path(args.out).resolve().parent.is_dir():
