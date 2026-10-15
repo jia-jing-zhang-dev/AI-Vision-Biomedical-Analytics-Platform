@@ -32,8 +32,9 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader("🖼️ Module 1: PyTorch Deep Learning Classification")
-    st.write("- A fully connected neural network built with PyTorch.")
-    st.write("- Supports real-time image uploads for 10-class classification (86.9% test accuracy).")
+    st.write("- A convolutional neural network (CNN) built with PyTorch.")
+    st.write("- Real-time image uploads for 10-class classification: **92.8% test accuracy**, "
+             "up from 86.9% for a fully connected baseline, and robust to mirrored or shifted items.")
 
     st.image(
         str(ROOT / "public" / "fashion-demo.png"),

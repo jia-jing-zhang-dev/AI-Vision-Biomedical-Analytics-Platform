@@ -9,7 +9,7 @@ Streamlit app + reusable modules for biomedical image analysis, deployed at
 
 - `src/medical_cnn.py` — BloodMNIST classifiers: custom CNN (shipped, 96.7%), MLP baseline (72.9%), ImageNet-pretrained ResNet-18 reference (97.9%)
 - `src/segmentation.py` — classical segmentation, synthetic cell benchmark, Dice/IoU/instance F1, optional Cellpose reference
-- `src/vision_cnn.py` — FashionMNIST MLP (86.9%); `prepare_upload` crops/centres/fills 28 px like FashionMNIST (product photos 12% → 86%, regression test in test_regressions.py)
+- `src/vision_cnn.py` — FashionMNIST CNN `build_cnn` (92.8%, the app's model, `fashion_cnn.pth`) and MLP baseline `build_model` (86.9%, `fashion_model.pth`); `prepare_upload` crops/centres/fills 28 px like FashionMNIST (product photos 12% → 86%, regression test in test_regressions.py)
 - `src/classification.py`, `src/clustering.py`, `src/convolution.py`, `src/visualization.py` — ML utilities
 - `pages/` — Streamlit pages; `app.py` — home page
 - `train.py`, `train_medical.py`, `benchmark_segmentation.py` — reproducible scripts behind every number in the README
@@ -168,6 +168,8 @@ reworded with a bootstrap CI (not significant), 9 more tests. Tests 130 → 153.
 | Segmentation: SEM image of a neuron | U-Net splits the neuron into many pieces | Out of domain (trained on fluorescent nuclei); the page caption already warns | No change |
 | Blood cells: probability chart | ResNet-18 chart x-axis ran from −2 to 1 | Streamlit bar chart auto-scales its axis | Fixed: Altair chart with a fixed 0–1 axis |
 | Blood cells: smear with many cells | Several neutrophils → "immature granulocyte" | Models expect one centred cell per image (BloodMNIST crops) | Fixed: `src/blood_cells.py` finds stained cells (B−G), one crop size per image (median stained size / 0.60, from validation), page shows numbered overview + per-cell predictions. Test mosaics (900 cells): 99.0% of leukocytes/erythroblasts found, crops classified 86.4% CNN / 89.7% ResNet vs 95.7/97.3% on original crops; platelets mostly skipped; TTA did not help (validation). Smear mode only for ≥2 stained cells (a size rule flagged 18% of single crops) |
+
+Follow-up (same day): the boot still failed after both preprocessing fixes (very low, long shape; mirror rule saw it as right-heavy). Page 1 now uses a CNN trained with flip/shift/scale augmentation (`train.py`, epoch chosen on a 5,000-image validation part of the training set, test once): test 92.8% vs 86.9%, mirrored test 92.5% vs 63.5%, photo-like uploads 90.5% vs 85.8%, McNemar p < 1e-70; 140 k vs 670 k parameters. The MLP stays as the comparison baseline.
 
 Lessons from this feedback: preprocessing for uploads must reproduce how the
 training images were made (FashionMNIST: crop, centre, fill; BloodMNIST: one

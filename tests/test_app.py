@@ -78,7 +78,10 @@ def test_fashion_page_classifies_an_uploaded_image():
     ImageDraw.Draw(img).rectangle([40, 20, 80, 150], fill="black")
     at.get("file_uploader")[0].upload("item.png", png_bytes(img), "image/png").run()
     click(at, "Run the PyTorch Model")
-    assert at.success[0].value.startswith("**Prediction Result:**")
+    assert at.success[0].value.startswith("**Prediction Result (CNN):**")
+    captions = " ".join(c.value for c in at.caption)
+    assert "Fully connected baseline for comparison:" in captions
+    assert "92." in captions                               # CNN test accuracy from its results JSON
 
 
 # --------------------------------------------------------- segmentation page

@@ -396,7 +396,8 @@ def test_grad_cam_leaves_the_shared_model_untouched():
     assert all(p.grad is None for p in model.parameters()) and not model.training
 
 
-def test_fashion_product_photos_are_cropped_like_fashionmnist():
+@pytest.mark.parametrize("arch", ["mlp", "cnn"])
+def test_fashion_product_photos_are_cropped_like_fashionmnist(arch):
     """A user's product photo (dark item, small and off-centre on an off-white,
     non-square background) was squeezed whole to 28x28: an ankle boot came out
     as "Sandal". Every bundled sample, turned into such a photo and also
@@ -404,10 +405,11 @@ def test_fashion_product_photos_are_cropped_like_fashionmnist():
     import numpy as np
     import torch
     from PIL import Image
-    from src.vision_cnn import build_model, prepare_upload
+    from src.vision_cnn import build_cnn, build_model, prepare_upload
 
-    model, device = build_model()
-    model.load_state_dict(torch.load(ROOT / "fashion_model.pth", map_location=device, weights_only=True))
+    builder, weights = (build_cnn, "fashion_cnn.pth") if arch == "cnn" else (build_model, "fashion_model.pth")
+    model, device = builder()
+    model.load_state_dict(torch.load(ROOT / weights, map_location=device, weights_only=True))
     model.eval()
     rng = np.random.default_rng(0)
     for path in sorted((ROOT / "public" / "fashion_samples").glob("*.png")):
@@ -423,3 +425,27 @@ def test_fashion_product_photos_are_cropped_like_fashionmnist():
             mirrored = model(prepare_upload(photo.transpose(Image.Transpose.FLIP_LEFT_RIGHT)).to(device)).argmax(1).item()
         assert got == expected, path.name
         assert mirrored == expected, f"{path.name} (mirrored)"
+
+
+def test_fashion_cnn_is_robust_where_the_baseline_fails():
+    """The CNN (flip/shift/scale augmentation) must recognize every bundled
+    sample mirrored and shifted, without the preprocessing's mirror rule, and
+    its recorded test accuracy must beat the fully connected baseline."""
+    import json
+    import numpy as np
+    import torch
+    from PIL import Image
+    from src.vision_cnn import build_cnn
+
+    model, device = build_cnn()
+    model.load_state_dict(torch.load(ROOT / "fashion_cnn.pth", map_location=device, weights_only=True))
+    model.eval()
+    for path in sorted((ROOT / "public" / "fashion_samples").glob("*.png")):
+        x = np.asarray(Image.open(path).convert("L"), np.float32) / 255.0
+        label = int(path.stem.split("_", 1)[0])
+        for variant in (x, x[:, ::-1], np.roll(x, 2, axis=1)):
+            t = torch.from_numpy(np.ascontiguousarray(variant))[None, None].to(device)
+            with torch.no_grad():
+                assert model(t).argmax(1).item() == label, path.name
+    results = json.loads((ROOT / "fashion_cnn_results.json").read_text())
+    assert results["test_accuracy"] > 0.90 and results["best_epoch"] <= results["epochs"]

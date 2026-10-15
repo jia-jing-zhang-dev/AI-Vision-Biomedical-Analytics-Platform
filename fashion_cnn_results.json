@@ -1,0 +1,8 @@
+{
+  "model": "cnn",
+  "seed": 0,
+  "epochs": 25,
+  "best_epoch": 23,
+  "val_accuracy": 0.9304,
+  "test_accuracy": 0.9275
+}

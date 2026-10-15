@@ -51,6 +51,28 @@ def build_model():
     return NeuralNetwork().to(device), device
 
 
+def build_cnn(dropout: float = 0.3):
+    """Small convolutional network for 28x28 FashionMNIST: 5 convolutions with
+    batch normalization, two 2x2 poolings (28 -> 14 -> 7), global average
+    pooling and a linear head. Unlike the fully connected network, its
+    filters respond to an edge or a heel wherever it appears in the image.
+    Returns (model, device) like ``build_model``.
+    """
+    from torch import nn
+
+    def block(c_in, c_out):
+        return [nn.Conv2d(c_in, c_out, 3, padding=1, bias=False), nn.BatchNorm2d(c_out), nn.ReLU()]
+
+    model = nn.Sequential(
+        *block(1, 32), *block(32, 32), nn.MaxPool2d(2),
+        *block(32, 64), *block(64, 64), nn.MaxPool2d(2),
+        *block(64, 128), nn.AdaptiveAvgPool2d(1), nn.Flatten(),
+        nn.Dropout(dropout), nn.Linear(128, 10),
+    )
+    device = get_device()
+    return model.to(device), device
+
+
 def train_one_epoch(model, dataloader, loss_fn, optimizer, device: str) -> float:
     """Runs a single training epoch, returns the mean training loss."""
     model.train()
@@ -93,6 +115,36 @@ def get_fashion_mnist_loaders(batch_size: int = 64, data_dir: str = "./data"):
     return (
         DataLoader(train_ds, batch_size=batch_size, shuffle=True),
         DataLoader(test_ds, batch_size=batch_size),
+    )
+
+
+def get_fashion_mnist_splits(batch_size: int = 128, data_dir: str = "./data",
+                             val_size: int = 5000, seed: int = 0):
+    """(train, validation, test) loaders for the CNN. The validation images
+    are a fixed random part of the official training set (FashionMNIST has no
+    validation split), so epochs are chosen without looking at the test set.
+    Training images are augmented with flips, shifts, scaling and small
+    rotations, so uploads need not be framed exactly like the dataset.
+    """
+    import torch
+    from torch.utils.data import DataLoader, Subset
+    from torchvision import datasets, transforms
+
+    augment = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.8, 1.1)),
+        transforms.ToTensor(),
+    ])
+    plain = transforms.ToTensor()
+    train_aug = datasets.FashionMNIST(data_dir, train=True, download=True, transform=augment)
+    train_plain = datasets.FashionMNIST(data_dir, train=True, download=True, transform=plain)
+    test_ds = datasets.FashionMNIST(data_dir, train=False, download=True, transform=plain)
+    order = torch.randperm(len(train_aug), generator=torch.Generator().manual_seed(seed)).tolist()
+    val_idx, train_idx = order[:val_size], order[val_size:]
+    return (
+        DataLoader(Subset(train_aug, train_idx), batch_size=batch_size, shuffle=True),
+        DataLoader(Subset(train_plain, val_idx), batch_size=512),
+        DataLoader(test_ds, batch_size=512),
     )
 
 

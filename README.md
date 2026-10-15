@@ -12,7 +12,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 | BloodMNIST blood-cell classification (custom CNN, 8 classes) | **96.7%** test accuracy (fully connected baseline: 72.9%) |
 | BloodMNIST, ImageNet-pretrained ResNet-18 reference | 97.9% test accuracy, with a 20× larger model |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
-| FashionMNIST clothing classification (MLP, 10 classes) | 86.9% test accuracy |
+| FashionMNIST clothing classification (CNN, 10 classes) | **92.8%** test accuracy (fully connected baseline: 86.9%) |
 | **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5, on par with pretrained Cellpose (0.938; not a significant difference). Average F1 over IoU 0.50–0.90: U-Net 0.863, Cellpose 0.902, best classical 0.830 |
 | Confidence calibration | Both blood-cell models already well calibrated (test ECE 0.9% and 0.5%); temperature scaling makes no significant difference |
 
@@ -23,7 +23,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 - **U-Net for nucleus segmentation** — a 1.9 M-parameter U-Net trained here on BBBC039 with the three-class (background / interior / boundary) formulation of Caicedo et al. (2019); available in the app's segmentation page.
 - **Explainability (Grad-CAM)** — heatmaps of where each blood-cell model looked, verified against the `pytorch-grad-cam` library (correlation > 0.999).
 - **Confidence calibration** — temperature scaling fitted on the validation split, with reliability diagrams and ECE on the test split; both models were already well calibrated (test ECE < 1%), so scaling changes their confidences only marginally.
-- **FashionMNIST clothing classification** — a PyTorch three-layer fully connected network that predicts one of ten clothing classes from an uploaded image (86.9% test accuracy).
+- **FashionMNIST clothing classification** — a PyTorch CNN that predicts one of ten clothing classes from an uploaded image (92.8% test accuracy, up from 86.9% for the original fully connected network), with upload preprocessing that reproduces how the dataset was made.
 - **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells — benchmarked against **Cellpose**, the standard deep-learning tool for cell segmentation. Brightfield images (dark cells on a light background, such as stained blood smears) are detected and inverted automatically.
 - **Segmentation benchmark** — generates realistic synthetic microscopy images (touching nuclei, uneven illumination, blur, noise) with per-cell ground truth, and scores every method with pixel-level Dice / IoU and object-level instance F1.
 - **Machine-learning utilities** — decision trees, random forests, ANOVA feature selection, Optuna tuning, and K-Means clustering analysis.
@@ -56,7 +56,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 │   └── visualization.py             # EDA visualization helpers
 ├── notebooks/demo_end_to_end.ipynb  # Walkthrough of the classical-ML, clustering, segmentation and convolution modules
 ├── public/                          # Figures, BloodMNIST and FashionMNIST sample images
-├── train.py                         # FashionMNIST training script
+├── train.py                         # FashionMNIST training script (CNN, or --model mlp)
 ├── train_medical.py                 # BloodMNIST training / tuning script
 ├── benchmark_segmentation.py        # Segmentation benchmark over many images
 ├── benchmark_bbbc039.py             # Real-data segmentation benchmark (BBBC039)
@@ -65,7 +65,8 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 ├── unet_bbbc039.pth                 # Trained U-Net weights (7.8 MB) + *_results.json
 ├── bbbc039_results.json             # BBBC039 test-set results of every method
 ├── biomedical_*_calibration.json    # Fitted temperatures and before/after test metrics
-├── fashion_model.pth                # Trained FashionMNIST weights
+├── fashion_cnn.pth                  # Trained FashionMNIST CNN (used by the app)
+├── fashion_model.pth                # FashionMNIST fully connected baseline
 ├── biomedical_cnn.pth               # Trained BloodMNIST CNN weights
 ├── biomedical_cnn_results.json      # Hyperparameters and val/test accuracy
 ├── biomedical_resnet18.pth          # Fine-tuned ResNet-18 weights (reference model)
@@ -149,10 +150,19 @@ Then open <http://localhost:8501>.
 ### FashionMNIST Clothing Classifier
 
 ```bash
-python train.py
+python train.py               # CNN -> fashion_cnn.pth, fashion_cnn_results.json (~5 min on a laptop GPU)
+python train.py --model mlp   # original fully connected baseline -> fashion_model.pth
 ```
 
-The script downloads FashionMNIST to `data/`, trains for five epochs with a fixed seed (the shipped model reaches 86.9% test accuracy), and saves the weights as `fashion_model.pth`. The classification page loads this file; if it is removed or replaced, train the model again before starting the page.
+The CNN (5 convolutions with batch normalization, global average pooling; 140 k parameters) trains for 25 epochs on 55,000 training images augmented with flips, shifts, scaling and small rotations. The epoch with the best accuracy on the remaining 5,000 training images (validation) is kept and the test set is evaluated once. The fully connected baseline keeps its original recipe (5 epochs, no augmentation). Both are deterministic for a given `--seed` on the same hardware.
+
+| FashionMNIST, 10,000 test images | Fully connected (670 k parameters) | **CNN** (140 k parameters) |
+|---|---|---|
+| Test accuracy | 86.9% | **92.8%** |
+| Test set, every image mirrored | 63.5% (ankle boots 0%) | **92.5%** (ankle boots 96%) |
+| 2,000 photo-like uploads (small, off-centre, off-white background, half mirrored) | 85.8% | **90.5%** |
+
+The CNN is right on 853 test images the baseline gets wrong and wrong on 267 it gets right (McNemar p < 10⁻⁷⁰). Its filters respond to an edge or a heel wherever it appears, and the augmentation teaches it that a mirrored or shifted item is the same item; the fully connected network ties every weight to one pixel position. The page shows the CNN's prediction and, for comparison, the baseline's.
 
 ### BloodMNIST Biomedical Classifier
 
@@ -297,9 +307,9 @@ The tests cover classification, clustering, segmentation metrics, 2D convolution
 
 ## Troubleshooting
 
-### `fashion_model.pth` cannot be found
+### `fashion_cnn.pth` or `fashion_model.pth` cannot be found
 
-Run `python train.py` from the project root, or confirm that the trained weight file is still located there.
+Run `python train.py` (CNN) or `python train.py --model mlp` (baseline) from the project root, or confirm that the weight files are still located there.
 
 ### Dataset download fails during training
 
@@ -307,7 +317,7 @@ Both `train.py` and `train_medical.py` download their datasets on the first run.
 
 ### Uploaded clothing images produce weak predictions
 
-The model is trained on 28×28 grayscale FashionMNIST images. For better results, use a clear, centered image of a single clothing item. The application prepares uploads the way FashionMNIST itself was made: it converts them to grayscale, inverts them when the background is light (FashionMNIST items are light on black), removes the background, crops and centres the item and scales its longer side to fill 28 pixels. All FashionMNIST shoes face the same way and a mirrored ankle boot is never recognized (0% on the test set), so left-heavy items are mirrored first: on the test set with every image mirrored, accuracy goes from 63.5% to 86.5% (unmirrored: 86.9% → 86.5%). The page shows this 28×28 input and the top-3 probabilities. On 2,000 test images turned into product-photo-like uploads (small, off-centre, on an off-white background) this raises accuracy from 12% (squeezing the whole photo to 28×28) to 86%; real photos with shadows or textured backgrounds remain harder.
+The model is trained on 28×28 grayscale FashionMNIST images. For better results, use a clear, centered image of a single clothing item. The application prepares uploads the way FashionMNIST itself was made: it converts them to grayscale, inverts them when the background is light (FashionMNIST items are light on black), removes the background, crops and centres the item and scales its longer side to fill 28 pixels. All FashionMNIST shoes face the same way and the fully connected baseline never recognizes a mirrored ankle boot (0% on the test set), so left-heavy items are mirrored first (for the baseline, all-mirrored test set 63.5% → 86.5%); the CNN, trained with flips, does not depend on this. The page shows this 28×28 input and the top-3 probabilities. On 2,000 test images turned into product-photo-like uploads (small, off-centre, on an off-white background) this raised the baseline's accuracy from 12% (squeezing the whole photo to 28×28) to 86%; real photos with shadows or textured backgrounds remain harder.
 
 ## Data and Credits
 

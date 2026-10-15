@@ -132,7 +132,8 @@ def test_train_medical_rejects_invalid_arguments(argv):
     assert exc.value.code == 2
 
 
-@pytest.mark.parametrize("argv", [["--bogus"], ["--epochs", "1"], ["--out", "no_such_folder/m.pth"]])
+@pytest.mark.parametrize("argv", [["--bogus"], ["--model", "mlp", "--epochs", "1"], ["--epochs", "0"],
+                                  ["--model", "svm"], ["--out", "no_such_folder/m.pth"]])
 def test_train_py_rejects_unknown_or_invalid_arguments(argv):
     import train
     with pytest.raises(SystemExit) as exc:

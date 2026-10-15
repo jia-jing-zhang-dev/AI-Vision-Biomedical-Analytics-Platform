@@ -6,7 +6,7 @@ Modules:
     clustering     - unsupervised learning (K-Means + silhouette model selection)
     segmentation   - classical CV image segmentation + Dice/IoU benchmarking
     convolution    - from-scratch 2D convolution & edge-detection kernels
-    vision_cnn     - PyTorch feed-forward network for image classification
+    vision_cnn     - FashionMNIST CNN and fully connected baseline, upload preprocessing
     medical_cnn    - PyTorch CNN for BloodMNIST blood-cell classification
     image_io       - upload loading/normalization (16-bit, transparency, EXIF, size limits)
     bbbc039        - BBBC039 real nuclei dataset loader (mask decoding, normalization)
