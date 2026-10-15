@@ -1,8 +1,11 @@
+import importlib.util
 from pathlib import Path
 
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parent   # works from any working directory
+# Cellpose is installed on the Hugging Face Space, not on Streamlit Cloud
+CELLPOSE_ONLINE = importlib.util.find_spec("cellpose") is not None
 
 st.set_page_config(
     page_title="Vision Analytics Framework",
@@ -47,8 +50,9 @@ with col2:
     st.write(
         "- Benchmarked with **Dice / IoU** and **instance F1**: the watershed raises "
         "instance F1 from 0.60 (Otsu) to 0.80 on images of touching cells; "
-        "Cellpose, the standard deep-learning tool, scores 0.90 as a reference "
-        "(benchmarked offline; not run in this online demo)."
+        "Cellpose, the standard deep-learning tool, scores 0.90 as a reference"
+        + (" (also run on the segmentation page)." if CELLPOSE_ONLINE
+           else " (benchmarked offline; not run in this online demo).")
     )
     st.write(
         "- On **real microscopy images** (BBBC039, expert annotations) a U-Net trained here "
