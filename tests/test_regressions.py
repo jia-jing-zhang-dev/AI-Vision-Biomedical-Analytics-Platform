@@ -394,3 +394,29 @@ def test_grad_cam_leaves_the_shared_model_untouched():
     assert heatmap.shape == (28, 28) and 0 <= heatmap.min() and heatmap.max() <= 1
     assert all(torch.equal(before[k], v) for k, v in model.state_dict().items())
     assert all(p.grad is None for p in model.parameters()) and not model.training
+
+
+def test_fashion_product_photos_are_cropped_like_fashionmnist():
+    """A user's product photo (dark item, small and off-centre on an off-white,
+    non-square background) was squeezed whole to 28x28: an ankle boot came out
+    as "Sandal". Every bundled sample, turned into such a photo, must now be
+    classified as on its original 28x28 image."""
+    import numpy as np
+    import torch
+    from PIL import Image
+    from src.vision_cnn import build_model, prepare_upload
+
+    model, device = build_model()
+    model.load_state_dict(torch.load(ROOT / "fashion_model.pth", map_location=device, weights_only=True))
+    model.eval()
+    rng = np.random.default_rng(0)
+    for path in sorted((ROOT / "public" / "fashion_samples").glob("*.png")):
+        item = Image.open(path).convert("L")
+        up = np.asarray(item.resize((150, 150), Image.Resampling.BICUBIC), np.float32)
+        canvas = np.full((300, 420), 240.0) + rng.normal(0, 2, (300, 420))
+        canvas[40:190, 230:380] = 240 - up * 220 / 255
+        photo = Image.fromarray(np.clip(canvas, 0, 255).astype(np.uint8))
+        with torch.no_grad():
+            expected = model(prepare_upload(item).to(device)).argmax(1).item()
+            got = model(prepare_upload(photo).to(device)).argmax(1).item()
+        assert got == expected, path.name

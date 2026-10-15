@@ -9,7 +9,7 @@ Streamlit app + reusable modules for biomedical image analysis, deployed at
 
 - `src/medical_cnn.py` — BloodMNIST classifiers: custom CNN (shipped, 96.7%), MLP baseline (72.9%), ImageNet-pretrained ResNet-18 reference (97.9%)
 - `src/segmentation.py` — classical segmentation, synthetic cell benchmark, Dice/IoU/instance F1, optional Cellpose reference
-- `src/vision_cnn.py` — FashionMNIST MLP (86.9%)
+- `src/vision_cnn.py` — FashionMNIST MLP (86.9%); `prepare_upload` crops/centres/fills 28 px like FashionMNIST (product photos 12% → 86%, regression test in test_regressions.py)
 - `src/classification.py`, `src/clustering.py`, `src/convolution.py`, `src/visualization.py` — ML utilities
 - `pages/` — Streamlit pages; `app.py` — home page
 - `train.py`, `train_medical.py`, `benchmark_segmentation.py` — reproducible scripts behind every number in the README

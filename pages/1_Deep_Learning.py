@@ -55,12 +55,21 @@ if uploaded_file is not None:
     
     if st.button("Run the PyTorch Model for Classification"):
         with st.spinner("Model inference in progress..."):
-            # Grayscale 28x28; inverted only if the background is light
+            # Cropped, centred, 28x28 light-on-black like the FashionMNIST images
             input_tensor = prepare_upload(image).to(device)
 
             with heavy_work(), torch.no_grad():
-                output = model(input_tensor)
-                predicted_class_idx = output.argmax(1).item()
-                predicted_class_name = FASHION_MNIST_CLASSES[predicted_class_idx]
-            
-            st.success(f"**Prediction Result:** {predicted_class_name}")
+                probs = torch.softmax(model(input_tensor), 1)[0].cpu()
+            top = probs.topk(3)
+            predicted_class_name = FASHION_MNIST_CLASSES[top.indices[0].item()]
+
+        st.success(f"**Prediction Result:** {predicted_class_name}")
+        col_in, col_top = st.columns([1, 2])
+        col_in.image(input_tensor[0, 0].cpu().numpy(), caption="What the model sees (28×28)",
+                     width=140, clamp=True)
+        col_top.write("**Top 3**")
+        for p, i in zip(top.values.tolist(), top.indices.tolist()):
+            col_top.progress(p, text=f"{FASHION_MNIST_CLASSES[i]}: {p:.1%}")
+        st.caption("A small fully connected network trained on 28×28 grayscale product images "
+                   "(86.9% test accuracy); real photos with shadows, angles or busy backgrounds "
+                   "can still be misread.")

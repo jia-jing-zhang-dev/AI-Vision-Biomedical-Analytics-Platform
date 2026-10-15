@@ -109,7 +109,14 @@ def prepare_upload(image):
     FashionMNIST items are bright on black, while most photos are dark items
     on a light background, so the image is inverted only when its border is
     bright. Transparent areas count as white background.
+
+    The rest follows how FashionMNIST was made (Xiao et al. 2017): the
+    background is removed, the item is cropped and centred, and its longer
+    side is scaled to fill the 28 pixels. Squeezing a whole product photo
+    to 28x28 instead leaves the item small, distorted and on a grey
+    background, which the model never saw.
     """
+    import cv2
     import numpy as np
     import torch
     from PIL import Image
@@ -117,8 +124,25 @@ def prepare_upload(image):
     from src.image_io import to_8bit
     from src.segmentation import has_bright_background
 
-    gray = to_8bit(image, "L").resize((28, 28), Image.Resampling.BILINEAR)
-    arr = np.asarray(gray, dtype=np.uint8)
+    arr = np.asarray(to_8bit(image, "L"), dtype=np.uint8)
     if has_bright_background(arr):
         arr = 255 - arr
-    return torch.from_numpy(arr.astype(np.float32) / 255.0)[None, None]
+    border = np.concatenate([arr[0], arr[-1], arr[:, 0], arr[:, -1]])
+    item = np.clip(arr.astype(np.float32) - np.median(border), 0, None)   # background -> 0
+    if item.max() > 0:
+        # Bounding box of the item: components at least 5% the size of the
+        # largest, so specks of dust or noise do not stretch the crop
+        mask = (item > 0.15 * item.max()).astype(np.uint8)
+        n, _, stats, _ = cv2.connectedComponentsWithStats(mask)
+        areas = stats[1:, cv2.CC_STAT_AREA]
+        keep = stats[1:][areas >= 0.05 * areas.max()]
+        x0, y0 = keep[:, cv2.CC_STAT_LEFT].min(), keep[:, cv2.CC_STAT_TOP].min()
+        x1 = (keep[:, cv2.CC_STAT_LEFT] + keep[:, cv2.CC_STAT_WIDTH]).max()
+        y1 = (keep[:, cv2.CC_STAT_TOP] + keep[:, cv2.CC_STAT_HEIGHT]).max()
+        item = item[y0:y1, x0:x1] * (255.0 / item.max())
+    side = max(item.shape)
+    square = np.zeros((side, side), np.float32)                          # centre, keep aspect
+    top, left = (side - item.shape[0]) // 2, (side - item.shape[1]) // 2
+    square[top:top + item.shape[0], left:left + item.shape[1]] = item
+    small = Image.fromarray(square.astype(np.uint8)).resize((28, 28), Image.Resampling.LANCZOS)
+    return torch.from_numpy(np.asarray(small, dtype=np.float32) / 255.0)[None, None]
