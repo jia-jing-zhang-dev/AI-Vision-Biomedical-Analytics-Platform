@@ -78,7 +78,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 ├── Dockerfile                       # Container for the Streamlit app (CPU-only PyTorch)
 ├── pyproject.toml                   # pytest configuration
 ├── CLAUDE.md                        # Contributor notes, review checklist and log
-├── .github/workflows/tests.yml      # CI: Python 3.12 (full) and 3.14 (as deployed)
+├── .github/workflows/tests.yml      # CI on Python 3.12: full, and app dependencies as deployed
 └── tests/                           # pytest suite (run in CI on every push)
 ```
 

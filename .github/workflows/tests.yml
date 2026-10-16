@@ -19,15 +19,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Full environment, including Cellpose (needs numpy<2.1, so Python <= 3.12)
-          - python-version: "3.12"
-            deployment-like: false
-          # Python 3.14 and requirements.txt installed the way Streamlit Cloud
-          # does (uv, prebuilt wheels only), plus what the tests need
-          - python-version: "3.14"
-            deployment-like: true
-    name: pytest (Python ${{ matrix.python-version }})
+        # Both jobs use Python 3.12 (Cellpose needs numpy<2.1, so Python <= 3.12)
+        python-version: ["3.12"]
+        deployment-like: [false, true]
+        # false: full environment, including Cellpose
+        # true: requirements.txt installed the way Streamlit Cloud does (uv,
+        #       prebuilt wheels only), plus what the tests need
+    name: pytest (Python ${{ matrix.python-version }}, ${{ matrix.deployment-like && 'app dependencies' || 'full' }})
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7

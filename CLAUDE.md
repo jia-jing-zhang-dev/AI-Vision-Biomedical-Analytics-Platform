@@ -37,9 +37,11 @@ streamlit run app.py
   versions live only in `requirements.txt`.
 - **Cellpose 3 pins `numpy<2.1`** (no 3.14 wheels) → it lives in
   `requirements-dev.txt` only; the app hides Cellpose when it is not installed.
-- CI (`.github/workflows/tests.yml`) runs Python 3.12 with dev extras **and**
-  Python 3.14 with the deployment's dependencies installed the same way (uv,
-  wheels only), plus `requirements-ml.txt` and pytest for the tests.
+- CI (`.github/workflows/tests.yml`) runs two jobs, **both on Python 3.12**
+  (owner's choice, 2026-10-16): dev extras, and the deployment's dependencies
+  installed the way Streamlit Cloud does (uv, wheels only) plus
+  `requirements-ml.txt` and pytest. Python 3.14, which Streamlit Cloud runs,
+  is therefore no longer tested in CI.
 - After every push the deployed app must be rebooted by hand in Streamlit Cloud
   (the deployment is not auto-syncing).
 - The user's Windows checkout lives under a very long path: datasets need the
@@ -102,8 +104,9 @@ item because an earlier round covered it; re-verify against the current code.
 4. **App** — every page, button, selector and upload path works
    (`tests/test_app.py`); no deprecated Streamlit APIs; memory-safe on
    Streamlit Cloud (~1 GB).
-5. **Dependencies & deployment** — installs on Python 3.14 from wheels; CI
-   green on both Python versions; versions pinned where breakage is likely.
+5. **Dependencies & deployment** — installs on Python 3.14 from wheels (check
+   locally: CI runs 3.12 only); both CI jobs green; versions pinned where
+   breakage is likely.
 6. **Tests** — every fixed bug gets a regression test; tests assert something
    meaningful (no always-true assertions).
 7. **Code quality** — no duplicated helpers, no dead code, docstrings match
