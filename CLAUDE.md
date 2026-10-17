@@ -203,5 +203,13 @@ would try (product photo, whole smear), not only with dataset samples. Tests
   upscales gave DinoBloom 2/8). ViT Grad-CAM split at blocks[-1].norm1 (pytorch-grad-cam corr 1.000;
   splitting before norm1 gave 0.43-0.96). Memory on Python 3.14 after all pages: 607 MB.
 - Owner decision: weights in git (option A). Tests 172 -> 184.
+- Colour robustness (same day): `src/color_shift.py` (seeded eval-only suite: cast, saturation, gamma,
+  JPEG; mild/strong). Validation: Reinhard normalization hurt (BM val 99.3 -> 89.0; per-image LAB stats
+  depend on cell fraction) -> rejected; colour-jittered head (`probe_foundation --color-jitter`) helped
+  -> shipped (BM test 98.89%). KU test (re-framed): 95.8% clean / 95.2% mild / 93.9% strong (plain head
+  93.8 / 92.9 / 90.7; CNN 65.0 / 34.5 / 12.4). Review threshold re-chosen on KU validation: 0.50; KU test
+  98.1% accepted at 96.8% (below the 98% target), only 55/209 errors flagged -- reported, not re-tuned.
+  Smear mosaics: 99.0% correct, review keeps 99.6% at 99.1%. Owner's web smear (blue-green background,
+  WebP; unlabelled) still mostly wrong/flagged -- anecdotal, not explained by the colour suite.
 
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

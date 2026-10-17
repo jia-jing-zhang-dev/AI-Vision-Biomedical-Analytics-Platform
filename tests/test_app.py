@@ -65,7 +65,7 @@ def test_home_page_shows_three_modules_and_results():
     at = run_page("app.py")
     assert len(at.subheader) == 3
     text = " ".join(m.value for m in at.markdown)
-    for number in ("98.9%", "93.8%", "0.80", "0.90", "92.8%", "86.9%"):
+    for number in ("98.9%", "95.8%", "0.80", "0.90", "92.8%", "86.9%"):
         assert number in text
     assert len(at.image) == 4
 
@@ -160,7 +160,7 @@ def test_blood_page_shows_metrics():
     at = run_page(BLOOD)
     values = {m.label: m.value for m in at.metric}
     # BloodMNIST test / another scanner and stain (KU-Optofil PBC test patients)
-    assert values["DinoBloom-S (224 px)"] == "98.9% / 93.8%"
+    assert values["DinoBloom-S (224 px)"] == "98.9% / 95.8%"
     assert values["Custom CNN (28 px)"] == "96.7% / 65.0%"
 
 

@@ -81,10 +81,11 @@ def crop_cells(image: Image.Image, cells, side: int | None = None) -> List[Image
 
 # DinoBloom-S confidence below which a cell is left for a person to review.
 # Chosen on the KU-Optofil validation patients (another scanner and stain) as
-# the lowest threshold whose accepted cells are >= 98% correct. Checked once on
-# the KU-Optofil test patients: 92.6% of cells accepted, 97.1% of them correct;
-# on smear mosaics of BloodMNIST test cells: 98.9% accepted, 99.2% correct.
-REVIEW_CONFIDENCE = 0.70
+# the lowest threshold whose accepted cells are >= 98% correct (98.1%). Checked
+# once on the KU-Optofil test patients: 98.1% of cells accepted, 96.8% of them
+# correct (below the target), only 55 of 209 errors flagged; on smear mosaics
+# of BloodMNIST test cells: 99.6% accepted, 99.1% correct.
+REVIEW_CONFIDENCE = 0.50
 
 
 def accepted_label(probs) -> int | None:

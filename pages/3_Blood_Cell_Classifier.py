@@ -28,7 +28,7 @@ MODELS = {
 }
 # Cross-source results (KU-Optofil PBC, another scanner and stain): eval_external.py
 EXTERNAL = ROOT / "external_results.json"
-EXTERNAL_NAMES = {"DinoBloom-S (224 px)": "DinoBloom-S probe", "Custom CNN (28 px)": "Custom CNN (28 px)"}
+EXTERNAL_NAMES = {"DinoBloom-S (224 px)": "DinoBloom-S (app model)", "Custom CNN (28 px)": "Custom CNN (28 px)"}
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
 
@@ -127,8 +127,8 @@ def show_smear(image, cells, n_found: int):
     st.caption(
         f"{n_counted} of {len(labels)} cells counted; **{n_review} need review** "
         f"({short(main_name)} below {REVIEW_CONFIDENCE:.0%} confidence; red boxes). On another "
-        "scanner and stain (KU-Optofil PBC test patients) this rule counted 93% of cells at 97% "
-        "accuracy."
+        "scanner and stain (KU-Optofil PBC test patients) this rule counted 98% of cells at 97% "
+        "accuracy but flagged only a quarter of the errors, so counted cells can still be wrong."
     )
     st.image(overview, caption="Stained cells found (numbered; red = needs review)", width="stretch")
     for row in range(0, len(crops), 4):
@@ -244,7 +244,8 @@ with st.expander("Model details and comparison with published results"):
     st.markdown(
         "**DinoBloom-S** — a DINOv2 ViT-S/14 pretrained on blood and bone-marrow cells "
         "(Koch et al., MICCAI 2024; BloodMNIST's source images were not in its training data). "
-        "The backbone is frozen; a logistic-regression head is trained on BloodMNIST-224.\n\n"
+        "The backbone is frozen; a logistic-regression head is trained on BloodMNIST-224 images "
+        "plus colour-jittered copies, so it relies less on one scanner's colours.\n\n"
         "**Custom CNN** — 5 convolution layers with batch normalization, 2 max-pooling "
         "stages, global average pooling, dropout + linear head (28×28 input). AdamW with a "
         "cosine schedule, flip/rotation augmentation, Optuna search on the validation split.\n\n"

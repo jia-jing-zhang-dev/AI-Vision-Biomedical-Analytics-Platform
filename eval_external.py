@@ -7,6 +7,7 @@ trained on it: this measures transfer to a new source.
     python eval_external.py --data-dir DIR --split validation   # choose models / thresholds
     python eval_external.py --data-dir DIR --split test         # report once
     python eval_external.py --data-dir DIR --split test --reframe   # zoomed-out cells re-framed first
+    python eval_external.py --data-dir DIR --split test --reframe --perturb strong   # + colour changes
 
 DIR holds dataset.zip and metadata_with_patient_level_splits.csv. Classes
 are mapped to BloodMNIST's (band and segmented neutrophils -> neutrophil;
@@ -103,6 +104,8 @@ def main(argv=None):
     parser.add_argument("--split", choices=["validation", "test"], required=True)
     parser.add_argument("--resnet224", default="biomedical_resnet18_224.pth")
     parser.add_argument("--cache-dir", default="probe_cache", help="probe heads from probe_foundation.py")
+    parser.add_argument("--perturb", choices=["mild", "strong"], default=None,
+                        help="apply src.color_shift.perturb (seeded per image) after re-framing")
     parser.add_argument("--reframe", action="store_true",
                         help="re-frame zoomed-out cells to BloodMNIST's scale (src.blood_cells.reframe_single_cell)")
     args = parser.parse_args(argv)
@@ -116,13 +119,17 @@ def main(argv=None):
     if args.reframe:
         from src.blood_cells import reframe_single_cell
         images = [reframe_single_cell(im) for im in images]
-    key = args.split + ("_reframed" if args.reframe else "")
+    if args.perturb:
+        from src.color_shift import perturb
+        images = [perturb(im, args.perturb, i) for i, im in enumerate(images)]
+    key = args.split + ("_reframed" if args.reframe else "") + (f"_{args.perturb}" if args.perturb else "")
     print(f"{args.split}: {len(images)} cells from {len(np.unique(patients))} patients")
     candidates = {
+        "DinoBloom-S (app model)": lambda: probs_trained("biomedical_dinobloom_s.pth", images, device),
         "Custom CNN (28 px)": lambda: probs_trained("biomedical_cnn.pth", images, device),
         "ResNet-18 (28 px upsampled)": lambda: probs_trained("biomedical_resnet18.pth", images, device),
         "ResNet-18 (224 px)": lambda: probs_trained(args.resnet224, images, device),
-        "DinoBloom-S probe": lambda: probs_probe("dinobloom_s", cache, images, device),
+        "DinoBloom-S probe (no jitter)": lambda: probs_probe("dinobloom_s", cache, images, device),
         "DINOv2-S probe": lambda: probs_probe("dinov2_s", cache, images, device),
         "DINOv2-B probe": lambda: probs_probe("dinov2_b", cache, images, device),
     }

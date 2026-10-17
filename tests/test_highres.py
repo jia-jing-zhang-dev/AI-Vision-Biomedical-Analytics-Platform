@@ -133,5 +133,7 @@ def test_vit_grad_cam_matches_pytorch_grad_cam():
 def test_external_results_match_the_page_and_readme():
     import json
     ext = json.loads((ROOT / "external_results.json").read_text())["test_reframed"]
-    assert round(ext["DinoBloom-S probe"]["accuracy"], 3) == 0.938
-    assert ext["DinoBloom-S probe"]["accuracy"] > ext["ResNet-18 (224 px)"]["accuracy"] + 0.1
+    assert round(ext["DinoBloom-S (app model)"]["accuracy"], 3) == 0.958
+    assert ext["DinoBloom-S (app model)"]["accuracy"] > ext["ResNet-18 (224 px)"]["accuracy"] + 0.1
+    strong = json.loads((ROOT / "external_results.json").read_text())["test_reframed_strong"]
+    assert strong["DinoBloom-S (app model)"]["accuracy"] > strong["Custom CNN (28 px)"]["accuracy"] + 0.5

@@ -9,7 +9,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 | Result | Value |
 |---|---|
-| **Blood cells on another scanner and stain** (KU-Optofil PBC, 4,949 cells from 55 patients, never trained on) | DinoBloom-S foundation model + linear head: **93.8%** (macro-F1 0.77); ResNet-18 at 224 px: 76.2%; custom CNN: 65.0% |
+| **Blood cells on another scanner and stain** (KU-Optofil PBC, 4,949 cells from 55 patients, never trained on) | DinoBloom-S foundation model + linear head: **95.8%** (macro-F1 0.79; 93.9% with strong added colour shifts); ResNet-18 at 224 px: 76.2%; custom CNN: 65.0% |
 | BloodMNIST blood-cell classification (8 classes, same source) | DinoBloom-S 98.9%, ResNet-18 at 224 px 99.1% (not a significant difference); custom CNN **96.7%** (fully connected baseline: 72.9%) |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
 | FashionMNIST clothing classification (CNN, 10 classes) | **92.8%** test accuracy (fully connected baseline: 86.9%) |
@@ -18,8 +18,8 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 ## Features
 
-- **Blood-cell classification that holds up on another scanner** — the app uses **DinoBloom-S**, a hematology foundation model, with a linear head trained on BloodMNIST at 224 px; tested on a second dataset from a different scanner and stain, it reaches 93.8% where models that score 97–99% on BloodMNIST fall to 65–76%. A PyTorch CNN trained from scratch (96.7% on BloodMNIST, Optuna-tuned) is shown alongside as the small baseline.
-- **Blood-smear differential count** — a smear upload is split into one crop per stained cell; each is classified, and cells below 70% confidence are flagged for review.
+- **Blood-cell classification that holds up on another scanner** — the app uses **DinoBloom-S**, a hematology foundation model, with a linear head trained on BloodMNIST at 224 px; tested on a second dataset from a different scanner and stain, it reaches 95.8% where models that score 97–99% on BloodMNIST fall to 65–76%, and it keeps 93.9% under strong added colour shifts. A PyTorch CNN trained from scratch (96.7% on BloodMNIST, Optuna-tuned) is shown alongside as the small baseline.
+- **Blood-smear differential count** — a smear upload is split into one crop per stained cell; each is classified, and cells below 50% confidence are flagged for review.
 - **Real-data segmentation benchmark** — every method evaluated on BBBC039, 200 fluorescence images of U2OS nuclei with expert annotations and an official train/validation/test split, using the metrics of the dataset's reference paper.
 - **U-Net for nucleus segmentation** — a 1.9 M-parameter U-Net trained here on BBBC039 with the three-class (background / interior / boundary) formulation of Caicedo et al. (2019); available in the app's segmentation page.
 - **Explainability (Grad-CAM)** — heatmaps of where each blood-cell model looked, verified against the `pytorch-grad-cam` library (correlation > 0.999).
@@ -54,6 +54,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 │   ├── calibration.py               # Temperature scaling, ECE, reliability curves
 │   ├── runtime.py                   # App resource settings: heavy-work lock, torch threads
 │   ├── blood_cells.py               # Finds/crops stained cells, re-frames zoomed-out cells, review flag
+│   ├── color_shift.py               # Colour-change suite for robustness tests; Reinhard normalization
 │   └── visualization.py             # EDA visualization helpers
 ├── notebooks/demo_end_to_end.ipynb  # Walkthrough of the classical-ML, clustering, segmentation and convolution modules
 ├── public/                          # Figures, BloodMNIST and FashionMNIST sample images
@@ -284,7 +285,7 @@ Checked on smear-like mosaics of 3×3 BloodMNIST test cells (100 mosaics, 900 ce
 
 99.0% of leukocytes and erythroblasts were found (777/785); platelets mostly were not (12/115), because small stained objects next to larger cells are skipped. Test-time augmentation (flips/rotations, three crop sizes) did not help on validation. The mosaics have hard seams between tiles, so real smears may behave differently; uploads with only one stained cell are classified as a whole image, as before (6 of 500 single-cell test crops were mistaken for smears).
 
-The page then reports a **differential count** (count of each cell type, and shares once at least 10 cells are counted) like a lab report. Cells are now classified by DinoBloom-S at 224 px; one below 70% confidence is marked **needs review** (red box). On smear mosaics of BloodMNIST-224 test cells (100 mosaics, 900 cells) 97.9% of leukocytes and erythroblasts were found, DinoBloom-S classified 98.9% of the found cells correctly, and the review rule kept 98.9% of them at 99.2% accuracy. (An earlier version used the 28 px CNN and ResNet-18 with a two-model agreement rule: 86.4% / 89.7% on the same kind of mosaics; on one smear of neutrophils from another source only 3 and 6 of 9 cells were right, which started the cross-scanner work below.)
+The page then reports a **differential count** (count of each cell type, and shares once at least 10 cells are counted) like a lab report. Cells are now classified by DinoBloom-S at 224 px; one below 50% confidence is marked **needs review** (red box). On smear mosaics of BloodMNIST-224 test cells (100 mosaics, 900 cells) 97.9% of leukocytes and erythroblasts were found, DinoBloom-S classified 99.0% of the found cells correctly, and the review rule kept 99.6% of them at 99.1% accuracy. (An earlier version used the 28 px CNN and ResNet-18 with a two-model agreement rule: 86.4% / 89.7% on the same kind of mosaics; on one smear of neutrophils from another source only 3 and 6 of 9 cells were right, which started the cross-scanner work below.)
 
 ## Higher Resolution, Foundation Models and a Second Scanner (blood cells)
 
@@ -320,7 +321,18 @@ The first run exposed a framing difference: this scanner shows each cell at abou
 | DINOv2-S + linear head | 57.7% | 79.6% | 0.61 |
 | DINOv2-B + linear head | 74.5% | 86.0% | 0.59 |
 
-The model that ties for best on BloodMNIST (ResNet-18 at 224 px) is 18 points behind DinoBloom-S on the new scanner, which matches a recent study of frozen hematology encoders under acquisition shift (Sharma & Tapadiya, HemaRAI 2026 workshop, arXiv 2608.25148). The app therefore uses DinoBloom-S, exported with its head as one checkpoint (`python probe_foundation.py --data-dir DIR --models dinobloom_s --export biomedical_dinobloom_s.pth`; loads offline). Cells it classifies with less than 70% confidence are flagged for review (threshold chosen on the validation patients): on the test patients 92.6% of cells were accepted, 97.1% of them correctly. Macro-F1 stays well below accuracy because rare classes (basophils, immature granulocytes, erythroblasts) are harder; the external set's neutrophils dominate accuracy.
+The model that ties for best on BloodMNIST (ResNet-18 at 224 px) is 18 points behind DinoBloom-S on the new scanner, which matches a recent study of frozen hematology encoders under acquisition shift (Sharma & Tapadiya, HemaRAI 2026 workshop, arXiv 2608.25148). Macro-F1 stays well below accuracy because rare classes (basophils, immature granulocytes, erythroblasts) are harder; the external set's neutrophils dominate accuracy.
+
+**4. Colour robustness.** Photos from other labs differ in white balance, stain strength, exposure and compression. `src/color_shift.py` applies a seeded suite of such changes (evaluation only) at two severities. Two remedies were compared on the validation sets: Reinhard colour normalization to BloodMNIST's CIELAB statistics, which hurt everywhere (BloodMNIST validation 99.3% → 89.0%: per-image statistics depend on how much of the frame is cell, and normalizing them erased colour cues), and training the head on the BloodMNIST images plus one colour-jittered copy each (`--color-jitter`), which helped. The app ships the jittered head (BloodMNIST test 98.89% vs. 98.95% without, i.e. unchanged):
+
+| KU-Optofil test patients (re-framed) | No colour change | Mild changes | Strong changes |
+|---|---|---|---|
+| **DinoBloom-S, colour-jittered head (app)** | **95.8%** [94.2, 97.1], F1 0.79 | 95.2% | 93.9% |
+| DinoBloom-S, plain head | 93.8% | 92.9% | 90.7% |
+| ResNet-18 (224 px) | 76.2% | 67.7% | 42.7% |
+| Custom CNN (28 px) | 65.0% | 34.5% | 12.4% |
+
+The app model is exported with its head as one checkpoint (`python probe_foundation.py --data-dir DIR --models dinobloom_s --color-jitter --export biomedical_dinobloom_s.pth`; loads offline). Cells it classifies with less than 50% confidence are flagged for review; the threshold was chosen on the validation patients as the lowest one whose accepted cells are at least 98% correct. On the test patients it accepted 98.1% of cells at 96.8% accuracy, below that target, and flagged only 55 of the 209 errors: the jittered head's confidences are softer, so the flag catches far fewer mistakes than with the plain head (57% at a 0.70 threshold). Counted cells can still be wrong.
 
 ## Explainability and Calibration (blood-cell models)
 

@@ -3,7 +3,7 @@ Linear probing of pretrained foundation models on BloodMNIST (224x224).
 
     python probe_foundation.py --data-dir DIR          # DIR holds bloodmnist_224.npz (MedMNIST+)
     python probe_foundation.py --data-dir DIR --models dinobloom_s
-    python probe_foundation.py --data-dir DIR --models dinobloom_s --export biomedical_dinobloom_s.pth
+    python probe_foundation.py --data-dir DIR --models dinobloom_s --color-jitter --export biomedical_dinobloom_s.pth
 
 Each backbone is frozen; its image embedding (CLS token) feeds a logistic
 regression. The regularization strength is chosen on the validation split
@@ -78,7 +78,17 @@ def probe(features: dict, labels: dict):
     return best_c, val_acc, float((proba.argmax(1) == labels["test"]).mean()), proba, head
 
 
-def export_dinobloom(cache: Path, out: str, result: dict):
+def jitter_images(images: np.ndarray, seed: int = 0) -> np.ndarray:
+    """One colour-jittered copy of each training image (brightness, contrast,
+    saturation, hue), so the head does not rely on one scanner's colours."""
+    from PIL import Image
+    from torchvision import transforms
+    jitter = transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.4, hue=0.04)
+    torch.manual_seed(seed)
+    return np.stack([np.asarray(jitter(Image.fromarray(x))) for x in images])
+
+
+def export_dinobloom(cache: Path, out: str, result: dict, key: str = "dinobloom_s"):
     """One timm model = frozen DinoBloom-S backbone + the fitted linear probe,
     saved like train_medical.py checkpoints (loadable offline by load_model)."""
     from src.medical_cnn import build_dinobloom_s
@@ -86,11 +96,12 @@ def export_dinobloom(cache: Path, out: str, result: dict):
     model = build_dinobloom_s()
     missing, unexpected = model.load_state_dict(backbone.state_dict(), strict=False)
     assert set(missing) == {"head.weight", "head.bias"} and not unexpected, (missing, unexpected)
-    head = np.load(cache / "dinobloom_s_head.npz")
+    head = np.load(cache / f"{key}_head.npz")
     with torch.no_grad():
         model.head.weight.copy_(torch.from_numpy(head["weight"]))
         model.head.bias.copy_(torch.from_numpy(head["bias"]))
-    params = {"arch": "dinobloom_s", "backbone": BACKBONES["dinobloom_s"][0], "probe_C": result["C"]}
+    params = {"arch": "dinobloom_s", "backbone": BACKBONES["dinobloom_s"][0], "probe_C": result["C"],
+              "color_jitter": key.endswith("+jitter")}
     torch.save({"params": params, "state_dict": model.state_dict()}, out)
     Path(out).with_name(Path(out).stem + "_results.json").write_text(json.dumps(
         {**params, "val_accuracy": result["val_accuracy"], "test_accuracy": result["test_accuracy"]}, indent=2))
@@ -104,6 +115,8 @@ def main(argv=None):
     parser.add_argument("--cache-dir", default="probe_cache", help="embeddings and test probabilities")
     parser.add_argument("--export", metavar="WEIGHTS", default=None,
                         help="save DinoBloom-S + its probe as one checkpoint for the app (needs dinobloom_s)")
+    parser.add_argument("--color-jitter", action="store_true",
+                        help="train the heads on the training images plus one colour-jittered copy each")
     args = parser.parse_args(argv)
     if args.export and "dinobloom_s" not in args.models:
         parser.error("--export needs dinobloom_s among --models")
@@ -129,16 +142,26 @@ def main(argv=None):
                 backbone = backbone or build_backbone(name, device)
                 np.save(path, embed(*backbone, data[f"{split}_images"], device))
             feats[split] = np.load(path)
+        key, fit_labels = name, labels
+        if args.color_jitter:
+            path = cache / f"{name}_train_jitter.npy"
+            if not path.exists():
+                backbone = backbone or build_backbone(name, device)
+                np.save(path, embed(*backbone, jitter_images(data["train_images"]), device))
+            feats["train"] = np.concatenate([feats["train"], np.load(path)])
+            fit_labels = dict(labels, train=np.concatenate([labels["train"], labels["train"]]))
+            key = f"{name}+jitter"
         del backbone
-        best_c, val_acc, test_acc, proba, head = probe(feats, labels)
-        np.save(cache / f"{name}_test_proba.npy", proba)
-        np.savez(cache / f"{name}_head.npz", **head)             # logits = embedding @ weight.T + bias
-        results[name] = {"backbone": BACKBONES[name][0], "feature_dim": int(feats["train"].shape[1]),
+        best_c, val_acc, test_acc, proba, head = probe(feats, fit_labels)
+        np.save(cache / f"{key}_test_proba.npy", proba)
+        np.savez(cache / f"{key}_head.npz", **head)              # logits = embedding @ weight.T + bias
+        results[key] = {"backbone": BACKBONES[name][0], "feature_dim": int(feats["train"].shape[1]),
                          "C": best_c, "val_accuracy": val_acc[best_c], "test_accuracy": test_acc}
-        print(f"{name}: dim {feats['train'].shape[1]}, C={best_c}, val {val_acc[best_c]:.4f}, test {test_acc:.4f}")
+        print(f"{key}: dim {feats['train'].shape[1]}, C={best_c}, val {val_acc[best_c]:.4f}, test {test_acc:.4f}")
         Path(RESULTS).write_text(json.dumps(results, indent=2))
     if args.export:
-        export_dinobloom(cache, args.export, results["dinobloom_s"])
+        key = "dinobloom_s+jitter" if args.color_jitter else "dinobloom_s"
+        export_dinobloom(cache, args.export, results[key], key)
 
 
 if __name__ == "__main__":

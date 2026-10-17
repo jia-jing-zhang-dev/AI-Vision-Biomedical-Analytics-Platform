@@ -1,7 +1,8 @@
 {
   "arch": "dinobloom_s",
   "backbone": "hf-hub:1aurent/vit_small_patch14_224.dinobloom",
-  "probe_C": 0.1,
-  "val_accuracy": 0.9929906542056075,
-  "test_accuracy": 0.9894767611809413
+  "probe_C": 0.01,
+  "color_jitter": true,
+  "val_accuracy": 0.991822429906542,
+  "test_accuracy": 0.9888921368021046
 }

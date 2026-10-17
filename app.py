@@ -78,8 +78,8 @@ with col3:
     st.write("- Classifies 8 blood-cell types with **DinoBloom-S**, a hematology foundation "
              "model, plus a classifier head trained here (98.9% on BloodMNIST).")
     st.write(
-        "- Tested on **another scanner and stain** it was never trained on: **93.8%**, where "
-        "models scoring 97–99% on BloodMNIST fall to 65–76%."
+        "- Tested on **another scanner and stain** it was never trained on: **95.8%**, where "
+        "models scoring 97–99% on BloodMNIST fall to 65–76%; robust to colour changes."
     )
     st.write(
         "- Blood smears are split into single cells for a differential count; uncertain cells "

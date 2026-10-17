@@ -19,5 +19,12 @@
     "C": 0.1,
     "val_accuracy": 0.9795560747663551,
     "test_accuracy": 0.9807073954983923
+  },
+  "dinobloom_s+jitter": {
+    "backbone": "hf-hub:1aurent/vit_small_patch14_224.dinobloom",
+    "feature_dim": 384,
+    "C": 0.01,
+    "val_accuracy": 0.991822429906542,
+    "test_accuracy": 0.9888921368021046
   }
 }
