@@ -65,7 +65,7 @@ def test_home_page_shows_three_modules_and_results():
     at = run_page("app.py")
     assert len(at.subheader) == 3
     text = " ".join(m.value for m in at.markdown)
-    for number in ("96.7%", "72.9%", "97.9%", "0.80", "0.90", "86.9%"):
+    for number in ("98.9%", "93.8%", "0.80", "0.90", "92.8%", "86.9%"):
         assert number in text
     assert len(at.image) == 4
 
@@ -159,9 +159,9 @@ BLOOD = "pages/3_Blood_Cell_Classifier.py"
 def test_blood_page_shows_metrics():
     at = run_page(BLOOD)
     values = {m.label: m.value for m in at.metric}
-    assert values["Custom CNN"] == "96.7%"
-    assert values["ResNet-18 (pretrained)"] == "97.9%"
-    assert values["Fully connected baseline"] == "72.9%"
+    # BloodMNIST test / another scanner and stain (KU-Optofil PBC test patients)
+    assert values["DinoBloom-S (224 px)"] == "98.9% / 93.8%"
+    assert values["Custom CNN (28 px)"] == "96.7% / 65.0%"
 
 
 def test_blood_page_classifies_every_bundled_sample():
@@ -172,10 +172,10 @@ def test_blood_page_classifies_every_bundled_sample():
     for option in box.options:                            # option text = true label
         at.selectbox[0].set_value(option).run()
         assert not at.exception
-        cnn, resnet = at.success[0].value, at.success[1].value
-        correct[0] += cnn.startswith(f"**Prediction:** {option} (")
-        correct[1] += resnet.startswith(f"**Prediction:** {option} (")
-    # Both models are ~97% accurate, so an occasional miss on a bundled sample is expected.
+        dinobloom, cnn = at.success[0].value, at.success[1].value
+        correct[0] += dinobloom.startswith(f"**Prediction:** {option} (")
+        correct[1] += cnn.startswith(f"**Prediction:** {option} (")
+    # Both models are 97-99% accurate, so an occasional miss on a bundled sample is expected.
     assert min(correct) >= 7, correct
 
 
@@ -253,7 +253,7 @@ def test_blood_page_splits_a_smear_into_cells():
     assert not at.exception
     assert "4 stained cells" in at.info[0].value
     captions = " ".join(c.value for c in at.caption)
-    assert captions.count("CNN:") == 4 and captions.count("ResNet:") == 4
+    assert captions.count("Custom CNN:") == 4 and captions.count("DinoBloom-S:") == 4
     assert any(h.value == "Differential count" for h in at.subheader)
     tables = [t.value for t in at.dataframe if "Cell type" in t.value.columns]
     counted = int(tables[0]["Count"].sum()) if tables else 0

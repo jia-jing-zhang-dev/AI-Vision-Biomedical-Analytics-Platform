@@ -9,8 +9,8 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 | Result | Value |
 |---|---|
-| BloodMNIST blood-cell classification (custom CNN, 8 classes) | **96.7%** test accuracy (fully connected baseline: 72.9%) |
-| BloodMNIST, ImageNet-pretrained ResNet-18 reference | 97.9% test accuracy, with a 20× larger model |
+| **Blood cells on another scanner and stain** (KU-Optofil PBC, 4,949 cells from 55 patients, never trained on) | DinoBloom-S foundation model + linear head: **93.8%** (macro-F1 0.77); ResNet-18 at 224 px: 76.2%; custom CNN: 65.0% |
+| BloodMNIST blood-cell classification (8 classes, same source) | DinoBloom-S 98.9%, ResNet-18 at 224 px 99.1% (not a significant difference); custom CNN **96.7%** (fully connected baseline: 72.9%) |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
 | FashionMNIST clothing classification (CNN, 10 classes) | **92.8%** test accuracy (fully connected baseline: 86.9%) |
 | **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5, on par with pretrained Cellpose (0.938; not a significant difference). Average F1 over IoU 0.50–0.90: U-Net 0.863, Cellpose 0.902, best classical 0.830 |
@@ -18,7 +18,8 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 ## Features
 
-- **Blood-cell classification** — a PyTorch CNN that classifies 8 blood-cell types from BloodMNIST at **96.7% test accuracy** (vs. 72.9% for a fully connected baseline), with hyperparameters tuned by Optuna on the validation split. Compared against torchvision's ImageNet-pretrained **ResNet-18** and the published MedMNIST v2 benchmarks.
+- **Blood-cell classification that holds up on another scanner** — the app uses **DinoBloom-S**, a hematology foundation model, with a linear head trained on BloodMNIST at 224 px; tested on a second dataset from a different scanner and stain, it reaches 93.8% where models that score 97–99% on BloodMNIST fall to 65–76%. A PyTorch CNN trained from scratch (96.7% on BloodMNIST, Optuna-tuned) is shown alongside as the small baseline.
+- **Blood-smear differential count** — a smear upload is split into one crop per stained cell; each is classified, and cells below 70% confidence are flagged for review.
 - **Real-data segmentation benchmark** — every method evaluated on BBBC039, 200 fluorescence images of U2OS nuclei with expert annotations and an official train/validation/test split, using the metrics of the dataset's reference paper.
 - **U-Net for nucleus segmentation** — a 1.9 M-parameter U-Net trained here on BBBC039 with the three-class (background / interior / boundary) formulation of Caicedo et al. (2019); available in the app's segmentation page.
 - **Explainability (Grad-CAM)** — heatmaps of where each blood-cell model looked, verified against the `pytorch-grad-cam` library (correlation > 0.999).
@@ -52,7 +53,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 │   ├── explain.py                   # Grad-CAM for the blood-cell models
 │   ├── calibration.py               # Temperature scaling, ECE, reliability curves
 │   ├── runtime.py                   # App resource settings: heavy-work lock, torch threads
-│   ├── blood_cells.py               # Finds and crops stained cells in blood-smear uploads
+│   ├── blood_cells.py               # Finds/crops stained cells, re-frames zoomed-out cells, review flag
 │   └── visualization.py             # EDA visualization helpers
 ├── notebooks/demo_end_to_end.ipynb  # Walkthrough of the classical-ML, clustering, segmentation and convolution modules
 ├── public/                          # Figures, BloodMNIST and FashionMNIST sample images
@@ -62,6 +63,10 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 ├── benchmark_bbbc039.py             # Real-data segmentation benchmark (BBBC039)
 ├── train_unet.py                    # Train the nucleus U-Net on BBBC039
 ├── calibrate_medical.py             # Temperature-scale the blood-cell models
+├── probe_foundation.py              # Linear probes of DinoBloom-S / DINOv2 on BloodMNIST-224; exports the app model
+├── eval_external.py                 # Cross-source evaluation on KU-Optofil PBC (other scanner and stain)
+├── biomedical_dinobloom_s.pth       # DinoBloom-S backbone + trained head (86.6 MB, used by the app)
+├── foundation_probe_results.json    # Probe results; external_results.json: cross-source results
 ├── unet_bbbc039.pth                 # Trained U-Net weights (7.8 MB) + *_results.json
 ├── bbbc039_results.json             # BBBC039 test-set results of every method
 ├── biomedical_*_calibration.json    # Fitted temperatures and before/after test metrics
@@ -69,7 +74,8 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 ├── fashion_model.pth                # FashionMNIST fully connected baseline
 ├── biomedical_cnn.pth               # Trained BloodMNIST CNN weights
 ├── biomedical_cnn_results.json      # Hyperparameters and val/test accuracy
-├── biomedical_resnet18.pth          # Fine-tuned ResNet-18 weights (reference model)
+├── biomedical_resnet18.pth          # Fine-tuned ResNet-18 weights (reference model; 28 px upsampled)
+├── biomedical_resnet18_224_results.json # ResNet-18 at native 224 px (weights not shipped; see below)
 ├── biomedical_resnet18_results.json # Its hyperparameters and val/test accuracy
 ├── requirements.txt                 # App dependencies (what Streamlit Cloud installs)
 ├── requirements-ml.txt              # scikit-learn, seaborn, Optuna
@@ -278,11 +284,47 @@ Checked on smear-like mosaics of 3×3 BloodMNIST test cells (100 mosaics, 900 ce
 
 99.0% of leukocytes and erythroblasts were found (777/785); platelets mostly were not (12/115), because small stained objects next to larger cells are skipped. Test-time augmentation (flips/rotations, three crop sizes) did not help on validation. The mosaics have hard seams between tiles, so real smears may behave differently; uploads with only one stained cell are classified as a whole image, as before (6 of 500 single-cell test crops were mistaken for smears).
 
-The page then reports a **differential count** (count and share of each cell type) like a lab report. A cell is counted only when both models agree and each is at least 85% confident; otherwise it is marked **needs review** (red box). The threshold was chosen on validation mosaics as the lowest one whose counted cells are at least 98% correct; on the test mosaics (783 cells) it counted 77.0% of the cells at 98.3% accuracy and flagged 103 of the 113 errors. Images from other microscopes or stains score lower: on one smear of neutrophils from another source, all 9 cells were found but only 3 (CNN) and 6 (ResNet-18) were classified correctly, which is what the review flag is for.
+The page then reports a **differential count** (count of each cell type, and shares once at least 10 cells are counted) like a lab report. Cells are now classified by DinoBloom-S at 224 px; one below 70% confidence is marked **needs review** (red box). On smear mosaics of BloodMNIST-224 test cells (100 mosaics, 900 cells) 97.9% of leukocytes and erythroblasts were found, DinoBloom-S classified 98.9% of the found cells correctly, and the review rule kept 98.9% of them at 99.2% accuracy. (An earlier version used the 28 px CNN and ResNet-18 with a two-model agreement rule: 86.4% / 89.7% on the same kind of mosaics; on one smear of neutrophils from another source only 3 and 6 of 9 cells were right, which started the cross-scanner work below.)
+
+## Higher Resolution, Foundation Models and a Second Scanner (blood cells)
+
+BloodMNIST's 28×28 images lose most of a cell's detail, and every published model scores 96–99% on its own test set. The harder question is whether a model still works on images from another hospital. This section answers it in three steps; every setting was chosen on validation data and each test set was evaluated once.
+
+**1. Native 224×224 images** (MedMNIST+, Doerrich et al., *Sci Rep* 2025, same 17,092 cells and split): ResNet-18 fine-tuned on 224 px images reaches **99.12%**, against 97.92% when it reads 28 px images upsampled to 224 (McNemar p = 2×10⁻⁷), in line with the 98.94% ± 0.08 MedMNIST+ reports.
+
+```bash
+python train_medical.py --model resnet18_224 --data-dir DIR   # DIR holds bloodmnist_224.npz (MedMNIST+, 1.5 GB)
+```
+
+**2. Foundation models instead of training from scratch.** `probe_foundation.py` freezes a pretrained vision transformer and trains only a logistic-regression head on its embeddings (regularization chosen on validation):
+
+| BloodMNIST-224 test (3,421 images) | Accuracy |
+|---|---|
+| ResNet-18, fine-tuned end to end | 99.12% |
+| **DinoBloom-S** (hematology foundation model, 22 M parameters), linear head | **98.95%** |
+| DINOv2-B (general, 86 M parameters), linear head | 98.07% |
+| DINOv2-S (general, 22 M parameters), linear head | 97.75% |
+
+DinoBloom-S ties the fine-tuned ResNet (p = 0.39) and beats both general-purpose DINOv2 models (p ≤ 0.0002). It was pretrained on 380,000 white-cell images from 13 datasets, with Acevedo et al. (BloodMNIST's source) held out (Koch et al., MICCAI 2024).
+
+**3. Another scanner and stain.** `eval_external.py` tests every model, without retraining, on **KU-Optofil PBC** (Koç University, 2025; Sysmex DI-60, May-Grünwald-Giemsa; CC BY 4.0), whereas BloodMNIST comes from a CellaVision DM96. It was published after DinoBloom, so DinoBloom cannot have seen it. Its classes are mapped to BloodMNIST's (segmented and band neutrophils → neutrophil; myelocytes and metamyelocytes → immature granulocyte); giant platelets, platelet clusters, blasts and reactive lymphocytes have no counterpart and are left out. The dataset's own patient-level split is used: validation patients to choose settings, test patients (4,949 cells, 55 patients) reported once, with 95% intervals from resampling patients.
+
+The first run exposed a framing difference: this scanner shows each cell at about half the size (stained region 0.36 of the frame vs. 0.66 on BloodMNIST-224), and the models trained on BloodMNIST collapsed (ResNet-18 at 224 px called 96% of the cells "erythroblast"). Zoomed-out cells are now re-framed around the stained cell to BloodMNIST's scale first (`reframe_single_cell`; only when the cell spans under 0.45 of the frame, so BloodMNIST-framed images are untouched; both values chosen on validation). Estimating magnification from red-cell size instead was tried on validation and dropped (red cells too few and too variable in BloodMNIST frames).
+
+| KU-Optofil test patients | As delivered | **Re-framed** | Macro-F1 (re-framed) |
+|---|---|---|---|
+| Custom CNN (28 px) | 4.2% | 65.0% | 0.33 |
+| ResNet-18 (28 px upsampled) | 2.7% | 63.7% | 0.39 |
+| ResNet-18 (224 px) | 3.5% | 76.2% | 0.58 |
+| **DinoBloom-S + linear head** | 81.6% | **93.8%** [91.7, 95.4] | **0.77** |
+| DINOv2-S + linear head | 57.7% | 79.6% | 0.61 |
+| DINOv2-B + linear head | 74.5% | 86.0% | 0.59 |
+
+The model that ties for best on BloodMNIST (ResNet-18 at 224 px) is 18 points behind DinoBloom-S on the new scanner, which matches a recent study of frozen hematology encoders under acquisition shift (Sharma & Tapadiya, HemaRAI 2026 workshop, arXiv 2608.25148). The app therefore uses DinoBloom-S, exported with its head as one checkpoint (`python probe_foundation.py --data-dir DIR --models dinobloom_s --export biomedical_dinobloom_s.pth`; loads offline). Cells it classifies with less than 70% confidence are flagged for review (threshold chosen on the validation patients): on the test patients 92.6% of cells were accepted, 97.1% of them correctly. Macro-F1 stays well below accuracy because rare classes (basophils, immature granulocytes, erythroblasts) are harder; the external set's neutrophils dominate accuracy.
 
 ## Explainability and Calibration (blood-cell models)
 
-**Grad-CAM.** The Blood Cell Classifier page can show a Grad-CAM heatmap for each model: the image regions that pushed it towards its prediction. The implementation (`src/explain.py`) splits the forward pass by hand instead of registering hooks, because the app shares one cached model between all visitors. A test checks that its heatmaps match the [`pytorch-grad-cam`](https://github.com/jacobgil/pytorch-grad-cam) library (correlation > 0.999).
+**Grad-CAM.** For DinoBloom-S (a vision transformer) the activations are the patch tokens entering the last block's attention, the layer `pytorch-grad-cam` uses for ViTs; its heatmaps match the library's (correlation 1.000). The Blood Cell Classifier page can show a Grad-CAM heatmap for each model: the image regions that pushed it towards its prediction. The implementation (`src/explain.py`) splits the forward pass by hand instead of registering hooks, because the app shares one cached model between all visitors. A test checks that its heatmaps match the [`pytorch-grad-cam`](https://github.com/jacobgil/pytorch-grad-cam) library (correlation > 0.999).
 
 **Calibration.** A model is well calibrated when, among predictions made with 90% confidence, about 90% are right. `calibrate_medical.py` fits a single temperature per model on the validation split (temperature scaling, Guo et al. 2017) and measures the expected calibration error (ECE, 15 bins, via `torchmetrics`) on the test split:
 
@@ -323,10 +365,13 @@ The model is trained on 28×28 grayscale FashionMNIST images. For better results
 
 ## Data and Credits
 
-- **BloodMNIST** — Yang et al., *MedMNIST v2*, Scientific Data 2023, built from Acevedo et al., *A dataset of microscopic peripheral blood cell images for development of automatic recognition systems*, Data in Brief 2020; [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). `public/blood_samples/` holds one test image per class, upscaled from 28×28 to 112×112 (nearest neighbour) for display.
+- **BloodMNIST** — Yang et al., *MedMNIST v2*, Scientific Data 2023, built from Acevedo et al., *A dataset of microscopic peripheral blood cell images for development of automatic recognition systems*, Data in Brief 2020; [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). `public/blood_samples/` holds the first test image of each class at 224×224 (MedMNIST+).
 - **FashionMNIST** — Xiao, Rasul & Vollgraf (Zalando Research), arXiv:1708.07747, 2017, MIT License. `public/fashion_samples/` holds one unmodified 28×28 test image per class.
 - **ResNet-18** — initialized from torchvision's ImageNet-pretrained weights before fine-tuning.
 - **Cellpose** — Stringer et al., *Cellpose: a generalist algorithm for cellular segmentation*, Nature Methods 2021 (the `nuclei` model); the installed version is Cellpose 3 (Stringer & Pachitariu, Nature Methods 2025).
 - **U-Net** — Ronneberger, Fischer & Brox, *U-Net: Convolutional Networks for Biomedical Image Segmentation*, MICCAI 2015.
 - **BBBC039** — Caicedo et al., *Evaluation of Deep Learning Strategies for Nucleus Segmentation in Fluorescence Images*, Cytometry A 2019; available from the Broad Bioimage Benchmark Collection (Ljosa et al., Nature Methods 2012), CC0. The three-class U-Net formulation and the average-F1 metric follow this paper.
+- **DinoBloom** — Koch et al., *DinoBloom: A Foundation Model for Generalizable Cell Embeddings in Hematology*, MICCAI 2024 (code Apache-2.0; timm conversion `1aurent/vit_small_patch14_224.dinobloom`). **DINOv2** — Oquab et al., 2023 (Apache-2.0). Loaded with **timm** (Wightman).
+- **MedMNIST+** (224 px BloodMNIST) — Doerrich et al., *Rethinking model prototyping through the MedMNIST+ dataset collection*, Scientific Reports 2025; CC BY 4.0.
+- **KU-Optofil PBC** — Yarıkan et al., *A large-scale peripheral blood cell dataset for automated hematological analysis*, Scientific Data 2026; Zenodo 10.5281/zenodo.17333317, CC BY 4.0. Used only for evaluation, not redistributed.
 - **Grad-CAM** — Selvaraju et al., ICCV 2017. **Temperature scaling** — Guo et al., *On Calibration of Modern Neural Networks*, ICML 2017 (fitting procedure after github.com/gpleiss/temperature_scaling).

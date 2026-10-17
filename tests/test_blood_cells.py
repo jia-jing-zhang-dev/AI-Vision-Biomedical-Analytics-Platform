@@ -56,14 +56,24 @@ def test_find_cells_rejects_non_rgb():
         find_cells(np.zeros((10, 10), np.uint8))
 
 
-def test_consensus_needs_agreement_and_confidence():
-    from src.blood_cells import REVIEW_CONFIDENCE, consensus
-    sure = np.eye(8)[6] * 0.95 + 0.05 / 8                       # confident "neutrophil"
-    unsure = np.full(8, 0.02); unsure[6] = REVIEW_CONFIDENCE - 0.05
-    other = np.eye(8)[3] * 0.95 + 0.05 / 8                      # confident "immature granulocyte"
-    assert consensus([sure, sure]) == 6
-    assert consensus([sure, unsure]) is None                   # one model not confident enough
-    assert consensus([sure, other]) is None                    # models disagree
+def test_accepted_label_needs_confidence():
+    from src.blood_cells import REVIEW_CONFIDENCE, accepted_label
+    sure = np.full(8, 0.01); sure[6] = 0.93                     # confident "neutrophil"
+    unsure = np.full(8, 0.04); unsure[6] = REVIEW_CONFIDENCE - 0.05
+    assert accepted_label(sure) == 6
+    assert accepted_label(unsure) is None                      # left for review
+
+
+def test_reframe_only_zoomed_out_single_cells():
+    """A BloodMNIST-framed cell is left alone; the same cell shrunk into a wide
+    field (another scanner's framing) is re-framed back to BloodMNIST's scale."""
+    from src.blood_cells import reframe_single_cell
+    cell = Image.open(SAMPLES / "6_neutrophil.png").convert("RGB")
+    assert reframe_single_cell(cell) is cell
+    wide = Image.new("RGB", (300, 300), tuple(int(v) for v in np.asarray(cell)[0, 0]))
+    wide.paste(cell.resize((60, 60)), (120, 120))
+    framed = reframe_single_cell(wide)
+    assert framed is not wide and 45 <= framed.size[0] <= 100     # ~ the 60-px cell at BloodMNIST framing
 
 
 def test_differential_count_leaves_review_cells_out_of_the_shares():

@@ -20,7 +20,8 @@ st.write(
 )
 
 st.caption(
-    "The classification models are trained on 28×28 images (FashionMNIST, BloodMNIST)."
+    "The clothing classifier works on 28×28 images (FashionMNIST); the blood-cell model on "
+    "224×224 images (BloodMNIST, MedMNIST+)."
 )
 
 st.info(
@@ -74,18 +75,15 @@ with col2:
 
 with col3:
     st.subheader("🩸 Module 3: Blood Cell Classification")
-    st.write("- A PyTorch CNN that classifies 8 blood-cell types (BloodMNIST).")
+    st.write("- Classifies 8 blood-cell types with **DinoBloom-S**, a hematology foundation "
+             "model, plus a classifier head trained here (98.9% on BloodMNIST).")
     st.write(
-        "- **96.7% test accuracy**, up from 72.9% for a fully connected baseline; "
-        "hyperparameters tuned with Optuna on the validation split."
+        "- Tested on **another scanner and stain** it was never trained on: **93.8%**, where "
+        "models scoring 97–99% on BloodMNIST fall to 65–76%."
     )
     st.write(
-        "- Grad-CAM heatmaps show where each model looked; confidence calibration was "
-        "checked (calibration error under 1%)."
-    )
-    st.write(
-        "- Compared with an ImageNet-pretrained ResNet-18 (97.9%, 20× larger) and the "
-        "published MedMNIST v2 benchmarks."
+        "- Blood smears are split into single cells for a differential count; uncertain cells "
+        "are flagged for review. Grad-CAM heatmaps show where each model looked."
     )
 
     st.image(

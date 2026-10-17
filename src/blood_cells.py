@@ -79,20 +79,18 @@ def crop_cells(image: Image.Image, cells, side: int | None = None) -> List[Image
     return [Image.fromarray(padded[cy:cy + side, cx:cx + side]) for cx, cy, _ in cells]
 
 
-# Chosen on smear-like mosaics of BloodMNIST validation cells as the lowest
-# threshold whose accepted cells are >= 98% correct (80.9% accepted). Checked
-# once on test mosaics: 77.0% accepted, 98.3% of them correct, 103 of 113
-# errors flagged for review.
-REVIEW_CONFIDENCE = 0.85
+# DinoBloom-S confidence below which a cell is left for a person to review.
+# Chosen on the KU-Optofil validation patients (another scanner and stain) as
+# the lowest threshold whose accepted cells are >= 98% correct. Checked once on
+# the KU-Optofil test patients: 92.6% of cells accepted, 97.1% of them correct;
+# on smear mosaics of BloodMNIST test cells: 98.9% accepted, 99.2% correct.
+REVIEW_CONFIDENCE = 0.70
 
 
-def consensus(probs) -> int | None:
-    """Class index the models agree on with at least REVIEW_CONFIDENCE each,
-    or None when the cell needs review by a person."""
-    labels = {int(np.argmax(p)) for p in probs}
-    if len(labels) != 1 or min(float(np.max(p)) for p in probs) < REVIEW_CONFIDENCE:
-        return None
-    return labels.pop()
+def accepted_label(probs) -> int | None:
+    """Predicted class if the model is at least REVIEW_CONFIDENCE sure,
+    else None (the cell needs review by a person)."""
+    return int(np.argmax(probs)) if float(np.max(probs)) >= REVIEW_CONFIDENCE else None
 
 
 def differential_count(labels, class_names) -> List[Tuple[str, int, float]]:
@@ -101,6 +99,30 @@ def differential_count(labels, class_names) -> List[Tuple[str, int, float]]:
     accepted = [lab for lab in labels if lab is not None]
     return [(name, accepted.count(i), accepted.count(i) / len(accepted) if accepted else 0.0)
             for i, name in enumerate(class_names)]
+
+
+# Single-cell uploads from other scanners can be zoomed out: on KU-Optofil PBC
+# (Sysmex DI-60) the stained cell spans a median 0.36 of the frame, against
+# 0.66 on BloodMNIST at 224 px. Such images are re-framed to BloodMNIST's
+# scale; images already framed like BloodMNIST are left alone (re-framing
+# them cost the ResNet up to 12 points). Both values were chosen on the
+# validation splits of BloodMNIST-224 and KU-Optofil.
+SINGLE_CELL_RATIO = 0.661       # stained size / frame, BloodMNIST-224 validation median
+REFRAME_BELOW = 0.45            # re-frame when the stained cell is smaller than this share
+
+
+def reframe_single_cell(image: Image.Image) -> Image.Image:
+    """Crop a zoomed-out single-cell image around its central stained cell at
+    BloodMNIST's framing; any other image is returned unchanged."""
+    rgb = np.asarray(image.convert("RGB"))
+    cells = find_cells(rgb)
+    if not cells:
+        return image
+    h, w = rgb.shape[:2]
+    cx, cy, size = min(cells, key=lambda c: (c[0] - w / 2) ** 2 + (c[1] - h / 2) ** 2)
+    if size / min(h, w) >= REFRAME_BELOW:
+        return image
+    return crop_cells(image, [(cx, cy, size)], int(round(size / SINGLE_CELL_RATIO)))[0]
 
 
 def is_smear(cells) -> bool:

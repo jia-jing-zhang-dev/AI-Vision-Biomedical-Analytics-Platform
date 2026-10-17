@@ -100,9 +100,25 @@ def build_mlp_baseline(n_classes: int = N_CLASSES) -> nn.Module:
     )
 
 
-ARCHITECTURES = ("cnn", "mlp", "resnet18")
+ARCHITECTURES = ("cnn", "mlp", "resnet18", "resnet18_224", "dinobloom_s")
+# Dataset resolution each architecture trains on: "resnet18" reads 28x28
+# BloodMNIST upsampled to 224, "resnet18_224" the native 224x224 images of
+# MedMNIST+ (same 17,092 cells and split, before downsampling).
+DATA_SIZE = {"resnet18_224": 224, "dinobloom_s": 224}
+RESNETS = ("resnet18", "resnet18_224")
+IMAGENET_NORMALIZED = RESNETS + ("dinobloom_s",)
 RESNET_INPUT_SIZE = 224
 IMAGENET_MEAN, IMAGENET_STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+
+
+def build_dinobloom_s(n_classes: int = N_CLASSES) -> nn.Module:
+    """DinoBloom-S (Koch et al., MICCAI 2024): a DINOv2 ViT-S/14 pretrained on
+    380k blood and bone marrow cell images, with a linear 8-class head. The
+    weights come from probe_foundation.py --export (backbone frozen, head
+    trained on BloodMNIST-224); built here without downloading anything."""
+    import timm
+    return timm.create_model("vit_small_patch14_dinov2", pretrained=False, img_size=224,
+                             num_classes=n_classes)
 
 
 def build_resnet18(pretrained: bool = True, n_classes: int = N_CLASSES) -> nn.Module:
@@ -123,7 +139,8 @@ def input_transform(arch: str = "cnn", from_upload: bool = False):
 
     ``from_upload`` first reduces an arbitrary image to 28x28 with area
     averaging (BOX); bicubic downsampling shifts the colour/texture
-    statistics enough to flip predictions.
+    statistics enough to flip predictions. "resnet18_224" reads native
+    224x224 images, so uploads are reduced (BOX) straight to 224x224.
     """
     from torchvision import transforms
 
@@ -131,12 +148,13 @@ def input_transform(arch: str = "cnn", from_upload: bool = False):
         raise ValueError(f"unknown architecture {arch!r}; expected one of {ARCHITECTURES}")
     steps = []
     if from_upload:
-        steps.append(transforms.Resize((28, 28), interpolation=transforms.InterpolationMode.BOX))
+        size = DATA_SIZE.get(arch, 28)
+        steps.append(transforms.Resize((size, size), interpolation=transforms.InterpolationMode.BOX))
     if arch == "resnet18":
         steps.append(transforms.Resize((RESNET_INPUT_SIZE, RESNET_INPUT_SIZE),
                                        interpolation=transforms.InterpolationMode.BILINEAR))
     steps.append(transforms.ToTensor())
-    if arch == "resnet18":
+    if arch in IMAGENET_NORMALIZED:
         steps.append(transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD))
     return transforms.Compose(steps)
 
@@ -159,9 +177,11 @@ def load_model(path: str = "biomedical_cnn.pth", device: str = "cpu") -> nn.Modu
     params = checkpoint["params"]
     try:
         arch = params.get("arch", "cnn")
-        if arch not in ("cnn", "resnet18"):
+        if arch not in ("cnn", "dinobloom_s") + RESNETS:
             raise ValueError(f"unsupported architecture {arch!r}")
-        if arch == "resnet18":
+        if arch == "dinobloom_s":
+            model = build_dinobloom_s()
+        elif arch in RESNETS:
             model = build_resnet18(pretrained=False)
         else:
             model = BloodCNN(params["base_channels"], params["dropout"])
@@ -225,7 +245,8 @@ def predict_proba(model, image, device=None):
 def get_bloodmnist_loaders(batch_size: int = 128, data_dir: str = "./data",
                            augment: bool = True, arch: str = "cnn"):
     """Returns (train, val, test) DataLoaders for BloodMNIST, preprocessed
-    for ``arch`` ("cnn"/"mlp" or "resnet18").
+    for ``arch`` ("cnn"/"mlp", "resnet18" or "resnet18_224"; the latter
+    needs bloodmnist_224.npz from MedMNIST+ in ``data_dir``).
 
     Blood-cell images have no canonical orientation, so random flips and
     90-degree rotations are used as training-time augmentation.
@@ -243,8 +264,10 @@ def get_bloodmnist_loaders(batch_size: int = 128, data_dir: str = "./data",
         eval_tfm,
     ]) if augment else eval_tfm
 
+    size = DATA_SIZE.get(arch, 28)
+
     def load(split, tfm):
-        return DataClass(split=split, transform=tfm, download=True, root=data_dir)
+        return DataClass(split=split, transform=tfm, download=True, root=data_dir, size=size)
 
     return (
         DataLoader(load("train", train_tfm), batch_size=batch_size, shuffle=True),

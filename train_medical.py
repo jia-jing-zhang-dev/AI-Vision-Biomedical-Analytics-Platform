@@ -5,6 +5,8 @@ Train a classifier on BloodMNIST (8 blood-cell classes) and report test accuracy
     python train_medical.py --optuna 20      # tune the CNN on the validation set first
     python train_medical.py --model mlp      # reproduce the original fully connected baseline
     python train_medical.py --model resnet18 # fine-tune ImageNet-pretrained ResNet-18 for comparison
+    python train_medical.py --model resnet18_224 --data-dir DIR  # same, on native 224x224 images
+                                             # (bloodmnist_224.npz from MedMNIST+, 1.5 GB, in DIR)
 
 Hyperparameters are chosen on the validation split only; the test split is
 evaluated once, at the end, so the reported accuracy is not over-fit.
@@ -19,7 +21,7 @@ import torch
 from torch import nn
 
 from src.medical_cnn import (
-    CLASS_NAMES, BloodCNN, build_mlp_baseline, build_resnet18, calibration_path, evaluate, fit,
+    CLASS_NAMES, RESNETS, BloodCNN, build_mlp_baseline, build_resnet18, calibration_path, evaluate, fit,
     get_bloodmnist_loaders, get_device, set_deterministic, train_one_epoch,
 )
 
@@ -94,9 +96,9 @@ def save_confusion_matrix(model, test_loader, device: str, path: str, title: str
 def parse_args(argv=None) -> argparse.Namespace:
     """Parses and validates the command line; fills in per-model defaults."""
     parser = argparse.ArgumentParser(description="Train a BloodMNIST classifier and report its test accuracy.")
-    parser.add_argument("--model", choices=["cnn", "mlp", "resnet18"], default="cnn")
+    parser.add_argument("--model", choices=["cnn", "mlp", "resnet18", "resnet18_224"], default="cnn")
     parser.add_argument("--epochs", type=int, default=None,
-                        help="training epochs (default: 15 for cnn, 10 for resnet18)")
+                        help="training epochs (default: 15 for cnn, 10 for resnet18/resnet18_224)")
     parser.add_argument("--optuna", type=int, default=0, metavar="N_TRIALS",
                         help="run an Optuna search with this many trials first")
     parser.add_argument("--tune-epochs", type=int, default=None,
@@ -127,7 +129,7 @@ def parse_args(argv=None) -> argparse.Namespace:
                 parser.error(f"folder for the {kind} file ({folder}) does not exist "
                              "(run from the repository root, or create it first)")
     if args.epochs is None:     # the MLP baseline always trains its original 5 epochs
-        args.epochs = {"resnet18": 10, "mlp": 5}.get(args.model, 15)
+        args.epochs = {"resnet18": 10, "resnet18_224": 10, "mlp": 5}.get(args.model, 15)
     if args.tune_epochs is None:
         args.tune_epochs = 6
     return args
@@ -138,9 +140,10 @@ def output_paths(model: str, out=None) -> dict:
     The README/app figure is only replaced when the default weights file is
     written; runs with --out keep everything next to their own weights.
     """
-    weights = out or ("biomedical_resnet18.pth" if model == "resnet18" else "biomedical_cnn.pth")
+    weights = out or {"resnet18": "biomedical_resnet18.pth",
+                      "resnet18_224": "biomedical_resnet18_224.pth"}.get(model, "biomedical_cnn.pth")
     stem = Path(weights).with_suffix("").as_posix()   # same on Windows and Linux
-    suffix = "-resnet18" if model == "resnet18" else ""
+    suffix = {"resnet18": "-resnet18", "resnet18_224": "-resnet18-224"}.get(model, "")
     figure = f"public/bloodmnist-confusion{suffix}.png" if out is None else stem + "_confusion.png"
     return {"weights": weights, "results": stem + "_results.json", "figure": figure}
 
@@ -156,10 +159,10 @@ def main(argv=None):
 
     paths = output_paths(args.model, args.out)
     train_loader, val_loader, test_loader = get_bloodmnist_loaders(
-        batch_size=64 if args.model == "resnet18" else 128, data_dir=args.data_dir, arch=args.model)
+        batch_size=64 if args.model in RESNETS else 128, data_dir=args.data_dir, arch=args.model)
 
-    if args.model == "resnet18":
-        params = dict(RESNET_DEFAULTS)
+    if args.model in RESNETS:
+        params = dict(RESNET_DEFAULTS, arch=args.model)
         torch.manual_seed(args.seed)
         model = build_resnet18(pretrained=True).to(device)
     else:
@@ -184,7 +187,8 @@ def main(argv=None):
     if stale.exists():                     # it was fitted to the previous weights
         stale.unlink()
         print(f"Removed {stale.name}; run calibrate_medical.py to calibrate the new weights")
-    title = "ResNet-18 (pretrained)" if args.model == "resnet18" else "Custom CNN"
+    title = {"resnet18": "ResNet-18 (pretrained)",
+             "resnet18_224": "ResNet-18 (pretrained, 224 px)"}.get(args.model, "Custom CNN")
     save_confusion_matrix(model, test_loader, device, paths["figure"], title)
 
 

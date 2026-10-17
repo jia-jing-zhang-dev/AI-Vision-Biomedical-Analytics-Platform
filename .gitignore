@@ -13,3 +13,6 @@ desktop.ini
 .env.*
 .ipynb_checkpoints/
 *.egg-info/
+
+# Foundation-model embeddings (probe_foundation.py)
+probe_cache/

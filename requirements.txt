@@ -19,3 +19,5 @@ opencv-python-headless>=4.8
 streamlit>=1.56
 # Image.Resampling needs Pillow 9.1
 pillow>=9.1
+# DinoBloom-S (ViT) architecture; its weights ship in biomedical_dinobloom_s.pth
+timm>=1.0,<2

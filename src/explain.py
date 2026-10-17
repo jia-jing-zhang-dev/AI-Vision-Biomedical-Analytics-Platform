@@ -20,13 +20,34 @@ import torch.nn.functional as F
 def _features_and_head(model, x):
     """Returns (activations of the last conv stage, function mapping them to logits)."""
     arch = getattr(model, "arch", "cnn")
-    if arch == "resnet18":
+    if arch in ("resnet18", "resnet18_224"):
         m = model
         a = m.layer4(m.layer3(m.layer2(m.layer1(m.maxpool(m.relu(m.bn1(m.conv1(x))))))))
         return a, lambda acts: m.fc(torch.flatten(m.avgpool(acts), 1))
     if arch == "cnn":
         a = model.features[:-1](x)                         # last conv block, before global pooling
         return a, lambda acts: model.classifier(model.features[-1](acts))
+    if arch == "dinobloom_s":
+        # ViT: the class token only sees the patch tokens through attention.
+        # Activations are the normalized patch tokens entering the last
+        # block's attention (blocks[-1].norm1, the layer pytorch-grad-cam uses
+        # for ViTs), shaped back into a grid; the residual input is held fixed,
+        # so the gradient flows through attention only, as with a hook there.
+        m, last = model, model.blocks[-1]
+        tokens = m.blocks[:-1](m.norm_pre(m._pos_embed(m.patch_embed(x)))).detach()
+        normed = last.norm1(tokens)
+        n_pre = m.num_prefix_tokens
+        side = int((tokens.shape[1] - n_pre) ** 0.5)
+        prefix = normed[:, :n_pre].detach()
+
+        def head(grid):
+            patches = grid.reshape(grid.shape[0], grid.shape[1], -1).transpose(1, 2)
+            h = tokens + last.drop_path1(last.ls1(last.attn(torch.cat([prefix, patches], dim=1))))
+            h = h + last.drop_path2(last.ls2(last.mlp(last.norm2(h))))
+            return m.forward_head(m.norm(h))
+
+        grid = normed[:, n_pre:].transpose(1, 2).reshape(x.shape[0], -1, side, side)
+        return grid, head
     raise ValueError(f"Grad-CAM is not implemented for architecture {arch!r}")
 
 

@@ -7,7 +7,8 @@ import streamlit as st
 from PIL import Image
 
 from src.blood_cells import (
-    REVIEW_CONFIDENCE, consensus, crop_cells, crop_side, differential_count, find_cells, is_smear,
+    REVIEW_CONFIDENCE, accepted_label, crop_cells, crop_side, differential_count, find_cells,
+    is_smear, reframe_single_cell,
 )
 from src.explain import grad_cam, overlay
 from src.image_io import UploadError, load_upload
@@ -19,19 +20,24 @@ limit_torch_threads()
 ROOT = Path(__file__).resolve().parent.parent   # works from any working directory
 SAMPLE_DIR = ROOT / "public" / "blood_samples"
 
-# Display name -> weights file written by train_medical.py
+# Display name -> weights file. The first model decides (smear counts, review
+# flags); the custom CNN is shown alongside as the small 28x28 baseline.
 MODELS = {
-    "Custom CNN": str(ROOT / "biomedical_cnn.pth"),
-    "ResNet-18 (pretrained)": str(ROOT / "biomedical_resnet18.pth"),
+    "DinoBloom-S (224 px)": str(ROOT / "biomedical_dinobloom_s.pth"),
+    "Custom CNN (28 px)": str(ROOT / "biomedical_cnn.pth"),
 }
+# Cross-source results (KU-Optofil PBC, another scanner and stain): eval_external.py
+EXTERNAL = ROOT / "external_results.json"
+EXTERNAL_NAMES = {"DinoBloom-S (224 px)": "DinoBloom-S probe", "Custom CNN (28 px)": "Custom CNN (28 px)"}
 
 st.set_page_config(page_title="Vision Analytics Framework", layout="centered")
 
 st.title("🩸 Blood Cell Classification (BloodMNIST)")
 st.write(
-    "Classifies blood-cell microscopy images into 8 cell types with two PyTorch models "
-    "trained on BloodMNIST: a compact custom CNN, and torchvision's ImageNet-pretrained "
-    "ResNet-18 fine-tuned as a reference."
+    "Classifies blood-cell microscopy images into 8 cell types. The main model is "
+    "**DinoBloom-S**, a vision transformer pretrained on 380,000 blood-cell images from 13 "
+    "sources, with a linear classifier trained here on BloodMNIST (224×224). A compact CNN "
+    "trained from scratch on 28×28 images is shown alongside for comparison."
 )
 
 
@@ -55,6 +61,7 @@ for message in load_errors:
 if not models:
     st.error("No trained model weights found. Run `python train_medical.py` first.")
     st.stop()
+main_name = next(iter(models))
 
 
 def probability_chart(probs, height: int = 240):
@@ -68,7 +75,12 @@ def probability_chart(probs, height: int = 240):
     )
 
 
+def short(name: str) -> str:
+    return name.split(" (")[0]
+
+
 MAX_SMEAR_CELLS = 12
+MIN_COUNTED = 10        # fewer confident cells than this: no percentages
 
 
 def show_smear(image, cells, n_found: int):
@@ -80,8 +92,8 @@ def show_smear(image, cells, n_found: int):
         side = crop_side(cells)
         crops = crop_cells(image, cells, side)
         preds = [{name: predict_proba(model, crop) for name, model in models.items()} for crop in crops]
-    # A cell counts only when every model agrees with enough confidence
-    labels = [consensus(list(p.values())) if len(p) > 1 else None for p in preds]
+    # The main model decides; a cell counts only when it is confident enough
+    labels = [accepted_label(p[main_name]) for p in preds]
 
     overview = image.convert("RGB").copy()
     draw = ImageDraw.Draw(overview)
@@ -100,16 +112,23 @@ def show_smear(image, cells, n_found: int):
             "Each one is cropped and classified on its own.")
 
     n_review = labels.count(None)
+    n_counted = len(labels) - n_review
     st.subheader("Differential count")
     counts = [r for r in differential_count(labels, CLASS_NAMES) if r[1] > 0]
     if counts:
-        st.dataframe(pd.DataFrame([{"Cell type": name, "Count": n, "Share": f"{share:.0%}"}
-                                   for name, n, share in counts]), hide_index=True)
+        table = [{"Cell type": name, "Count": n} for name, n, _ in counts]
+        if n_counted >= MIN_COUNTED:
+            for row, (_, _, share) in zip(table, counts):
+                row["Share"] = f"{share:.0%}"
+        st.dataframe(pd.DataFrame(table), hide_index=True)
+    if n_counted < MIN_COUNTED:
+        st.caption(f"Only {n_counted} confident cells: too few for percentages "
+                   f"(shown from {MIN_COUNTED}; a real differential counts 100+ leukocytes).")
     st.caption(
-        f"{len(labels) - n_review} of {len(labels)} cells counted; **{n_review} need review** "
-        f"(the models disagree, or one is below {REVIEW_CONFIDENCE:.0%} confidence; red boxes). "
-        "On smear-like test mosaics this rule kept 77% of cells at 98.3% accuracy and flagged "
-        "91% of the errors. A real differential counts 100+ leukocytes."
+        f"{n_counted} of {len(labels)} cells counted; **{n_review} need review** "
+        f"({short(main_name)} below {REVIEW_CONFIDENCE:.0%} confidence; red boxes). On another "
+        "scanner and stain (KU-Optofil PBC test patients) this rule counted 93% of cells at 97% "
+        "accuracy."
     )
     st.image(overview, caption="Stained cells found (numbered; red = needs review)", width="stretch")
     for row in range(0, len(crops), 4):
@@ -119,30 +138,40 @@ def show_smear(image, cells, n_found: int):
                        else "⚠️ **Needs review**")
             col.caption(verdict)
             for name, probs in preds[k].items():
-                short = "CNN" if name.startswith("Custom") else "ResNet"
-                col.caption(f"{short}: {CLASS_NAMES[int(probs.argmax())]} ({probs.max():.0%})")
+                col.caption(f"{short(name)}: {CLASS_NAMES[int(probs.argmax())]} ({probs.max():.0%})")
     st.caption(
         "Cells are found by their purple stain (blue minus green), so platelets next to "
-        "larger cells and unstained red cells are skipped. On smear-like test mosaics built "
-        "from BloodMNIST, 99% of leukocytes/erythroblasts were found and the crops were "
-        "classified with 86% (CNN) / 90% (ResNet-18) accuracy, below the 96–97% on the "
-        "original single-cell crops; images from other microscopes or stains score lower. "
-        "Grad-CAM is shown for single-cell images only."
+        "larger cells and unstained red cells are skipped. On smear-like mosaics of BloodMNIST "
+        "test cells, 98% of leukocytes/erythroblasts were found and DinoBloom-S classified "
+        "99% of the crops correctly (the 28×28 CNN: 86%). Grad-CAM is shown for single-cell "
+        "images only."
     )
 
 
+def read_json(path: Path):
+    return json.loads(path.read_text()) if path.exists() else None
+
+
 def test_accuracy(weights: str):
-    path = Path(str(Path(weights).with_suffix("")) + "_results.json")   # as train_medical.output_paths
-    return json.loads(path.read_text())["test_accuracy"] if path.exists() else None
+    results = read_json(Path(str(Path(weights).with_suffix("")) + "_results.json"))
+    return results["test_accuracy"] if results else None
 
 
-st.caption("Test accuracy on the 3,421 held-out BloodMNIST test images")
-cols = st.columns(len(models) + 1)
+def external_accuracy(name: str):
+    results = read_json(EXTERNAL)
+    try:
+        return results["test_reframed"][EXTERNAL_NAMES[name]]["accuracy"]
+    except (TypeError, KeyError):
+        return None
+
+
+st.caption("Test accuracy: BloodMNIST (3,421 held-out images) / another scanner and stain "
+           "(KU-Optofil PBC, 4,949 cells from 55 patients, never used for training)")
+cols = st.columns(len(models))
 for col, name in zip(cols, models):
-    acc = test_accuracy(MODELS[name])
+    acc, ext = test_accuracy(MODELS[name]), external_accuracy(name)
     if acc is not None:
-        col.metric(name, f"{acc:.1%}")
-cols[-1].metric("Fully connected baseline", "72.9%")
+        col.metric(name, f"{acc:.1%}" + (f" / {ext:.1%}" if ext is not None else ""))
 
 source = st.radio("Image source", ["Pick a sample from the test set", "Upload your own image"],
                   horizontal=True)
@@ -173,15 +202,21 @@ else:
         except UploadError as err:
             st.error(str(err))
     st.caption(
-        "The models expect a single, centered blood cell. A smear with several stained "
-        "cells is split into one crop per cell. Images are reduced to 28×28 RGB, so photos "
-        "from a different microscope or stain may be classified poorly."
+        "Upload one centred blood cell, or a smear: several stained cells are split into one "
+        "crop per cell. A zoomed-out single cell is re-framed to BloodMNIST's scale first. "
+        "Photos from other microscopes or stains can still be misclassified."
     )
     if image is not None:
         cells = find_cells(np.asarray(image))
         if is_smear(cells):
             show_smear(image, cells[:MAX_SMEAR_CELLS], len(cells))
             image = None                       # handled; skip the single-cell view
+        else:
+            framed = reframe_single_cell(image)
+            if framed is not image:
+                st.caption("The cell was small in the frame, so the image was re-framed around it "
+                           "to BloodMNIST's scale.")
+            image = framed
 
 if image is not None:
     st.image(image, caption="Input image", width=200)
@@ -199,34 +234,39 @@ if image is not None:
         with col:
             st.markdown(f"**{name}**")
             st.success(f"**Prediction:** {CLASS_NAMES[top]} ({probs[top]:.1%} confidence)")
+            if name == main_name and accepted_label(probs) is None:
+                st.warning(f"Below {REVIEW_CONFIDENCE:.0%} confidence: needs review by a person.")
             st.altair_chart(probability_chart(probs), width="stretch")
             if cam is not None:
                 st.image(cam, caption=f"Grad-CAM for '{CLASS_NAMES[top]}'", width="stretch")
 
 with st.expander("Model details and comparison with published results"):
     st.markdown(
+        "**DinoBloom-S** — a DINOv2 ViT-S/14 pretrained on blood and bone-marrow cells "
+        "(Koch et al., MICCAI 2024; BloodMNIST's source images were not in its training data). "
+        "The backbone is frozen; a logistic-regression head is trained on BloodMNIST-224.\n\n"
         "**Custom CNN** — 5 convolution layers with batch normalization, 2 max-pooling "
         "stages, global average pooling, dropout + linear head (28×28 input). AdamW with a "
         "cosine schedule, flip/rotation augmentation, Optuna search on the validation split.\n\n"
-        "**ResNet-18** — torchvision's ImageNet-pretrained ResNet-18 with a new 8-class head, "
-        "fine-tuned end to end on images upsampled to 224×224 with the same augmentation "
-        "and validation-based model selection.\n\n"
-        "Both are evaluated once on the held-out test split (3,421 images)."
+        "Each model was evaluated once on each test set. The other scanner (KU-Optofil PBC) "
+        "frames cells smaller; zoomed-out cells are re-framed before classification."
     )
-    rows = [{"Model": f"{name} (this project)", "Test accuracy": f"{test_accuracy(path):.1%}"}
-            for name, path in MODELS.items() if test_accuracy(path) is not None]
-    rows += [
-        {"Model": "ResNet-18 (28), MedMNIST v2 paper", "Test accuracy": "95.8%"},
-        {"Model": "ResNet-18 (224), MedMNIST v2 paper", "Test accuracy": "96.3%"},
-        {"Model": "Google AutoML Vision, MedMNIST v2 paper", "Test accuracy": "96.6%"},
-    ]
-    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
-    st.caption("Published results: Yang et al., MedMNIST v2, Scientific Data 2023, Table 3.")
-    cm_cnn, cm_resnet = st.columns(2)
-    cm_cnn.image(str(ROOT / "public" / "bloodmnist-confusion.png"), caption="Custom CNN: test-set confusion matrix")
-    cm_resnet.image(str(ROOT / "public" / "bloodmnist-confusion-resnet18.png"),
-                    caption="ResNet-18: test-set confusion matrix")
+    ext = read_json(EXTERNAL) or {}
+    rows = []
+    for label, key in (("Same source (BloodMNIST)", None), ("Other scanner (KU-Optofil)", "test_reframed")):
+        if key is None:
+            rows += [{"Test set": label, "Model": name, "Accuracy": f"{test_accuracy(path):.1%}"}
+                     for name, path in MODELS.items() if test_accuracy(path) is not None]
+        else:
+            rows += [{"Test set": label, "Model": name, "Accuracy": f"{m['accuracy']:.1%}",
+                      "Macro-F1": f"{m['macro_f1']:.2f}"} for name, m in ext.get(key, {}).items()]
+    if rows:
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+    st.caption("Published BloodMNIST results (MedMNIST v2, Yang et al. 2023): ResNet-18 95.8–96.3%, "
+               "Google AutoML Vision 96.6%. MedMNIST+ (Doerrich et al. 2025): ResNet-18 at 224 px 98.9%.")
+    st.image(str(ROOT / "public" / "bloodmnist-confusion.png"), caption="Custom CNN: test-set confusion matrix")
 
 st.caption(
-    "Educational project, not a medical device. Data: MedMNIST v2 BloodMNIST (CC BY 4.0)."
+    "Educational project, not a medical device. Data: MedMNIST v2 / MedMNIST+ BloodMNIST and "
+    "KU-Optofil PBC (both CC BY 4.0); DinoBloom weights Apache-2.0."
 )

@@ -158,7 +158,7 @@ def test_pages_work_from_another_working_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)                  # nothing of the project here
     at = AppTest.from_file(str(ROOT / "pages" / "3_Blood_Cell_Classifier.py"), default_timeout=120).run()
     assert not at.exception and not at.error
-    assert {m.label for m in at.metric} >= {"Custom CNN", "ResNet-18 (pretrained)"}
+    assert {m.label for m in at.metric} >= {"DinoBloom-S (224 px)", "Custom CNN (28 px)"}
     home = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
     assert not home.exception and len(home.image) == 4
 

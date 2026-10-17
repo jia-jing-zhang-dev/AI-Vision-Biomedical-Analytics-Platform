@@ -1,0 +1,23 @@
+{
+  "dinobloom_s": {
+    "backbone": "hf-hub:1aurent/vit_small_patch14_224.dinobloom",
+    "feature_dim": 384,
+    "C": 0.1,
+    "val_accuracy": 0.9929906542056075,
+    "test_accuracy": 0.9894767611809413
+  },
+  "dinov2_s": {
+    "backbone": "vit_small_patch14_dinov2.lvd142m",
+    "feature_dim": 384,
+    "C": 0.01,
+    "val_accuracy": 0.9848130841121495,
+    "test_accuracy": 0.977491961414791
+  },
+  "dinov2_b": {
+    "backbone": "vit_base_patch14_dinov2.lvd142m",
+    "feature_dim": 768,
+    "C": 0.1,
+    "val_accuracy": 0.9795560747663551,
+    "test_accuracy": 0.9807073954983923
+  }
+}

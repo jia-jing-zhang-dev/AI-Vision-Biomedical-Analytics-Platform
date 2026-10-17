@@ -7,7 +7,7 @@ Guidance for Claude (and humans) working on this repository.
 Streamlit app + reusable modules for biomedical image analysis, deployed at
 <https://visionserve-full-stack-ml-framework.streamlit.app/>.
 
-- `src/medical_cnn.py` — BloodMNIST classifiers: custom CNN (shipped, 96.7%), MLP baseline (72.9%), ImageNet-pretrained ResNet-18 reference (97.9%)
+- `src/medical_cnn.py` — BloodMNIST classifiers: custom CNN (shipped, 96.7%), MLP baseline (72.9%), ImageNet-pretrained ResNet-18 reference (97.9%); `resnet18_224` (99.1%) and `dinobloom_s` (app model, 98.9%; 93.8% on KU-Optofil)
 - `src/segmentation.py` — classical segmentation, synthetic cell benchmark, Dice/IoU/instance F1, optional Cellpose reference
 - `src/vision_cnn.py` — FashionMNIST CNN `build_cnn` (92.8%, the app's model, `fashion_cnn.pth`) and MLP baseline `build_model` (86.9%, `fashion_model.pth`); `prepare_upload` crops/centres/fills 28 px like FashionMNIST (product photos 12% → 86%, regression test in test_regressions.py)
 - `src/classification.py`, `src/clustering.py`, `src/convolution.py`, `src/visualization.py` — ML utilities
@@ -181,5 +181,27 @@ training images were made (FashionMNIST: crop, centre, fill; BloodMNIST: one
 centred cell). Check every page with a realistic upload of the kind a visitor
 would try (product photo, whole smear), not only with dataset samples. Tests
 166 (161 → 166: smear unit tests, smear page test).
+
+### Plan A: 224 px, foundation models, second scanner (2026-10-17)
+
+- Data (not in git): MedMNIST+ `bloodmnist_224.npz` (Zenodo 10519652, 1.5 GB, MD5 b718ff68...) and
+  KU-Optofil PBC (Zenodo 17333317, CC BY 4.0, 565 MB; Sysmex DI-60, MGG; published after DinoBloom).
+  Kept in a short temp path (long-path issues).
+- ResNet-18 at native 224 px: test 99.12% (MedMNIST+ reports 98.94); vs 97.92% at 28->224, p=2e-7.
+  Weights not shipped; results JSON is.
+- `probe_foundation.py`: frozen DinoBloom-S / DINOv2-S/B + logistic head (C on validation):
+  98.95 / 97.75 / 98.07%. DinoBloom-S vs ResNet-224 p=0.39; vs DINOv2 p<=2e-4.
+- `eval_external.py` on KU-Optofil (classes mapped, 4 excluded; patient-level split; validation to choose,
+  test once; patient bootstrap CIs). First run: trained models 2-5% (cells half the size; ResNet-224 said
+  "erythroblast" for 96%). Fix chosen on validation: `reframe_single_cell` (stained/frame < 0.45 ->
+  crop at 0.661). RBC-size magnification estimate tried and dropped. Test (re-framed): DinoBloom-S 93.8%
+  [91.7, 95.4] macro-F1 0.77; ResNet-224 76.2%; DINOv2-B 86.0%; CNN 65.0%.
+- App: page 3 now DinoBloom-S (exported head+backbone, 86.6 MB, `timm` in requirements, loads offline)
+  + custom CNN baseline; ResNet-18 dropped from the page. Review rule: DinoBloom-S confidence < 0.70
+  (chosen on KU validation; KU test 92.6% accepted at 97.1%). Smear mosaics of 224 test cells: 97.9%
+  found, 98.9% correct. Bundled samples replaced by 224-px originals of the same test images (the 28-px
+  upscales gave DinoBloom 2/8). ViT Grad-CAM split at blocks[-1].norm1 (pytorch-grad-cam corr 1.000;
+  splitting before norm1 gave 0.43-0.96). Memory on Python 3.14 after all pages: 607 MB.
+- Owner decision: weights in git (option A). Tests 172 -> 184.
 
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

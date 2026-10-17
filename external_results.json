@@ -1,0 +1,514 @@
+{
+  "validation": {
+    "Custom CNN (28 px)": {
+      "accuracy": 0.04638297872340426,
+      "accuracy_ci": [
+        0.030230266196060965,
+        0.0644400357091091
+      ],
+      "macro_f1": 0.03563282674772036,
+      "macro_f1_ci": [
+        0.023163825281594417,
+        0.04870644741576888
+      ],
+      "recall": {
+        "basophil": 0.0,
+        "eosinophil": 0.9830508474576272,
+        "erythroblast": 0.0,
+        "immature granulocyte": 0.0,
+        "lymphocyte": 0.0,
+        "monocyte": 0.0,
+        "neutrophil": 0.03300970873786408
+      }
+    },
+    "ResNet-18 (28 px upsampled)": {
+      "accuracy": 0.020851063829787235,
+      "accuracy_ci": [
+        0.011703912958232672,
+        0.030927954041370383
+      ],
+      "macro_f1": 0.013736474448550492,
+      "macro_f1_ci": [
+        0.007930779954218323,
+        0.020957363767828682
+      ],
+      "recall": {
+        "basophil": 0.0,
+        "eosinophil": 0.8135593220338984,
+        "erythroblast": 0.0,
+        "immature granulocyte": 0.0,
+        "lymphocyte": 0.0,
+        "monocyte": 0.0,
+        "neutrophil": 0.0006472491909385113
+      }
+    },
+    "ResNet-18 (224 px)": {
+      "accuracy": 0.026382978723404255,
+      "accuracy_ci": [
+        0.014968330465071171,
+        0.04076435954643389
+      ],
+      "macro_f1": 0.10672125978785628,
+      "macro_f1_ci": [
+        0.06761084772807682,
+        0.13969134867953956
+      ],
+      "recall": {
+        "basophil": 0.0,
+        "eosinophil": 0.4406779661016949,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.0,
+        "lymphocyte": 0.0,
+        "monocyte": 0.06818181818181818,
+        "neutrophil": 0.016828478964401296
+      }
+    },
+    "DinoBloom-S probe": {
+      "accuracy": 0.8574468085106383,
+      "accuracy_ci": [
+        0.8322084747203524,
+        0.8790507086365585
+      ],
+      "macro_f1": 0.6813234815845337,
+      "macro_f1_ci": [
+        0.6506140528002488,
+        0.7235907736276653
+      ],
+      "recall": {
+        "basophil": 0.9047619047619048,
+        "eosinophil": 0.9661016949152542,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.4,
+        "lymphocyte": 0.8773424190800682,
+        "monocyte": 0.9166666666666666,
+        "neutrophil": 0.8414239482200647
+      }
+    },
+    "DINOv2-S probe": {
+      "accuracy": 0.6182978723404255,
+      "accuracy_ci": [
+        0.5632811122377006,
+        0.662411527478362
+      ],
+      "macro_f1": 0.49669433185834116,
+      "macro_f1_ci": [
+        0.45544094734095714,
+        0.5398461657796999
+      ],
+      "recall": {
+        "basophil": 0.47619047619047616,
+        "eosinophil": 0.8813559322033898,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.2,
+        "lymphocyte": 0.45826235093696766,
+        "monocyte": 0.32575757575757575,
+        "neutrophil": 0.6970873786407767
+      }
+    },
+    "DINOv2-B probe": {
+      "accuracy": 0.7923404255319149,
+      "accuracy_ci": [
+        0.7643611246567256,
+        0.8176314211340772
+      ],
+      "macro_f1": 0.48522386858861394,
+      "macro_f1_ci": [
+        0.449283670868522,
+        0.5149671479613328
+      ],
+      "recall": {
+        "basophil": 0.9523809523809523,
+        "eosinophil": 0.7457627118644068,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.4,
+        "lymphocyte": 0.686541737649063,
+        "monocyte": 0.03787878787878788,
+        "neutrophil": 0.8977346278317152
+      }
+    }
+  },
+  "validation_reframed": {
+    "Custom CNN (28 px)": {
+      "accuracy": 0.6591489361702128,
+      "accuracy_ci": [
+        0.5953897013879571,
+        0.7152050777223437
+      ],
+      "macro_f1": 0.3272250387470189,
+      "macro_f1_ci": [
+        0.2832195306903487,
+        0.3600769486873735
+      ],
+      "recall": {
+        "basophil": 0.8571428571428571,
+        "eosinophil": 1.0,
+        "erythroblast": 0.0,
+        "immature granulocyte": 0.6,
+        "lymphocyte": 0.034071550255536626,
+        "monocyte": 0.030303030303030304,
+        "neutrophil": 0.9352750809061489
+      }
+    },
+    "ResNet-18 (28 px upsampled)": {
+      "accuracy": 0.6502127659574468,
+      "accuracy_ci": [
+        0.5890657790169685,
+        0.7001478451807728
+      ],
+      "macro_f1": 0.37228667592890535,
+      "macro_f1_ci": [
+        0.3232465165301649,
+        0.40358106476104133
+      ],
+      "recall": {
+        "basophil": 0.8571428571428571,
+        "eosinophil": 0.9661016949152542,
+        "erythroblast": 0.0,
+        "immature granulocyte": 0.6,
+        "lymphocyte": 0.2231686541737649,
+        "monocyte": 0.09090909090909091,
+        "neutrophil": 0.8459546925566344
+      }
+    },
+    "ResNet-18 (224 px)": {
+      "accuracy": 0.8068085106382978,
+      "accuracy_ci": [
+        0.7698718438710989,
+        0.8345690468797241
+      ],
+      "macro_f1": 0.5367241179107071,
+      "macro_f1_ci": [
+        0.46796525660114563,
+        0.5761551721549106
+      ],
+      "recall": {
+        "basophil": 0.6666666666666666,
+        "eosinophil": 0.8305084745762712,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.4,
+        "lymphocyte": 0.7257240204429302,
+        "monocyte": 0.20454545454545456,
+        "neutrophil": 0.8912621359223301
+      }
+    },
+    "DinoBloom-S probe": {
+      "accuracy": 0.9604255319148937,
+      "accuracy_ci": [
+        0.9510646600825345,
+        0.9690546967895363
+      ],
+      "macro_f1": 0.7385230737288697,
+      "macro_f1_ci": [
+        0.6812293671745139,
+        0.7890284959577973
+      ],
+      "recall": {
+        "basophil": 0.9523809523809523,
+        "eosinophil": 0.9661016949152542,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.8,
+        "lymphocyte": 0.9557069846678024,
+        "monocyte": 0.9545454545454546,
+        "neutrophil": 0.9631067961165048
+      }
+    },
+    "DINOv2-S probe": {
+      "accuracy": 0.8272340425531914,
+      "accuracy_ci": [
+        0.7871508621368615,
+        0.8592783083030285
+      ],
+      "macro_f1": 0.5890842797027274,
+      "macro_f1_ci": [
+        0.5489662048770851,
+        0.6223733672458612
+      ],
+      "recall": {
+        "basophil": 0.8571428571428571,
+        "eosinophil": 0.8813559322033898,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.6,
+        "lymphocyte": 0.5809199318568995,
+        "monocyte": 0.38636363636363635,
+        "neutrophil": 0.9566343042071197
+      }
+    },
+    "DINOv2-B probe": {
+      "accuracy": 0.8765957446808511,
+      "accuracy_ci": [
+        0.8484900738000826,
+        0.9015817660371468
+      ],
+      "macro_f1": 0.5572844991004966,
+      "macro_f1_ci": [
+        0.5243590461919175,
+        0.5875118381845464
+      ],
+      "recall": {
+        "basophil": 0.9047619047619048,
+        "eosinophil": 0.8135593220338984,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.6,
+        "lymphocyte": 0.7632027257240205,
+        "monocyte": 0.20454545454545456,
+        "neutrophil": 0.9799352750809062
+      }
+    }
+  },
+  "test": {
+    "Custom CNN (28 px)": {
+      "accuracy": 0.042432814710042434,
+      "accuracy_ci": [
+        0.029326597975701075,
+        0.05764221336611742
+      ],
+      "macro_f1": 0.04297066704931823,
+      "macro_f1_ci": [
+        0.021570900263362863,
+        0.06315080315153217
+      ],
+      "recall": {
+        "basophil": 0.0,
+        "eosinophil": 0.9857142857142858,
+        "erythroblast": 0.0,
+        "immature granulocyte": 0.11428571428571428,
+        "lymphocyte": 0.0,
+        "monocyte": 0.0,
+        "neutrophil": 0.020788749617853867
+      }
+    },
+    "ResNet-18 (28 px upsampled)": {
+      "accuracy": 0.0266720549605981,
+      "accuracy_ci": [
+        0.014827247943189436,
+        0.04092769331512864
+      ],
+      "macro_f1": 0.01830661566491357,
+      "macro_f1_ci": [
+        0.010604087535823769,
+        0.027078730362613174
+      ],
+      "recall": {
+        "basophil": 0.0,
+        "eosinophil": 0.9142857142857143,
+        "erythroblast": 0.25,
+        "immature granulocyte": 0.0,
+        "lymphocyte": 0.0,
+        "monocyte": 0.0,
+        "neutrophil": 0.0
+      }
+    },
+    "ResNet-18 (224 px)": {
+      "accuracy": 0.03515861790260659,
+      "accuracy_ci": [
+        0.022480304291844257,
+        0.049460263607863326
+      ],
+      "macro_f1": 0.16396789276310986,
+      "macro_f1_ci": [
+        0.12491450650003708,
+        0.19611671207703937
+      ],
+      "recall": {
+        "basophil": 0.0,
+        "eosinophil": 0.6071428571428571,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.22857142857142856,
+        "lymphocyte": 0.0,
+        "monocyte": 0.0979020979020979,
+        "neutrophil": 0.011311525527361662
+      }
+    },
+    "DinoBloom-S probe": {
+      "accuracy": 0.8157203475449586,
+      "accuracy_ci": [
+        0.7873563162084429,
+        0.842428783132074
+      ],
+      "macro_f1": 0.7182536675728254,
+      "macro_f1_ci": [
+        0.6756830382022723,
+        0.7567530668478545
+      ],
+      "recall": {
+        "basophil": 0.8913043478260869,
+        "eosinophil": 0.9714285714285714,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.6857142857142857,
+        "lymphocyte": 0.8510822510822511,
+        "monocyte": 0.8566433566433567,
+        "neutrophil": 0.7924182207276063
+      }
+    },
+    "DINOv2-S probe": {
+      "accuracy": 0.5768842190341483,
+      "accuracy_ci": [
+        0.5153569824278588,
+        0.6350859671880089
+      ],
+      "macro_f1": 0.5365473459673784,
+      "macro_f1_ci": [
+        0.4912258532244422,
+        0.5751512575982309
+      ],
+      "recall": {
+        "basophil": 0.6304347826086957,
+        "eosinophil": 0.95,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.4,
+        "lymphocyte": 0.49437229437229435,
+        "monocyte": 0.2517482517482518,
+        "neutrophil": 0.6175481504127178
+      }
+    },
+    "DINOv2-B probe": {
+      "accuracy": 0.7454031117397454,
+      "accuracy_ci": [
+        0.7085699082144441,
+        0.7791123106726262
+      ],
+      "macro_f1": 0.5178901588489632,
+      "macro_f1_ci": [
+        0.4884238630327264,
+        0.5441847669212792
+      ],
+      "recall": {
+        "basophil": 0.9565217391304348,
+        "eosinophil": 0.8714285714285714,
+        "erythroblast": 0.9375,
+        "immature granulocyte": 0.5142857142857142,
+        "lymphocyte": 0.6692640692640692,
+        "monocyte": 0.06993006993006994,
+        "neutrophil": 0.8245184958728218
+      }
+    }
+  },
+  "test_reframed": {
+    "Custom CNN (28 px)": {
+      "accuracy": 0.6498282481309355,
+      "accuracy_ci": [
+        0.5977065598056276,
+        0.6975827176757653
+      ],
+      "macro_f1": 0.32994250310515244,
+      "macro_f1_ci": [
+        0.29396480158961086,
+        0.3601789790684145
+      ],
+      "recall": {
+        "basophil": 0.7608695652173914,
+        "eosinophil": 0.9857142857142858,
+        "erythroblast": 0.3125,
+        "immature granulocyte": 0.6571428571428571,
+        "lymphocyte": 0.05714285714285714,
+        "monocyte": 0.013986013986013986,
+        "neutrophil": 0.9003362885967594
+      }
+    },
+    "ResNet-18 (28 px upsampled)": {
+      "accuracy": 0.636896342695494,
+      "accuracy_ci": [
+        0.5911945372525058,
+        0.6802425231637591
+      ],
+      "macro_f1": 0.38545173910992275,
+      "macro_f1_ci": [
+        0.3422183449786675,
+        0.4252496944192504
+      ],
+      "recall": {
+        "basophil": 0.782608695652174,
+        "eosinophil": 0.9857142857142858,
+        "erythroblast": 0.625,
+        "immature granulocyte": 0.5428571428571428,
+        "lymphocyte": 0.23376623376623376,
+        "monocyte": 0.07692307692307693,
+        "neutrophil": 0.8122898196270254
+      }
+    },
+    "ResNet-18 (224 px)": {
+      "accuracy": 0.7615679935340472,
+      "accuracy_ci": [
+        0.7265129742030005,
+        0.7922673713278596
+      ],
+      "macro_f1": 0.5749055424101716,
+      "macro_f1_ci": [
+        0.5256626012615037,
+        0.617434548343335
+      ],
+      "recall": {
+        "basophil": 0.5652173913043478,
+        "eosinophil": 0.9,
+        "erythroblast": 0.9375,
+        "immature granulocyte": 0.5714285714285714,
+        "lymphocyte": 0.7246753246753247,
+        "monocyte": 0.24125874125874125,
+        "neutrophil": 0.8180984408437787
+      }
+    },
+    "DinoBloom-S probe": {
+      "accuracy": 0.937563144069509,
+      "accuracy_ci": [
+        0.9171408063331019,
+        0.9544363344517207
+      ],
+      "macro_f1": 0.7731466832349899,
+      "macro_f1_ci": [
+        0.7147684952996344,
+        0.8230784738610972
+      ],
+      "recall": {
+        "basophil": 0.9565217391304348,
+        "eosinophil": 0.9642857142857143,
+        "erythroblast": 0.75,
+        "immature granulocyte": 0.8,
+        "lymphocyte": 0.9541125541125541,
+        "monocyte": 0.916083916083916,
+        "neutrophil": 0.9345765820849893
+      }
+    },
+    "DINOv2-S probe": {
+      "accuracy": 0.79571630632451,
+      "accuracy_ci": [
+        0.7575729308005428,
+        0.8302495539033458
+      ],
+      "macro_f1": 0.6086256065786481,
+      "macro_f1_ci": [
+        0.5667483746076705,
+        0.6434457832424152
+      ],
+      "recall": {
+        "basophil": 0.8695652173913043,
+        "eosinophil": 0.9428571428571428,
+        "erythroblast": 1.0,
+        "immature granulocyte": 0.6,
+        "lymphocyte": 0.5645021645021645,
+        "monocyte": 0.3146853146853147,
+        "neutrophil": 0.9131763986548456
+      }
+    },
+    "DINOv2-B probe": {
+      "accuracy": 0.8603758335017175,
+      "accuracy_ci": [
+        0.841395612244898,
+        0.8791847558298416
+      ],
+      "macro_f1": 0.588958059479853,
+      "macro_f1_ci": [
+        0.5552498259723009,
+        0.6143891993631312
+      ],
+      "recall": {
+        "basophil": 0.9565217391304348,
+        "eosinophil": 0.8928571428571429,
+        "erythroblast": 0.9375,
+        "immature granulocyte": 0.6571428571428571,
+        "lymphocyte": 0.7341991341991342,
+        "monocyte": 0.2097902097902098,
+        "neutrophil": 0.9608682360134515
+      }
+    }
+  }
+}
