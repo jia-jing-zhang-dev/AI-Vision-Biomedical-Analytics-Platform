@@ -6,7 +6,9 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from src.blood_cells import crop_cells, crop_side, find_cells, is_smear
+from src.blood_cells import (
+    REVIEW_CONFIDENCE, consensus, crop_cells, crop_side, differential_count, find_cells, is_smear,
+)
 from src.explain import grad_cam, overlay
 from src.image_io import UploadError, load_upload
 from src.medical_cnn import CLASS_NAMES, load_model, predict_proba
@@ -78,35 +80,54 @@ def show_smear(image, cells, n_found: int):
         side = crop_side(cells)
         crops = crop_cells(image, cells, side)
         preds = [{name: predict_proba(model, crop) for name, model in models.items()} for crop in crops]
+    # A cell counts only when every model agrees with enough confidence
+    labels = [consensus(list(p.values())) if len(p) > 1 else None for p in preds]
 
     overview = image.convert("RGB").copy()
     draw = ImageDraw.Draw(overview)
     width = max(2, side // 40)
-    for k, (cx, cy, _) in enumerate(cells, 1):
+    for k, ((cx, cy, _), label) in enumerate(zip(cells, labels), 1):
+        colour = (255, 215, 0) if label is not None else (255, 80, 80)   # red: needs review
         draw.rectangle([cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2],
-                       outline=(255, 215, 0), width=width)
+                       outline=colour, width=width)
         at = (cx - side // 2 + 2 * width, cy - side // 2 + width)
         try:
-            draw.text(at, str(k), fill=(255, 215, 0), font_size=max(16, side // 2))
+            draw.text(at, str(k), fill=colour, font_size=max(16, side // 2))
         except TypeError:                      # Pillow < 10.1: default font only
-            draw.text(at, str(k), fill=(255, 215, 0))
+            draw.text(at, str(k), fill=colour)
     more = f" (showing the {len(cells)} largest)" if n_found > len(cells) else ""
     st.info(f"This looks like a blood smear: **{n_found} stained cells** found{more}. "
             "Each one is cropped and classified on its own.")
-    st.image(overview, caption="Stained cells found (numbered)", width="stretch")
+
+    n_review = labels.count(None)
+    st.subheader("Differential count")
+    counts = [r for r in differential_count(labels, CLASS_NAMES) if r[1] > 0]
+    if counts:
+        st.dataframe(pd.DataFrame([{"Cell type": name, "Count": n, "Share": f"{share:.0%}"}
+                                   for name, n, share in counts]), hide_index=True)
+    st.caption(
+        f"{len(labels) - n_review} of {len(labels)} cells counted; **{n_review} need review** "
+        f"(the models disagree, or one is below {REVIEW_CONFIDENCE:.0%} confidence; red boxes). "
+        "On smear-like test mosaics this rule kept 77% of cells at 98.3% accuracy and flagged "
+        "91% of the errors. A real differential counts 100+ leukocytes."
+    )
+    st.image(overview, caption="Stained cells found (numbered; red = needs review)", width="stretch")
     for row in range(0, len(crops), 4):
         for col, k in zip(st.columns(4), range(row, min(row + 4, len(crops)))):
             col.image(crops[k], caption=f"Cell {k + 1}", width=120)
+            verdict = (f"✅ **{CLASS_NAMES[labels[k]]}**" if labels[k] is not None
+                       else "⚠️ **Needs review**")
+            col.caption(verdict)
             for name, probs in preds[k].items():
                 short = "CNN" if name.startswith("Custom") else "ResNet"
-                col.caption(f"{short}: **{CLASS_NAMES[int(probs.argmax())]}** "
-                            f"({probs.max():.0%})")
+                col.caption(f"{short}: {CLASS_NAMES[int(probs.argmax())]} ({probs.max():.0%})")
     st.caption(
         "Cells are found by their purple stain (blue minus green), so platelets next to "
         "larger cells and unstained red cells are skipped. On smear-like test mosaics built "
         "from BloodMNIST, 99% of leukocytes/erythroblasts were found and the crops were "
         "classified with 86% (CNN) / 90% (ResNet-18) accuracy, below the 96–97% on the "
-        "original single-cell crops. Grad-CAM is shown for single-cell images only."
+        "original single-cell crops; images from other microscopes or stains score lower. "
+        "Grad-CAM is shown for single-cell images only."
     )
 
 

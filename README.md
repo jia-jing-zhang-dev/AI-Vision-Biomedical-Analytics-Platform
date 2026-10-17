@@ -132,7 +132,7 @@ Open the local URL displayed in the terminal, then use the sidebar to switch bet
 
 1. **Deep Learning** — upload a JPG, JPEG, or PNG clothing image and run FashionMNIST classification.
 2. **Biomedical Segmentation** — either generate a synthetic benchmark image (realistic cells or simple shapes) to compare masks, Dice / IoU and instance F1, run a 10-image benchmark, or upload a grayscale or color medical image to view segmentation results from every algorithm.
-3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see both models' predictions (custom CNN and ResNet-18) and class probabilities. An uploaded smear with several stained cells is split into one crop per cell, and each crop is classified.
+3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see both models' predictions (custom CNN and ResNet-18) and class probabilities. An uploaded smear with several stained cells is split into one crop per cell, each crop is classified, and a differential count marks uncertain cells for review.
 
 Uploads (JPG/PNG, including 16-bit and transparent PNGs and rotated phone photos) are accepted up to 25 megapixels and downscaled to at most 1024 px before processing, which keeps the app within Streamlit Cloud's memory limit.
 
@@ -277,6 +277,8 @@ Checked on smear-like mosaics of 3×3 BloodMNIST test cells (100 mosaics, 900 ce
 | Cells found, cropped and classified by the pipeline | 86.4% | 89.7% |
 
 99.0% of leukocytes and erythroblasts were found (777/785); platelets mostly were not (12/115), because small stained objects next to larger cells are skipped. Test-time augmentation (flips/rotations, three crop sizes) did not help on validation. The mosaics have hard seams between tiles, so real smears may behave differently; uploads with only one stained cell are classified as a whole image, as before (6 of 500 single-cell test crops were mistaken for smears).
+
+The page then reports a **differential count** (count and share of each cell type) like a lab report. A cell is counted only when both models agree and each is at least 85% confident; otherwise it is marked **needs review** (red box). The threshold was chosen on validation mosaics as the lowest one whose counted cells are at least 98% correct; on the test mosaics (783 cells) it counted 77.0% of the cells at 98.3% accuracy and flagged 103 of the 113 errors. Images from other microscopes or stains score lower: on one smear of neutrophils from another source, all 9 cells were found but only 3 (CNN) and 6 (ResNet-18) were classified correctly, which is what the review flag is for.
 
 ## Explainability and Calibration (blood-cell models)
 

@@ -174,6 +174,8 @@ reworded with a bootstrap CI (not significant), 9 more tests. Tests 130 → 153.
 
 Follow-up (same day): the boot still failed after both preprocessing fixes (very low, long shape; mirror rule saw it as right-heavy). Page 1 now uses a CNN trained with flip/shift/scale augmentation (`train.py`, epoch chosen on a 5,000-image validation part of the training set, test once): test 92.8% vs 86.9%, mirrored test 92.5% vs 63.5%, photo-like uploads 90.5% vs 85.8%, McNemar p < 1e-70; 140 k vs 670 k parameters. The MLP stays as the comparison baseline.
 
+Smear report (2026-10-16): owner's real neutrophil smear (other source) — all 9 cells found, but CNN 3/9 and ResNet-18 6/9 neutrophil (stain/scanner shift; anecdotal, n=9). Added `consensus` + `differential_count` (`src/blood_cells.py`): counted only when both models agree with >= REVIEW_CONFIDENCE 0.85 each, chosen on validation mosaics (lowest t with >= 98% accepted accuracy); test mosaics once: 77.0% counted, 98.3% correct, 103/113 errors flagged. Tests 170 -> 172.
+
 Lessons from this feedback: preprocessing for uploads must reproduce how the
 training images were made (FashionMNIST: crop, centre, fill; BloodMNIST: one
 centred cell). Check every page with a realistic upload of the kind a visitor

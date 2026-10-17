@@ -54,3 +54,21 @@ def test_unstained_image_has_no_cells_and_crops_survive_the_border():
 def test_find_cells_rejects_non_rgb():
     with pytest.raises(ValueError):
         find_cells(np.zeros((10, 10), np.uint8))
+
+
+def test_consensus_needs_agreement_and_confidence():
+    from src.blood_cells import REVIEW_CONFIDENCE, consensus
+    sure = np.eye(8)[6] * 0.95 + 0.05 / 8                       # confident "neutrophil"
+    unsure = np.full(8, 0.02); unsure[6] = REVIEW_CONFIDENCE - 0.05
+    other = np.eye(8)[3] * 0.95 + 0.05 / 8                      # confident "immature granulocyte"
+    assert consensus([sure, sure]) == 6
+    assert consensus([sure, unsure]) is None                   # one model not confident enough
+    assert consensus([sure, other]) is None                    # models disagree
+
+
+def test_differential_count_leaves_review_cells_out_of_the_shares():
+    from src.blood_cells import differential_count
+    rows = dict((name, (n, share)) for name, n, share in
+                differential_count([6, 6, 6, 4, None, None], ["a", "b", "c", "d", "e", "f", "neut", "h"]))
+    assert rows["neut"] == (3, 0.75) and rows["e"] == (1, 0.25) and rows["a"] == (0, 0.0)
+    assert all(share == 0.0 for _, _, share in differential_count([None, None], ["x", "y"]))

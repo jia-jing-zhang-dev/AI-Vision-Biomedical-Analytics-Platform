@@ -79,6 +79,30 @@ def crop_cells(image: Image.Image, cells, side: int | None = None) -> List[Image
     return [Image.fromarray(padded[cy:cy + side, cx:cx + side]) for cx, cy, _ in cells]
 
 
+# Chosen on smear-like mosaics of BloodMNIST validation cells as the lowest
+# threshold whose accepted cells are >= 98% correct (80.9% accepted). Checked
+# once on test mosaics: 77.0% accepted, 98.3% of them correct, 103 of 113
+# errors flagged for review.
+REVIEW_CONFIDENCE = 0.85
+
+
+def consensus(probs) -> int | None:
+    """Class index the models agree on with at least REVIEW_CONFIDENCE each,
+    or None when the cell needs review by a person."""
+    labels = {int(np.argmax(p)) for p in probs}
+    if len(labels) != 1 or min(float(np.max(p)) for p in probs) < REVIEW_CONFIDENCE:
+        return None
+    return labels.pop()
+
+
+def differential_count(labels, class_names) -> List[Tuple[str, int, float]]:
+    """(class, count, share of the accepted cells) for every class, like a
+    lab report; cells needing review (None) are left out of the shares."""
+    accepted = [lab for lab in labels if lab is not None]
+    return [(name, accepted.count(i), accepted.count(i) / len(accepted) if accepted else 0.0)
+            for i, name in enumerate(class_names)]
+
+
 def is_smear(cells) -> bool:
     """True when the upload shows several stained cells. A single stained
     object is classified as a whole image: a lone platelet or erythroblast

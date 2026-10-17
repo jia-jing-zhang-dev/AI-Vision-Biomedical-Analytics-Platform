@@ -254,4 +254,9 @@ def test_blood_page_splits_a_smear_into_cells():
     assert "4 stained cells" in at.info[0].value
     captions = " ".join(c.value for c in at.caption)
     assert captions.count("CNN:") == 4 and captions.count("ResNet:") == 4
+    assert any(h.value == "Differential count" for h in at.subheader)
+    tables = [t.value for t in at.dataframe if "Cell type" in t.value.columns]
+    counted = int(tables[0]["Count"].sum()) if tables else 0
+    review = captions.count("Needs review")
+    assert counted + review == 4 and "of 4 cells counted" in captions
     assert not at.success                     # the single-cell view is skipped
