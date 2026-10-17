@@ -212,4 +212,6 @@ would try (product photo, whole smear), not only with dataset samples. Tests
   Smear mosaics: 99.0% correct, review keeps 99.6% at 99.1%. Owner's web smear (blue-green background,
   WebP; unlabelled) still mostly wrong/flagged -- anecdotal, not explained by the colour suite.
 
+Correction (2026-10-17): KU-Optofil and BloodMNIST's source (Acevedo et al. 2020) are **both May-Grünwald-Giemsa**; they differ in lab, smear preparation and scanner (Sysmex DI-60 vs CellaVision DM96). Earlier text said "another scanner and stain"; now "another lab and scanner". The colour results come from a simulated suite, so call them "simulated colour shifts". In-distribution range is 96–99% (CNN 96.7%), not 97–99%.
+
 **Loop summary (2026-10-13):** 11 rounds, 90 verified findings fixed, tests 29 → 130, every README number re-measured from committed scripts. Open owner decisions: push to GitHub + reboot Streamlit Cloud; LICENSE; source of the brightfield demo photo; rewriting git history to remove local paths/emails in old .pyc files and commit metadata; Git LFS for model weights.

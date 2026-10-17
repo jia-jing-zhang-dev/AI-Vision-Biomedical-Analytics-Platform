@@ -1,7 +1,8 @@
 """
 Cross-source evaluation of the blood-cell models on KU-Optofil PBC
 (Sysmex DI-60, May-Grunwald-Giemsa; Zenodo 10.5281/zenodo.17333317, CC BY 4.0),
-a different scanner and stain from BloodMNIST (CellaVision DM96). No model is
+a different laboratory and scanner from BloodMNIST (Acevedo et al.: CellaVision DM96,
+also May-Grunwald-Giemsa). No model is
 trained on it: this measures transfer to a new source.
 
     python eval_external.py --data-dir DIR --split validation   # choose models / thresholds

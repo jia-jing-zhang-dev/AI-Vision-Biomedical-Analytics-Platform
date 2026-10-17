@@ -159,7 +159,7 @@ BLOOD = "pages/3_Blood_Cell_Classifier.py"
 def test_blood_page_shows_metrics():
     at = run_page(BLOOD)
     values = {m.label: m.value for m in at.metric}
-    # BloodMNIST test / another scanner and stain (KU-Optofil PBC test patients)
+    # BloodMNIST test / another lab's scanner (KU-Optofil PBC test patients)
     assert values["DinoBloom-S (224 px)"] == "98.9% / 95.8%"
     assert values["Custom CNN (28 px)"] == "96.7% / 65.0%"
 

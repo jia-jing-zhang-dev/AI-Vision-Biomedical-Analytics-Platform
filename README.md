@@ -9,7 +9,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 | Result | Value |
 |---|---|
-| **Blood cells on another scanner and stain** (KU-Optofil PBC, 4,949 cells from 55 patients, never trained on) | DinoBloom-S foundation model + linear head: **95.8%** (macro-F1 0.79; 93.9% with strong added colour shifts); ResNet-18 at 224 px: 76.2%; custom CNN: 65.0% |
+| **Blood cells from another lab and scanner** (KU-Optofil PBC, 4,949 cells from 55 patients, never trained on) | DinoBloom-S foundation model + linear head: **95.8%** (macro-F1 0.79; 93.9% with strong added colour shifts); ResNet-18 at 224 px: 76.2%; custom CNN: 65.0% |
 | BloodMNIST blood-cell classification (8 classes, same source) | DinoBloom-S 98.9%, ResNet-18 at 224 px 99.1% (not a significant difference); custom CNN **96.7%** (fully connected baseline: 72.9%) |
 | Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
 | FashionMNIST clothing classification (CNN, 10 classes) | **92.8%** test accuracy (fully connected baseline: 86.9%) |
@@ -18,7 +18,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 
 ## Features
 
-- **Blood-cell classification that holds up on another scanner** — the app uses **DinoBloom-S**, a hematology foundation model, with a linear head trained on BloodMNIST at 224 px; tested on a second dataset from a different scanner and stain, it reaches 95.8% where models that score 97–99% on BloodMNIST fall to 65–76%, and it keeps 93.9% under strong added colour shifts. A PyTorch CNN trained from scratch (96.7% on BloodMNIST, Optuna-tuned) is shown alongside as the small baseline.
+- **Blood-cell classification that holds up on another scanner** — the app uses **DinoBloom-S**, a hematology foundation model, with a linear head trained on BloodMNIST at 224 px; tested on a second dataset from a different laboratory and scanner, it reaches 95.8% where models that score 96–99% on BloodMNIST fall to 65–76%, and it keeps 93.9% under strong simulated colour shifts. A PyTorch CNN trained from scratch (96.7% on BloodMNIST, Optuna-tuned) is shown alongside as the small baseline.
 - **Blood-smear differential count** — a smear upload is split into one crop per stained cell; each is classified, and cells below 50% confidence are flagged for review.
 - **Real-data segmentation benchmark** — every method evaluated on BBBC039, 200 fluorescence images of U2OS nuclei with expert annotations and an official train/validation/test split, using the metrics of the dataset's reference paper.
 - **U-Net for nucleus segmentation** — a 1.9 M-parameter U-Net trained here on BBBC039 with the three-class (background / interior / boundary) formulation of Caicedo et al. (2019); available in the app's segmentation page.
@@ -65,7 +65,7 @@ A machine-learning, computer-vision, and biomedical-image-analysis project with 
 ├── train_unet.py                    # Train the nucleus U-Net on BBBC039
 ├── calibrate_medical.py             # Temperature-scale the blood-cell models
 ├── probe_foundation.py              # Linear probes of DinoBloom-S / DINOv2 on BloodMNIST-224; exports the app model
-├── eval_external.py                 # Cross-source evaluation on KU-Optofil PBC (other scanner and stain)
+├── eval_external.py                 # Cross-source evaluation on KU-Optofil PBC (other lab and scanner)
 ├── biomedical_dinobloom_s.pth       # DinoBloom-S backbone + trained head (86.6 MB, used by the app)
 ├── foundation_probe_results.json    # Probe results; external_results.json: cross-source results
 ├── unet_bbbc039.pth                 # Trained U-Net weights (7.8 MB) + *_results.json
@@ -308,7 +308,7 @@ python train_medical.py --model resnet18_224 --data-dir DIR   # DIR holds bloodm
 
 DinoBloom-S ties the fine-tuned ResNet (p = 0.39) and beats both general-purpose DINOv2 models (p ≤ 0.0002). It was pretrained on 380,000 white-cell images from 13 datasets, with Acevedo et al. (BloodMNIST's source) held out (Koch et al., MICCAI 2024).
 
-**3. Another scanner and stain.** `eval_external.py` tests every model, without retraining, on **KU-Optofil PBC** (Koç University, 2025; Sysmex DI-60, May-Grünwald-Giemsa; CC BY 4.0), whereas BloodMNIST comes from a CellaVision DM96. It was published after DinoBloom, so DinoBloom cannot have seen it. Its classes are mapped to BloodMNIST's (segmented and band neutrophils → neutrophil; myelocytes and metamyelocytes → immature granulocyte); giant platelets, platelet clusters, blasts and reactive lymphocytes have no counterpart and are left out. The dataset's own patient-level split is used: validation patients to choose settings, test patients (4,949 cells, 55 patients) reported once, with 95% intervals from resampling patients.
+**3. Another laboratory and scanner.** `eval_external.py` tests every model, without retraining, on **KU-Optofil PBC** (Koç University, 2025; Sysmex DI-60, May-Grünwald-Giemsa; CC BY 4.0), whereas BloodMNIST comes from a CellaVision DM96 at the Hospital Clinic of Barcelona (Acevedo et al. 2020; also May-Grünwald-Giemsa, so the stain type is the same but the lab protocol, smears and scanner differ). It was published after DinoBloom, so DinoBloom cannot have seen it. Its classes are mapped to BloodMNIST's (segmented and band neutrophils → neutrophil; myelocytes and metamyelocytes → immature granulocyte); giant platelets, platelet clusters, blasts and reactive lymphocytes have no counterpart and are left out. The dataset's own patient-level split is used: validation patients to choose settings, test patients (4,949 cells, 55 patients) reported once, with 95% intervals from resampling patients.
 
 The first run exposed a framing difference: this scanner shows each cell at about half the size (stained region 0.36 of the frame vs. 0.66 on BloodMNIST-224), and the models trained on BloodMNIST collapsed (ResNet-18 at 224 px called 96% of the cells "erythroblast"). Zoomed-out cells are now re-framed around the stained cell to BloodMNIST's scale first (`reframe_single_cell`; only when the cell spans under 0.45 of the frame, so BloodMNIST-framed images are untouched; both values chosen on validation). Estimating magnification from red-cell size instead was tried on validation and dropped (red cells too few and too variable in BloodMNIST frames).
 

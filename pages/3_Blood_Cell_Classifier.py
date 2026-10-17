@@ -26,7 +26,7 @@ MODELS = {
     "DinoBloom-S (224 px)": str(ROOT / "biomedical_dinobloom_s.pth"),
     "Custom CNN (28 px)": str(ROOT / "biomedical_cnn.pth"),
 }
-# Cross-source results (KU-Optofil PBC, another scanner and stain): eval_external.py
+# Cross-source results (KU-Optofil PBC, another lab and scanner): eval_external.py
 EXTERNAL = ROOT / "external_results.json"
 EXTERNAL_NAMES = {"DinoBloom-S (224 px)": "DinoBloom-S (app model)", "Custom CNN (28 px)": "Custom CNN (28 px)"}
 
@@ -126,8 +126,8 @@ def show_smear(image, cells, n_found: int):
                    f"(shown from {MIN_COUNTED}; a real differential counts 100+ leukocytes).")
     st.caption(
         f"{n_counted} of {len(labels)} cells counted; **{n_review} need review** "
-        f"({short(main_name)} below {REVIEW_CONFIDENCE:.0%} confidence; red boxes). On another "
-        "scanner and stain (KU-Optofil PBC test patients) this rule counted 98% of cells at 97% "
+        f"({short(main_name)} below {REVIEW_CONFIDENCE:.0%} confidence; red boxes). On another lab's "
+        "scanner (KU-Optofil PBC test patients) this rule counted 98% of cells at 97% "
         "accuracy but flagged only a quarter of the errors, so counted cells can still be wrong."
     )
     st.image(overview, caption="Stained cells found (numbered; red = needs review)", width="stretch")
@@ -165,7 +165,7 @@ def external_accuracy(name: str):
         return None
 
 
-st.caption("Test accuracy: BloodMNIST (3,421 held-out images) / another scanner and stain "
+st.caption("Test accuracy: BloodMNIST (3,421 held-out images) / another lab's scanner "
            "(KU-Optofil PBC, 4,949 cells from 55 patients, never used for training)")
 cols = st.columns(len(models))
 for col, name in zip(cols, models):
@@ -204,7 +204,7 @@ else:
     st.caption(
         "Upload one centred blood cell, or a smear: several stained cells are split into one "
         "crop per cell. A zoomed-out single cell is re-framed to BloodMNIST's scale first. "
-        "Photos from other microscopes or stains can still be misclassified."
+        "Photos from other microscopes or staining protocols can still be misclassified."
     )
     if image is not None:
         cells = find_cells(np.asarray(image))
