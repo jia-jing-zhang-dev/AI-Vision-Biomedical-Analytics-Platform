@@ -3,18 +3,48 @@
 [![tests](https://github.com/jia-jing-zhang-dev/AI-Vision-Biomedical-Analytics-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/jia-jing-zhang-dev/AI-Vision-Biomedical-Analytics-Platform/actions/workflows/tests.yml)
 [![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://visionserve-full-stack-ml-framework.streamlit.app/)
 
-A machine-learning, computer-vision, and biomedical-image-analysis project with a deployed Streamlit app and reusable, tested modules for classification, clustering, image segmentation, convolution, visualization, and deep learning.
+A deep-learning web app for microscopy images. Its main feature analyzes **blood smears**: it finds each white blood cell in a photo, classifies it into one of eight cell types, and flags the cells it is unsure about for a person to check; for single cells it can also show which parts of the image the model looked at. The app also segments cell nuclei and includes classic computer-vision and machine-learning modules.
 
-**Live demo:** <https://visionserve-full-stack-ml-framework.streamlit.app/>
+**Live demo:** <https://visionserve-full-stack-ml-framework.streamlit.app/> (the free host sleeps when idle; the first load can take a minute)
 
-| Result | Value |
+## Why this project
+
+Counting and classifying white blood cells (a *differential count*) is a routine lab test, done by experts at a microscope. The models built here first score 96–99% on the public **BloodMNIST** benchmark, but such scores are measured on images from the same hospital and scanner the model was trained on. The question this project focuses on is whether a model still works on **images from another lab**.
+
+It does not, by default. On a second, independently labelled dataset from a different laboratory and scanner (KU-Optofil PBC, 4,949 cells from 55 patients, never used for training), models that score 96–99% on BloodMNIST fell to 65–76%. Two causes were found and fixed:
+
+1. **Framing:** the other scanner shows each cell at about half the size, so cells that look small in the frame are re-framed to the scale the model was trained on.
+2. **Model choice and colour:** instead of training from scratch, the app uses **DinoBloom-S**, a foundation model pretrained on 380,000 blood-cell images, with a small classifier trained here on the training images plus colour-varied copies of them.
+
+The deployed model reaches **95.8%** on the other lab's images and keeps **93.9%** under strong simulated colour changes, where the custom CNN drops to 12%. Every setting was chosen on validation data, and each test set was evaluated once.
+
+## How it works
+
+```
+Photo of a blood smear
+  → find stained (purple) cells: blue minus green channel, threshold, merge nucleus lobes
+  → crop each cell the way the training images are framed (one cell, centred)
+  → classify each crop at 224×224 px with DinoBloom-S + a linear classifier
+  → confidence below 50%? → mark "needs review" instead of counting it
+  → differential count (count per cell type) + per-cell gallery
+```
+
+A single centred cell is classified directly (re-framed first if it is small in the frame, i.e. a zoomed-out image), with an optional Grad-CAM heatmap of where the model looked.
+
+## Key results
+
+| What was measured | Result |
 |---|---|
-| **Blood cells from another lab and scanner** (KU-Optofil PBC, 4,949 cells from 55 patients, never trained on) | DinoBloom-S foundation model + linear head: **95.8%** (macro-F1 0.79; 93.9% with strong added colour shifts); ResNet-18 at 224 px: 76.2%; custom CNN: 65.0% |
-| BloodMNIST blood-cell classification (8 classes, same source) | DinoBloom-S 98.9%, ResNet-18 at 224 px 99.1% (not a significant difference); custom CNN **96.7%** (fully connected baseline: 72.9%) |
-| Touching-cell segmentation, instance F1 (50 images) | **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
-| FashionMNIST clothing classification (CNN, 10 classes) | **92.8%** test accuracy (fully connected baseline: 86.9%) |
-| **Real nuclei segmentation** (BBBC039 test set, expert annotations) | U-Net trained here: F1 **0.951** at IoU 0.5, on par with pretrained Cellpose (0.938; not a significant difference). Average F1 over IoU 0.50–0.90: U-Net 0.863, Cellpose 0.902, best classical 0.830 |
-| Confidence calibration | Both blood-cell models already well calibrated (test ECE 0.9% and 0.5%); temperature scaling makes no significant difference |
+| **Blood cells from another lab and scanner** (KU-Optofil PBC, 4,949 cells, 55 patients, never trained on) | DinoBloom-S: **95.8%** (macro-F1 0.79; 93.9% with strong simulated colour shifts). ResNet-18 at 224 px: 76.2%; custom CNN: 65.0% |
+| Blood cells, same source (BloodMNIST, 8 classes) | DinoBloom-S 98.9%, ResNet-18 at 224 px 99.1% (not a significant difference); custom CNN 96.7% (fully connected baseline: 72.9%) |
+| Finding cells in smears (simulated smears built from held-out images) | 98% of nucleated cells found; 99.0% of them classified correctly |
+| **Nucleus segmentation** on expert-annotated microscopy (BBBC039 test set) | U-Net trained here: F1 **0.951** at IoU 0.5, on par with the pretrained Cellpose model (0.938) |
+| Touching-cell segmentation, synthetic images (50 images) | Instance F1 **0.80** watershed vs. 0.60 Otsu; Cellpose reference 0.90 |
+| FashionMNIST clothing classification (10 classes) | CNN **92.8%** (fully connected baseline: 86.9%) |
+
+Details, methods and limitations are in the sections below: [Higher Resolution, Foundation Models and a Second Scanner](#higher-resolution-foundation-models-and-a-second-scanner-blood-cells), [Blood-smear uploads](#blood-smear-uploads), [Real-Data Segmentation Benchmark](#real-data-segmentation-benchmark-bbbc039) and [Explainability and Calibration](#explainability-and-calibration-blood-cell-models).
+
+**Limitations.** This is an educational project, not a medical device. Rare cell types (basophils, immature granulocytes) are classified less reliably than common ones (macro-F1 0.79 vs. 95.8% accuracy); the review flag catches only part of the errors; the smear detector skips most platelets; and photos that differ strongly from microscope scans (heavily edited or compressed web images) can still be misclassified.
 
 ## Features
 
