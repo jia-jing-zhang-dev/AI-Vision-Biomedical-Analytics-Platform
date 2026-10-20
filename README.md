@@ -53,7 +53,7 @@ Details, methods and limitations are in the sections below: [Higher Resolution, 
 - **Real-data segmentation benchmark** — every method evaluated on BBBC039, 200 fluorescence images of U2OS nuclei with expert annotations and an official train/validation/test split, using the metrics of the dataset's reference paper.
 - **U-Net for nucleus segmentation** — a 1.9 M-parameter U-Net trained here on BBBC039 with the three-class (background / interior / boundary) formulation of Caicedo et al. (2019); available in the app's segmentation page.
 - **Explainability (Grad-CAM)** — heatmaps of where each blood-cell model looked, verified against the `pytorch-grad-cam` library (correlation > 0.999).
-- **Confidence calibration** — temperature scaling fitted on the validation split, with reliability diagrams and ECE on the test split; both models were already well calibrated (test ECE < 1%), so scaling changes their confidences only marginally.
+- **Confidence calibration** — temperature scaling of the custom CNN and ResNet-18, fitted on the validation split, with reliability diagrams and ECE on the test split; both were already well calibrated (test ECE < 1%), so scaling changes their confidences only marginally. DinoBloom-S is not temperature-scaled; its review threshold was chosen on validation data instead.
 - **FashionMNIST clothing classification** — a PyTorch CNN that predicts one of ten clothing classes from an uploaded image (92.8% test accuracy, up from 86.9% for the original fully connected network), with upload preprocessing that reproduces how the dataset was made.
 - **Biomedical image segmentation** — six classical methods: Otsu thresholding, adaptive thresholding, K-Means, Canny edge filling, top-hat background correction, and a distance-transform watershed that splits touching cells — benchmarked against **Cellpose**, the standard deep-learning tool for cell segmentation. Brightfield images (dark cells on a light background, such as stained blood smears) are detected and inverted automatically.
 - **Segmentation benchmark** — generates realistic synthetic microscopy images (touching nuclei, uneven illumination, blur, noise) with per-cell ground truth, and scores every method with pixel-level Dice / IoU and object-level instance F1.
@@ -169,7 +169,7 @@ Open the local URL displayed in the terminal, then use the sidebar to switch bet
 
 1. **Deep Learning** — upload a JPG, JPEG, or PNG clothing image and run FashionMNIST classification.
 2. **Biomedical Segmentation** — either generate a synthetic benchmark image (realistic cells or simple shapes) to compare masks, Dice / IoU and instance F1, run a 10-image benchmark, or upload a grayscale or color medical image to view segmentation results from every algorithm.
-3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see both models' predictions (custom CNN and ResNet-18) and class probabilities. An uploaded smear with several stained cells is split into one crop per cell, each crop is classified, and a differential count marks uncertain cells for review.
+3. **Blood Cell Classifier** — pick a bundled BloodMNIST test image (one per class) or upload your own, and see the predictions and class probabilities of DinoBloom-S (the main model) and the custom CNN (the small baseline), with optional Grad-CAM heatmaps. An uploaded smear with several stained cells is split into one crop per cell, each crop is classified, and a differential count marks uncertain cells for review.
 
 Uploads (JPG/PNG, including 16-bit and transparent PNGs and rotated phone photos) are accepted up to 25 megapixels and downscaled to at most 1024 px before processing, which keeps the app within Streamlit Cloud's memory limit.
 
@@ -230,7 +230,7 @@ The jump from 72.9% comes with switching to a CNN trained longer (15 instead of 
 
 Training is deterministic (`set_deterministic` fixes every seed and forces deterministic GPU kernels), so each command reproduces its number exactly on the same hardware; other GPUs or library versions can differ by a few tenths of a point.
 
-**Custom CNN vs. a mature pretrained model:** the custom CNN (2.2 MB, 0.56 M parameters) is on par with the best published BloodMNIST results in the MedMNIST v2 paper. Fine-tuning ImageNet-pretrained ResNet-18 (44.8 MB, 11.2 M parameters, 20× larger) gains another 1.3 points (97.92% vs. 96.67%) — transfer learning helps, at a large cost in model size. The published baselines were trained under the paper's own protocol (not with this project's augmentation, tuning or ImageNet pretraining), so treat that comparison as indicative rather than like-for-like. The app shows both models' predictions side by side.
+**Custom CNN vs. a mature pretrained model:** the custom CNN (2.2 MB, 0.56 M parameters) is on par with the best published BloodMNIST results in the MedMNIST v2 paper. Fine-tuning ImageNet-pretrained ResNet-18 (44.8 MB, 11.2 M parameters, 20× larger) gains another 1.3 points (97.92% vs. 96.67%) — transfer learning helps, at a large cost in model size. The published baselines were trained under the paper's own protocol (not with this project's augmentation, tuning or ImageNet pretraining), so treat that comparison as indicative rather than like-for-like. The app now uses DinoBloom-S (see below) with the custom CNN alongside; ResNet-18 is kept as a reference model and is not shown in the app.
 
 ![BloodMNIST confusion matrix](public/bloodmnist-confusion.png)
 
@@ -306,7 +306,7 @@ Images are converted to 8-bit with percentile normalization (0.5–99.8%). Metri
 
 The models were trained on BloodMNIST crops showing one centred cell, so a whole smear gives a meaningless answer (an early upload with several neutrophils came out as "immature granulocyte"). `src/blood_cells.py` finds the purple-stained cells (blue minus green; red cells and background are not stained), merges the lobes of each nucleus, and crops every cell the way BloodMNIST frames them. The stained region spans a median 0.60 of a BloodMNIST crop (measured on the validation split; lymphocytes 0.50, monocytes 0.75); because size helps tell the classes apart, one crop size is used for all cells of an image, derived from their median size.
 
-Checked on smear-like mosaics of 3×3 BloodMNIST test cells (100 mosaics, 900 cells, scaled 2–5×; settings fixed on validation mosaics first):
+The first version classified the crops with the 28 px custom CNN and ResNet-18. It was checked on smear-like mosaics of 3×3 BloodMNIST test cells (100 mosaics, 900 cells, scaled 2–5×; settings fixed on validation mosaics first):
 
 | | Custom CNN | ResNet-18 |
 |---|---|---|
@@ -375,7 +375,7 @@ The app model is exported with its head as one checkpoint (`python probe_foundat
 | Custom CNN | 0.89 | 0.89% → 0.65% | 96.67% (unchanged) |
 | ResNet-18 | 1.09 | 0.50% → 0.36% | 97.92% (unchanged) |
 
-Both models were already well calibrated (ECE below 1%). Temperature scaling changes very little, and the change is not statistically significant: a paired bootstrap over the test images (1,000 resamples) gives a 95% interval for the ECE change of -0.60 to +0.38 points for the CNN and -0.30 to +0.22 points for ResNet-18, both including zero. The fitted temperatures are applied in the app, but they are close to 1, so the confidences barely change.
+Both models were already well calibrated (ECE below 1%). Temperature scaling changes very little, and the change is not statistically significant: a paired bootstrap over the test images (1,000 resamples) gives a 95% interval for the ECE change of -0.60 to +0.38 points for the CNN and -0.30 to +0.22 points for ResNet-18, both including zero. The custom CNN's fitted temperature is applied in the app (ResNet-18 is no longer shown there); it is close to 1, so its confidences barely change.
 
 ![Reliability diagrams](public/bloodmnist-calibration.png)
 
